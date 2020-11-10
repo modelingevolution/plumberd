@@ -4,10 +4,36 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>ModelingEvolution.Plumberd</AssemblyName>
     <RootNamespace>ModelingEvolution.Plumberd</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Plumberd</PackageId>
+    <Authors>Rafal Maciag</Authors>
+    <Product>Plumberd</Product>
+    <Copyright>ModelingEvolution</Copyright>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/modelingevolution/plumberd</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/modelingevolution/plumberd</RepositoryUrl>
+    <RepositoryType>GIT</RepositoryType>
+    <PackageTags>EventStore CQRS EventSourcing</PackageTags>
+    <PackageReleaseNotes>Pre-Alfa</PackageReleaseNotes>
+    <PackageIcon>logo-squere.png</PackageIcon>
+    <Version>0.0.0.1</Version>
+    <Description>Plumberd is a lightweight library to make working with EventStore easy. 
+It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Serilog" Version="2.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\logo-squere.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

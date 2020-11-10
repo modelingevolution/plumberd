@@ -3,7 +3,7 @@
 ## INTRODUCTION
 
 Plumberd is a lightweight library to make working with EventStore easy. 
-It's makes it super easy for everyone familiar with ASP Controllers to jump into CQRS and EventSourcing.
+It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated.
 
 How? So simple:
 
