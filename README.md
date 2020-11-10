@@ -3,8 +3,15 @@
 
 ## INTRODUCTION
 
-Plumberd is a lightweight library to make working with EventStore easy. 
-It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated.
+Plumberd is a lightweight library to make working with Event driven apps easy. It unifies abstractions and thus combines Event Drive Architecture (messageing) and Event Sourcing (persistance) together.
+It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated. 
+Current version aim is to support your **Handlers** (CommandHandlers, EventHandlers) to work on server-side or client-side without changing the logic. 
+This becomes important especially because **Blazor** and WebAssembly is getting more traction. 
+Supported plumbing:
+
+* EventStore [Done]
+* gRPC [comming soon]
+* SignalR [in next release]
 
 How? So simple:
 
@@ -71,6 +78,14 @@ public class MyProcessorAttribute : ProcessingUnitConfigAttribute
     }
 }
 ```
+## Dependencies
+
+Using the library requires using 3 interfaces:
+* ICommand (all your commands need to implement it)
+* IEvent (all your events need to implement it)
+* IMatadata (most likely you won't derive from it.)
+
+The interface is very simple requireing you only to have **Id** property of type **Guid**.
 
 ## Projections
 
