@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
-namespace ModelingEvolution.Plumberd.Tests
+namespace ModelingEvolution.Plumberd.Tests.Models
 {
     class RecordsData : IEnumerable<object[]>
     {

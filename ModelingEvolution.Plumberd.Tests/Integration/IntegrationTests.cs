@@ -4,15 +4,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
-using ModelingEvolution.Plumberd.Tests.TestingModel;
-using NSubstitute;
+using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
+using ModelingEvolution.Plumberd.Tests.Models;
 using Serilog;
 using Serilog.Events;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace ModelingEvolution.Plumberd.Tests
+namespace ModelingEvolution.Plumberd.Tests.Integration
 {
     public class IntegrationTests
     {

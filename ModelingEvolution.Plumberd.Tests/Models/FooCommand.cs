@@ -1,6 +1,6 @@
 using ModelingEvolution.Plumberd.EventStore;
 
-namespace ModelingEvolution.Plumberd.Tests.TestingModel
+namespace ModelingEvolution.Plumberd.Tests.Models
 {
     [StreamName("Foo")]
     public class FooCommand : Command

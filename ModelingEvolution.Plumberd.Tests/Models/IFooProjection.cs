@@ -2,11 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.EventProcessing;
-using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
-using Serilog;
 
-namespace ModelingEvolution.Plumberd.Tests.TestingModel
+namespace ModelingEvolution.Plumberd.Tests.Models
 {
     [ProcessingUnitConfig(IsEventEmitEnabled = true, 
         IsPersistent = true, 
