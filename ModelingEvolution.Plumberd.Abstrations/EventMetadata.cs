@@ -52,7 +52,11 @@ namespace ModelingEvolution.Plumberd
                 
                 DefaultCommandInvoker = new CommandInvoker(DefaultEventStore, Logger);
             }
-            
+
+            if (DefaultServiceProvider == null)
+            {
+                DefaultServiceProvider = new ActivatorServiceProvider();
+            }
 
             // validate
             return new PlumberRuntime(DefaultCommandInvoker, 
@@ -65,6 +69,14 @@ namespace ModelingEvolution.Plumberd
         {
             DefaultServiceProvider = serviceProvider;
             return this;
+        }
+    }
+
+    class ActivatorServiceProvider : IServiceProvider
+    {
+        public object GetService(Type serviceType)
+        {
+            return Activator.CreateInstance(serviceType);
         }
     }
 
