@@ -1,0 +1,2 @@
+nuget push ModelingEvolution.Plumberd.Abstrations\bin\Debug\Plumberd.0.0.0.1.nupkg -Source https://api.nuget.org/v3/index.json
+nuget push ModelingEvolution.Plumberd.EventStore\bin\Debug\Plumberd.EventStore.0.0.0.1.nupkg -Source https://api.nuget.org/v3/index.json
