@@ -2,7 +2,10 @@
 
 ## INTRODUCTION
 
-Plumberd is a lightweight library to make working with EventStore easy. How? So simple:
+Plumberd is a lightweight library to make working with EventStore easy. 
+It's makes it super easy for everyone familiar with ASP Controllers to jump into CQRS and EventSourcing.
+
+How? So simple:
 
 ```C#
 public class MyCreazyCommandHandler 
