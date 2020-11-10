@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EventStore.Client" Version="20.6.1" />
+    <PackageReference Include="EventStore.Client.Embedded" Version="20.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModelingEvolution.Abstrations\ModelingEvolution.Plumberd.csproj" />
+    <ProjectReference Include="..\ModelingEvolution.EventStore\ModelingEvolution.Plumberd.EventStore.csproj" />
+    <ProjectReference Include="..\ModelingEvolution.Plumberd.Tests\ModelingEvolution.Plumberd.Tests.csproj" />
+  </ItemGroup>
+
+</Project>
