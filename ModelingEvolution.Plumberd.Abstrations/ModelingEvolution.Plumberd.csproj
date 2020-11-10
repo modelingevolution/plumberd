@@ -19,6 +19,7 @@
     <Version>0.0.0.1</Version>
     <Description>Plumberd is a lightweight library to make working with EventStore easy. 
 It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated.</Description>
+    <AssemblyVersion>0.0.0.1</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
