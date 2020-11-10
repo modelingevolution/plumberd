@@ -23,7 +23,7 @@ namespace ModelingEvolution.Plumberd
         IServiceProvider DefaultServiceProvider { get; }
         IEventStore DefaultEventStore { get; }
         IReadOnlyList<IProcessingUnit> Units { get; }
-        void RegisterController(Type processingUnitType,
+        IPlumberRuntime RegisterController(Type processingUnitType,
             Func<Type, object> controllerFactory = null,
             IProcessingUnitConfig config = null,
             IHandlerBinder binder = null,
@@ -31,7 +31,7 @@ namespace ModelingEvolution.Plumberd
             IEventStore store = null,
             SynchronizationContext context = null);
 
-        void RegisterController(object controller,
+        IPlumberRuntime RegisterController(object controller,
             IProcessingUnitConfig config = null,
             IHandlerBinder binder = null,
             ICommandInvoker invoker = null,
@@ -68,7 +68,7 @@ namespace ModelingEvolution.Plumberd
         public IEventStore DefaultEventStore { get; }
         public SynchronizationContext DefaultSynchronizationContext { get; }
 
-        public void RegisterController(
+        public IPlumberRuntime RegisterController(
             Type processingUnitType,
             Func<Type, object> controllerFactory = null,
             IProcessingUnitConfig config = null,
@@ -87,9 +87,10 @@ namespace ModelingEvolution.Plumberd
                 commandInvoker,
                 store,
                 context);
+            return this;
         }
 
-        public void RegisterController(object controller, 
+        public IPlumberRuntime RegisterController(object controller, 
             IProcessingUnitConfig config = null,
             IHandlerBinder binder = null,
             ICommandInvoker invoker = null,
@@ -109,6 +110,7 @@ namespace ModelingEvolution.Plumberd
                 invoker, 
                 eventStore,
                 context);
+            return this;
         }
 
         

@@ -15,7 +15,7 @@
     <RepositoryType>GIT</RepositoryType>
     <PackageIcon>logo-squere.png</PackageIcon>
     <PackageTags>EventStore CQRS EventSourcing</PackageTags>
-    <Version>0.0.0.1</Version>
+    <Version>0.0.0.3</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>Plumberd is a lightweight library to make working with EventStore easy. 
 It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated.
