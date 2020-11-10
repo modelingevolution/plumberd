@@ -47,13 +47,23 @@ public class MyCreazyCommand : Command { }  // you can implement ICommand instea
 ```
 and add bit of **configuration**:
 ```C#
-await new PlumberBuilder()
+var p = new PlumberBuilder()
 	.WithDefaultEventStore(x => x.InSecure())
 	.Build()
-	.RegisterController(new MyCreazyCommandHandler())  // or RegisterController<MyCreazyCommandHandler>();
-	.StartAsync();
+	.RegisterController(new MyCreazyCommandHandler());  // or RegisterController<MyCreazyCommandHandler>();
+await p.StartAsync();
 
 ```
+Now it would make sense to send a command:
+
+```C#
+await p.DefaultCommandInvoker.Execute(Guid.NewGuid(), new MyCreazyCommand());
+```
+
+
+**DONE** You ready to run the app. F5!
+This will save 'MyCreazyCommand' to a stream named Creazy-{id}. Persistent projection will be created under-the-hood and command-handler will be invoked. You can modify *When* method to return events. Then those will be saved to the stream. This can remove dependensies on command-handlers.
+
 ### Handlers or Controllers
 
 CommandHandlers, EventHandlers are just processing units. They contain methods that correspond to certain signatures. 
@@ -106,7 +116,7 @@ public class MyProcessorAttribute : ProcessingUnitConfigAttribute
     }
 }
 ```
-**DONE** You ready to run the app. F5!
+
 ## Dependencies
 
 Using the library requires using 3 interfaces:
