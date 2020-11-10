@@ -23,7 +23,7 @@ and a bit of configuration
 await new PlumberBuilder()
 	.WithDefaultEventStore(x => x.InSecure())
 	.Build()
-	.RegisterController<MyCreazyCommandHandler>()
+	.RegisterController(new MyCreazyCommandHandler())
 	.StartAsync();
 
 ```
