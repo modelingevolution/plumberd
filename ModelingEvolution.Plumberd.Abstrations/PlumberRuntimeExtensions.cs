@@ -42,7 +42,7 @@ namespace ModelingEvolution.Plumberd
                 }
             }
         }
-        public static void RegisterController<T>(this IPlumberRuntime runtime,
+        public static IPlumberRuntime RegisterController<T>(this IPlumberRuntime runtime,
             Func<Type, object> factory = null,
             IProcessingUnitConfig config = null,
             IHandlerBinder binder = null,
@@ -51,6 +51,7 @@ namespace ModelingEvolution.Plumberd
             SynchronizationContext context = null)
         {
             runtime.RegisterController(typeof(T), factory, config, binder, invoker, eventStore, context);
+            return runtime;
         }
 
     }

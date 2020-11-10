@@ -1,6 +1,6 @@
 var target = Argument("target", "Test");
 var configuration = Argument("configuration", "Release");
-var version = Argument("version", "0.0.0.4");
+var version = Argument("version", "0.0.0.5");
 
 //////////////////////////////////////////////////////////////////////
 // TASKS
