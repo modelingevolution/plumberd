@@ -1,10 +1,26 @@
 ﻿using System.Threading.Tasks;
 using FluentAssertions;
+using ModelingEvolution.Plumberd.EventStore;
+using ModelingEvolution.Plumberd.Metadata;
+using ModelingEvolution.Plumberd.Serialization;
 using ModelingEvolution.Plumberd.Tests.Models;
 using Xunit;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.Tests
 {
+    public class NativeEventStoreBuilderTests
+    {
+        [Fact]
+        public void Build()
+        {
+            NativeEventStoreBuilder s = new NativeEventStoreBuilder()
+                .WithMetadataFactory(new MetadataFactory())
+                .WithMetadataSerializerFactory(new MetadataSerializerFactory())
+                .WithRecordSerializer(new RecordSerializer());
+
+        }
+    }
     public class TransitionUnitTests
     {
         [Fact]

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.Metadata;
 using Xunit.Abstractions;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.Tests.Models
 {

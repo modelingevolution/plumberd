@@ -115,7 +115,7 @@ namespace ModelingEvolution.Plumberd
 
         
 
-        public async void RegisterController(Func<Type,object> controllerFactory,
+        public void RegisterController(Func<Type,object> controllerFactory,
             Type processingUnitType,
             bool isScopeFactory,
             IProcessingUnitConfig config = null,

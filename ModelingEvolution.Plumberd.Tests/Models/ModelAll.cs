@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.Metadata;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.Tests.Models
 {

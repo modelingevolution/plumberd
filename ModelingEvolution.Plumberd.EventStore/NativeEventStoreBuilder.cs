@@ -27,6 +27,23 @@ namespace ModelingEvolution.Plumberd.EventStore
             _userName = "admin";
             _password = "changeit";
             _httpUrl = new Uri("http://127.0.0.1:2113/");
+            _metadataSerializer = null;
+        }
+
+        public NativeEventStoreBuilder WithMetadataFactory(IMetadataFactory f)
+        {
+            _metadataFactory = f;
+            return this;
+        }
+        public NativeEventStoreBuilder WithRecordSerializer(IRecordSerializer serializer)
+        {
+            _recordSerializer = serializer;
+            return this;
+        }
+        public NativeEventStoreBuilder WithMetadataSerializerFactory(IMetadataSerializerFactory f)
+        {
+            _metadataSerializer = f;
+            return this;
         }
         public NativeEventStoreBuilder WithTcpUrl(Uri tcp)
         {

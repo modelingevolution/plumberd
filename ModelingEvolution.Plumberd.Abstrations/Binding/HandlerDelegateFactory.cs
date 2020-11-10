@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.Metadata;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.Binding
 {

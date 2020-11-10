@@ -1,4 +1,5 @@
 ﻿using ModelingEvolution.Plumberd.EventProcessing;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.Binding
 {

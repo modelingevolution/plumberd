@@ -53,7 +53,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                         userCredentials: _parent._credentials,
                         subscriptionDropped: OnSubscriptionDropped);
                 }
-                catch (ArgumentException ex)
+                catch (ArgumentException)
                 {
                     // expected ex.Message = "Subscription not found";
                     var settings = await CreatePersistentSubscriptionSettings();
@@ -134,7 +134,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                         await Subscribe();
                         break;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         await Task.Delay(5000);
                     }
@@ -239,7 +239,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                     await Subscribe();
                     break;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await Task.Delay(5000);
                 }

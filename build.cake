@@ -1,6 +1,16 @@
+#addin nuget:?package=Cake.Git
+
 var target = Argument("target", "Test");
 var configuration = Argument("configuration", "Release");
-var version = Argument("version", "0.0.0.5");
+var version = Argument("version", "0.0.0.1");
+
+
+var commits = GitLog("./", int.MaxValue);
+if(version == "0.0.0.1")
+{
+    version = "0.0.0." + commits.Count;
+    //Write("Version: {0}", version);
+}
 
 //////////////////////////////////////////////////////////////////////
 // TASKS

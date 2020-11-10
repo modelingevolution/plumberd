@@ -13,11 +13,11 @@ namespace ModelingEvolution.Plumberd
         {
         }
 
-        public ControllerRegistrationFailed(string? message) : base(message)
+        public ControllerRegistrationFailed(string message) : base(message)
         {
         }
 
-        public ControllerRegistrationFailed(string? message, Exception? innerException) : base(message, innerException)
+        public ControllerRegistrationFailed(string message, Exception innerException) : base(message, innerException)
         {
         }
     }
