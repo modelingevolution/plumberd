@@ -49,6 +49,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         public async Task LoadEventFromFile(string file)
         {
             Log.Information("Loading events from file: {fileName}", file);
+            long n = 0;
             byte[] buffer = new byte[16 * 1024]; // 16KB
             Task writeTask = null;
             await using (var fileStream = File.Open(file, FileMode.Open))
@@ -81,16 +82,20 @@ namespace ModelingEvolution.Plumberd.EventStore
                             await writeTask;
                         var d = new global::EventStore.ClientAPI.EventData(g, eventType, true, metadata, data);
                         writeTask = _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, d);
+                        n += 1;
                     }
                 }
 
                 if (writeTask != null)
                     await writeTask;
+                Log.Information("Loaded {count} events from file: {fileName}",n, file);
             }
+
         }
         public async Task WriteEventsToFile(string file)
         {
             Log.Information("Writing events to file {fileName}", file);
+            long n = 0;
             Stopwatch s = new Stopwatch();
             s.Start();
             byte[] guidBuffer = new byte[16];
@@ -122,6 +127,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                                 sw.Write(eventType);
                                 sw.Write(e.Event.Metadata);
                                 sw.Write(e.Event.Data);
+                                n += 1;
                             }
                         }
 
@@ -130,7 +136,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 }
             }
             s.Stop();
-            Log.Information("Wrinting done in: {duration}", s.Elapsed);
+            Log.Information("Writing {count} done in: {duration}",n, s.Elapsed);
             
         }
         public NativeEventStore(IEventStoreConnection connection, 

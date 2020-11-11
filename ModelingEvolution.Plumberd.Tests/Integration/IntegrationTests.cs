@@ -1,7 +1,9 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+using EventStore.ClientAPI;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
@@ -11,12 +13,14 @@ using Serilog.Events;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
+using EventData = EventStore.ClientAPI.EventData;
 
 namespace ModelingEvolution.Plumberd.Tests.Integration
 {
     public class IntegrationTests
     {
         private readonly ITestOutputHelper _testOutputHelper;
+        private EventStoreServer server;
 
         public IntegrationTests(ITestOutputHelper testOutputHelper)
         {
@@ -46,6 +50,57 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 cmd.Name.ShouldBe(c.Name);
             }
         }
+
+        [Fact]
+        public async Task SaveEvent_LoadEvent()
+        {
+            string category = "Foo";
+            Guid id = Guid.NewGuid();
+            Guid eId = Guid.NewGuid();
+            var bytes = Encoding.UTF8.GetBytes("{ }");
+
+            await SaveEvents(id, eId, bytes, category);
+
+            await server.StartInDocker();
+
+            await LoadAndAssert(id, eId, bytes, category);
+        }
+
+        private async Task LoadAndAssert(Guid id, Guid eId, byte[] bytes, string category)
+        {
+
+            var plumber = await CreatePlumber();
+            var nStore = (NativeEventStore)plumber.DefaultEventStore;
+            var connection = nStore.Connection;
+
+            var events = await connection.ReadStreamEventsForwardAsync($"{category}-{id}", StreamPosition.Start, 10, true);
+            events.Events.Length.ShouldBe(0);
+
+            await nStore.LoadEventFromFile("test.bak");
+
+            events = await connection.ReadStreamEventsForwardAsync($"{category}-{id}", StreamPosition.Start, 10, true);
+            events.Events.Length.ShouldBe(1);
+            var r = events.Events[0].Event;
+            r.EventId.ShouldBe(eId);
+            r.Data.ShouldBe(bytes);
+            r.Metadata.ShouldBe(bytes);
+            r.EventStreamId.ShouldBe($"{category}-{id}");
+            r.EventType.ShouldBe("Foo");
+        }
+
+        private async Task SaveEvents(Guid id, Guid eId, byte[] bytes, string category)
+        {
+            var plumber = await CreatePlumber();
+
+            var nStore = (NativeEventStore) plumber.DefaultEventStore;
+            var connection = nStore.Connection;
+           
+            var ev = new EventData(eId, "Foo", true, bytes, bytes);
+            await connection.AppendToStreamAsync($"{category}-{id}", ExpectedVersion.Any, new EventData[] {ev});
+
+            await nStore.WriteEventsToFile("test.bak");
+        }
+
 
         [Fact]
         public async Task InvokeCommand_HandleCommand_HandleEvent_CorrelationCheck()
@@ -86,7 +141,6 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
         }
 
         [Fact]
-        
         public async Task InvokeCommand_HandleCommand_HandleEvent_MetadataCheck()
         {
             Guid id = Guid.NewGuid();
@@ -129,7 +183,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 .CreateLogger();
             Log.Logger = logger;
 
-            var server = await EventStoreServer.Start();
+            this.server = await EventStoreServer.Start();
             await Task.Delay(2000);
 
             PlumberBuilder b = new PlumberBuilder()

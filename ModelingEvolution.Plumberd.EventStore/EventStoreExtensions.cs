@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System;
 
-[assembly: InternalsVisibleTo("ModelingEvolution.Plumberd.EventStore.Backup")]
+[assembly: InternalsVisibleTo("ModelingEvolution.Plumberd.Tests")]
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
