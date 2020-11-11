@@ -172,12 +172,14 @@ namespace ModelingEvolution.Plumberd.EventStore
             _credentials = credentials;
             
         }
-        public NativeEventStore(EventStoreSettings settings, Uri tcpUrl = null, 
+        public NativeEventStore(EventStoreSettings settings, 
+            Uri tcpUrl = null, 
             Uri httpProjectionUrl = null,
             string userName = "admin", 
             string password = "changeit",
             bool ignoreServerCert = false,
-            bool disableTls = false)
+            bool disableTls = false,
+            Action<ConnectionSettingsBuilder> connectionBuilder = null)
         {
             _settings = settings;
             httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
@@ -202,6 +204,8 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             if (ignoreServerCert)
                 tcpSettings = tcpSettings.DisableServerCertificateValidation();
+
+            connectionBuilder?.Invoke(tcpSettings);
 
             _projectionsManager = new ProjectionsManager(new ConsoleLogger(), new DnsEndPoint(httpProjectionUrl.Host, httpProjectionUrl.Port), TimeSpan.FromSeconds(10),
                 ignoreServerCert ? IgnoreServerCertificateHandler() : null, httpProjectionUrl.Scheme);
