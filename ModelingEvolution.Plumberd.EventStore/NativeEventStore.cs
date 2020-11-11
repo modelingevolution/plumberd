@@ -24,6 +24,21 @@ using ILogger = Serilog.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
+    static class StreamExtensions
+    {
+        public static async Task<int> ReadAllAsync(this Stream s, byte[] buffer, int offset, int count)
+        {
+            var r = await s.ReadAsync(buffer, offset, count);
+            while (r != count)
+            {
+                var n = await s.ReadAsync(buffer, offset + r, count - r);
+                if (n == 0) 
+                    return r;
+                r += n;
+            }
+            return r;
+        }
+    }
     
     public partial class NativeEventStore : IEventStore
     {
@@ -45,7 +60,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 ServerCertificateCustomValidationCallback = (r, cer, c, e) => true
             };
         }
-
+        
         public async Task LoadEventFromFile(string file)
         {
             Log.Information("Loading events from file: {fileName}", file);
@@ -58,7 +73,10 @@ namespace ModelingEvolution.Plumberd.EventStore
                 {
                     while (fs.CanRead)
                     {
-                        if (await fs.ReadAsync(buffer, 0, 32) != 32) break;
+                        var headerLen = await fs.ReadAllAsync(buffer, 0, 32);
+                        if (headerLen != 32)
+                            break;
+
                         Guid g = new Guid(new ReadOnlySpan<byte>(buffer, 0, 16));
                         int streamNameLen = MemoryMarshal.Read<int>(new ReadOnlySpan<byte>(buffer, 16, 4));
                         int eventTypeLen = MemoryMarshal.Read<int>(new ReadOnlySpan<byte>(buffer, 16 + 4, 4));
@@ -67,7 +85,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
 
                         var nameLen = streamNameLen + eventTypeLen;
-                        if (await fs.ReadAsync(buffer, 0, nameLen) != nameLen) break;
+                        if (await fs.ReadAllAsync(buffer, 0, nameLen) != nameLen) break;
 
                         string streamName = Encoding.UTF8.GetString(buffer, 0, streamNameLen);
                         string eventType = Encoding.UTF8.GetString(buffer, streamNameLen, eventTypeLen);
@@ -75,8 +93,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                         byte[] metadata = new byte[metadataLen];
                         byte[] data = new byte[dataLen];
 
-                        if (await fs.ReadAsync(metadata, 0, metadataLen) != metadataLen) break;
-                        if (await fs.ReadAsync(data, 0, dataLen) != dataLen) break;
+                        if (await fs.ReadAllAsync(metadata, 0, metadataLen) != metadataLen) break;
+                        if (await fs.ReadAllAsync(data, 0, dataLen) != dataLen) break;
 
                         if (writeTask != null)
                             await writeTask;

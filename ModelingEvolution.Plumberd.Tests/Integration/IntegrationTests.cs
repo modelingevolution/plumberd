@@ -50,6 +50,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 cmd.Name.ShouldBe(c.Name);
             }
         }
+       
 
         [Fact]
         public async Task SaveEvent_LoadEvent()
