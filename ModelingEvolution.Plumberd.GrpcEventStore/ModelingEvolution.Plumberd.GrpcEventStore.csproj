@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EventStore.Client.Grpc" Version="20.6.1" />
+    <PackageReference Include="EventStore.Client.Grpc.Operations" Version="20.6.1" />
+    <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="20.6.1" />
+    <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="20.6.1" />
+    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="20.6.1" />
+    <PackageReference Include="EventStore.Client.Grpc.UserManagement" Version="20.6.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
+  </ItemGroup>
+
+</Project>
