@@ -6,6 +6,7 @@ using EventStore.Client;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.GrpcEventStore
 {
