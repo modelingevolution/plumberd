@@ -14,6 +14,17 @@ namespace ModelingEvolution.Plumberd.Metadata
         }
     }
 
+    public static class UserMetadataEnricherExtensions
+    {
+        public static Guid UserId(this IMetadata ev)
+        {
+            return Guid.Empty;
+        }
+        public static string UserName(this IMetadata ev)
+        {
+            return string.Empty;
+        }
+    }
     public static class SystemMetadataEnricherExtensions
     {
         public static Guid StreamId(this IMetadata m)
