@@ -39,7 +39,8 @@ namespace ModelingEvolution.Plumberd.EventStore
             return r;
         }
     }
-    
+
+
     public partial class NativeEventStore : IEventStore
     {
         private readonly ConcurrentBag<ISubscription> _subscriptions;
@@ -231,6 +232,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             bool isPersistent,
             EventHandler onEvent,
             IProcessingContextFactory processingFactory,
+            ProjectionSchema schema = null,
             params string[] sourceEventTypes)
         {
             await CheckConnectivity();
@@ -238,11 +240,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             types.Sort();
 
             Guid key = String.Concat(types).ToGuid();
-            var streamName = $"{_settings.ProjectionStreamPrefix}{name}-{key}";
+            var streamName = schema?.StreamName ?? $"{_settings.ProjectionStreamPrefix}{name}-{key}";
             
             if (types.Count > 1)
             {
-                var projectionName = $"{name}-{key}";
+                var projectionName = schema?.ProjectionName ?? $"{name}-{key}";
                 _settings.Logger.Information("Subscription for {ControllerName} with {projectionName} from {stream} on: {events}",
                     processingFactory.Config.Type.Name,
                     projectionName,
@@ -252,9 +254,23 @@ namespace ModelingEvolution.Plumberd.EventStore
                 var projections = await _projectionsManager.ListContinuousAsync(_credentials);
                 // we make projection only when we need to.
                 if (!projections.Exists(x => x.Name == projectionName))
-                    await CreateTrackingProjection(projectionName, streamName, types);
+                {
+                    var query = schema?.Script ?? new ProjectionSchemaBuilder().FromEventTypes(types).EmittingStream(streamName).Script();
+                    await _projectionsManager.CreateContinuousAsync(projectionName, query, false, _credentials);
+                }
                 else
-                    await UpdateTrackingProjectionIfNeeded(projectionName, streamName, types);
+                {
+                    var query = schema?.Script ?? new ProjectionSchemaBuilder().FromEventTypes(types).EmittingStream(streamName).Script();
+                    var config = await _projectionsManager.GetConfigAsync(projectionName, _credentials);
+
+                    var currentQuery = await _projectionsManager.GetQueryAsync(projectionName, _credentials);
+
+                    if (query != currentQuery || !config.EmitEnabled)
+                    {
+                        Log.Information("Updating continues projection definition and config: {projectionName}", projectionName);
+                        await _projectionsManager.UpdateQueryAsync(projectionName, query, true, _credentials);
+                    }
+                }
             }
             else
             {
@@ -266,11 +282,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             else
                 await Subscribe(fromBeginning, onEvent, streamName, processingFactory);
         }
-        private async Task UpdateTrackingProjectionIfNeeded(string projectionName,
+        private async Task UpdateDefaultTrackingProjectionIfNeeded(string projectionName,
             string streamName,
             IEnumerable<string> types)
         {
-            var query = CreateProjectionQuery(streamName, types);
+            var query = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingStream(streamName).Script();
             var config = await _projectionsManager.GetConfigAsync(projectionName, _credentials);
             
             var currentQuery = await _projectionsManager.GetQueryAsync(projectionName, _credentials);
@@ -281,46 +297,8 @@ namespace ModelingEvolution.Plumberd.EventStore
             }
             
         }
-        private async Task CreateTrackingProjection(string projectionName, 
-            string streamName,
-            IEnumerable<string> types)
-        {
-            var query = CreateProjectionQuery(streamName,  types);
-            await _projectionsManager.CreateContinuousAsync(projectionName, query, false, _credentials);
-        }
-
-        private static string CreateProjectionQuery(string streamName,
-            IEnumerable<string> types)
-        {
-            StringBuilder query = new StringBuilder();
-            //query.AppendLine("options({");
-            //query.AppendLine("resultStreamName: \"\","); // we are not creating a stream
-            //query.AppendLine("$includeLinks: true,");
-            //if (processingLag > TimeSpan.Zero)
-            //{
-                //query.AppendLine("  reorderEvents: true,");
-                //query.AppendLine($"  processingLag: {processingLag.TotalMilliseconds}");
-            //}
-            //else
-            //{
-                //query.AppendLine("  reorderEvents: false,");
-                //query.AppendLine("  processingLag: 0");
-            //}
-
-            //query.AppendLine("});");
-
-            //query.AppendLine();
-            query.Append("fromStreams([");
-            query.Append(string.Join(',', types.Select(i => $"'$et-{i}'")));
-            query.Append("])");
-            query.AppendLine();
-            query.Append(".when( { \r\n    $any : function(s,e) { linkTo('");
-            query.Append(streamName);
-            query.Append("', e) }\r\n});");
-
-            string queryT = query.ToString();
-            return queryT;
-        }
+       
+       
 
         private async Task Subscribe(bool fromBeginning,
             EventHandler onEvent,

@@ -49,7 +49,9 @@ namespace ModelingEvolution.Plumberd.GrpcEventStore
         }
 
         public async Task Subscribe(string name, bool fromBeginning, bool isPersistent, EventHandler onEvent,
-            IProcessingContextFactory processingContextFactory, params string[] sourceEventTypes)
+            IProcessingContextFactory processingContextFactory,
+            ProjectionSchema schema,
+            params string[] sourceEventTypes)
         {
             
         }

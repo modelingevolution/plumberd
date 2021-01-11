@@ -45,7 +45,7 @@ namespace ModelingEvolution.Plumberd
         public static IPlumberRuntime RegisterController<T>(this IPlumberRuntime runtime,
             Func<Type, object> factory = null,
             IProcessingUnitConfig config = null,
-            IHandlerBinder binder = null,
+            IEventHandlerBinder binder = null,
             ICommandInvoker invoker = null,
             IEventStore eventStore = null,
             SynchronizationContext context = null)

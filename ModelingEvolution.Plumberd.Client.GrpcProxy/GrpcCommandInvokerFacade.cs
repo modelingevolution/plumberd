@@ -35,7 +35,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
         private AsyncDuplexStreamingCall<WriteReq, WriteRsp> OnCreateWriteCall()
         {
-            return _client.Value.WriteStream(new CallOptions());
+            return _client.Value.WriteStream();
         }
 
         private GrpcEventStoreProxy.GrpcEventStoreProxyClient OnCreateClient()
@@ -57,6 +57,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             }
 
             await this._writeCall.Value.RequestStream.WriteAsync(msg);
+            await this._writeCall.Value.RequestStream.CompleteAsync();
         }
 
 

@@ -16,6 +16,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             bool isPersistent,
             EventHandler onEvent,
             IProcessingContextFactory processingContextFactory,
+            ProjectionSchema schema = null,
             params string[] sourceEventTypes);
     }
     public interface IEventStoreSettings
@@ -27,5 +28,11 @@ namespace ModelingEvolution.Plumberd.EventStore
         string CommandStreamPrefix { get; }
         Func<Type,string[]> RecordNamingConvention { get; }
         ILogger Logger { get; }
+    }
+    public class ProjectionSchema
+    {
+        public string ProjectionName { get; set; }
+        public string StreamName { get; set; }
+        public string Script { get; set; }
     }
 }

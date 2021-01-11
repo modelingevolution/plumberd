@@ -26,19 +26,25 @@ namespace ModelingEvolution.Plumberd
         IPlumberRuntime RegisterController(Type processingUnitType,
             Func<Type, object> controllerFactory = null,
             IProcessingUnitConfig config = null,
-            IHandlerBinder binder = null,
+            IEventHandlerBinder binder = null,
             ICommandInvoker commandInvoker = null,
             IEventStore store = null,
             SynchronizationContext context = null);
 
         IPlumberRuntime RegisterController(object controller,
             IProcessingUnitConfig config = null,
-            IHandlerBinder binder = null,
+            IEventHandlerBinder binder = null,
             ICommandInvoker invoker = null,
             IEventStore eventStore = null,
             SynchronizationContext context = null);
 
-        
+        Task<IProcessingUnit> RunController(object controller,
+            IProcessingUnitConfig config = null,
+            IEventHandlerBinder binder = null,
+            ICommandInvoker invoker = null,
+            IEventStore eventStore = null,
+            SynchronizationContext context = null);
+
         Task StartAsync(Predicate<IProcessingUnit> filter = null);
     }
 
@@ -72,7 +78,7 @@ namespace ModelingEvolution.Plumberd
             Type processingUnitType,
             Func<Type, object> controllerFactory = null,
             IProcessingUnitConfig config = null,
-            IHandlerBinder binder = null,
+            IEventHandlerBinder binder = null,
             ICommandInvoker commandInvoker = null,
             IEventStore store = null,
             SynchronizationContext context = null)
@@ -92,7 +98,7 @@ namespace ModelingEvolution.Plumberd
 
         public IPlumberRuntime RegisterController(object controller, 
             IProcessingUnitConfig config = null,
-            IHandlerBinder binder = null,
+            IEventHandlerBinder binder = null,
             ICommandInvoker invoker = null,
             IEventStore eventStore = null,
             SynchronizationContext context = null)
@@ -113,13 +119,18 @@ namespace ModelingEvolution.Plumberd
             return this;
         }
 
-        
+        public Task<IProcessingUnit> RunController(object controller, IProcessingUnitConfig config = null, IEventHandlerBinder binder = null,
+            ICommandInvoker invoker = null, IEventStore eventStore = null, SynchronizationContext context = null)
+        {
+            throw new NotImplementedException();
+        }
+
 
         public void RegisterController(Func<Type,object> controllerFactory,
             Type processingUnitType,
             bool isScopeFactory,
             IProcessingUnitConfig config = null,
-            IHandlerBinder binder = null,
+            IEventHandlerBinder binder = null,
             ICommandInvoker commandInvoker = null,
             IEventStore store = null,
             SynchronizationContext context = null)
@@ -127,13 +138,13 @@ namespace ModelingEvolution.Plumberd
             var eventConfig = BuildConfiguration(processingUnitType, config, store ?? DefaultEventStore, ProcessingMode.EventHandler);
             var commandConfig = BuildConfiguration(processingUnitType, config, store ?? DefaultEventStore, ProcessingMode.CommandHandler);
 
-            var eventBinder = binder ?? new HandlerBinder(processingUnitType)
+            var eventBinder = binder ?? new EventHandlerBinder(processingUnitType)
                 .Discover(true,
                     eventConfig != null
                         ? eventConfig.BindingFlags & (BindingFlags.ProcessEvents | BindingFlags.ReturnAll)
                         : BindingFlags.ProcessEvents | BindingFlags.ReturnAll);
 
-            var commandBinder = binder ?? new HandlerBinder(processingUnitType)
+            var commandBinder = binder ?? new EventHandlerBinder(processingUnitType)
                 .Discover(true,
                     commandConfig != null
                         ? commandConfig.BindingFlags & (BindingFlags.ProcessCommands | BindingFlags.ReturnAll)
@@ -168,7 +179,7 @@ namespace ModelingEvolution.Plumberd
             Type processingUnitType,
             bool isScopedFactory,
             IProcessingUnitConfig config,
-            IHandlerBinder handlerBinder,
+            IEventHandlerBinder eventHandlerBinder,
             ICommandInvoker commandInvoker,
             IEventStore store,
             SynchronizationContext context, 
@@ -190,7 +201,7 @@ namespace ModelingEvolution.Plumberd
             // we ignore configuration if the processing mode is not appropriate.
             config = BuildConfiguration(processingUnitType, config, store, processingMode);
 
-            handlerBinder ??= new HandlerBinder(processingUnitType).Discover(true, config.BindingFlags);
+            eventHandlerBinder ??= new EventHandlerBinder(processingUnitType).Discover(true, config.BindingFlags);
             
             commandInvoker ??= DefaultCommandInvoker;
             context ??= DefaultSynchronizationContext;
@@ -198,22 +209,31 @@ namespace ModelingEvolution.Plumberd
             if(config.IsCommandEmitEnabled && commandInvoker == null)
                 throw new ArgumentException("CommandInvoker cannot be null when 'IsCommandProcessingEnabled' is ON.");
 
-            var recordTypes = handlerBinder
+            var recordTypes = eventHandlerBinder
                 .Types()
                 .SelectMany(store.Settings.RecordNamingConvention)
                 .ToArray();
 
             if (recordTypes.Any())
             {
-                var dispatcher = handlerBinder.CreateDispatcher();
-
+                var dispatcher = eventHandlerBinder.CreateDispatcher();
+                if (config.OnAfterDispatch != null)
+                {
+                    var inner = dispatcher;
+                    dispatcher = async (unit, metadata, ev) =>
+                    {
+                        var r = await inner(unit, metadata, ev);
+                        await config.OnAfterDispatch.Invoke(unit, metadata, ev, r);
+                        return r;
+                    };
+                }
                 var factory = new ProcessingContextFactory(processingUnitFactory,
                     processingUnitType,
                     isScopedFactory,
                     dispatcher,
                     store,
                     commandInvoker,
-                    handlerBinder,
+                    eventHandlerBinder,
                     config,
                     context);
 
@@ -256,11 +276,11 @@ namespace ModelingEvolution.Plumberd
 
                 if (u.SynchronizationContext == null)
                     await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
-                        u.Config.IsPersistent, ProcessEventsLoop, u, types);
+                        u.Config.IsPersistent, ProcessEventsLoop, u, u.Config.ProjectionSchema, types);
 
                 else
                     await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
-                        u.Config.IsPersistent, ProcessEventsLoopWithSync, u, types);
+                        u.Config.IsPersistent, ProcessEventsLoopWithSync, u, u.Config.ProjectionSchema, types);
             }
         }
         async Task ProcessEventsLoop(IProcessingContext context, IMetadata m, IRecord e)

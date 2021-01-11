@@ -18,7 +18,7 @@ namespace ModelingEvolution.Plumberd
     public class CommandHandlerContext : ICommandHandlerContext
     {
         private readonly ProcessingContextFactory _parent;
-        internal IHandlerBinder Binder => _parent.Binder;
+        internal IEventHandlerBinder Binder => _parent.Binder;
 
         public HandlerDispatcher Dispatcher => _parent.Dispatcher;
 
