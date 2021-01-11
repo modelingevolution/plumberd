@@ -6,6 +6,7 @@ using EventStore.Client;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.GrpcEventStore
 {
@@ -48,7 +49,9 @@ namespace ModelingEvolution.Plumberd.GrpcEventStore
         }
 
         public async Task Subscribe(string name, bool fromBeginning, bool isPersistent, EventHandler onEvent,
-            IProcessingContextFactory processingContextFactory, params string[] sourceEventTypes)
+            IProcessingContextFactory processingContextFactory,
+            ProjectionSchema schema,
+            params string[] sourceEventTypes)
         {
             
         }

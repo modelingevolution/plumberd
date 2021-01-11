@@ -83,6 +83,15 @@ namespace ModelingEvolution.Plumberd
                 a.Add(value);
             else a.Insert(index, value);
         }
+
+        public static void AddRange<T>(this IList<T> list, IEnumerable<T> other)
+        {
+            if(list is List<T> l)
+                l.AddRange(other);
+            else
+                foreach (var i in other)
+                    list.Add(i);
+        }
         public static Int32 BinarySearch<T>(this IList<T> a, T value, IComparer<T> comparer = null)
         {
             Int32 left = 0;
@@ -102,9 +111,11 @@ namespace ModelingEvolution.Plumberd
             }
             return high;
         }
+
+        
         public static void Merge<TDestination, TSource>(this IList<TDestination> destination,
-            IList<TSource> source, Func<TDestination, TSource, bool> match,
-            Action<TDestination, TSource> onUpdate, Func<TDestination> onCreate = null)
+            IList<TSource> source, Func<TDestination, TSource, bool> match = null,
+            Action<TDestination, TSource> onUpdate = null, Func<TDestination> onCreate = null)
         {
             if (onCreate == null)
                 onCreate = Activator.CreateInstance<TDestination>;
@@ -178,6 +189,8 @@ namespace ModelingEvolution.Plumberd
                 return s.Substring(start.Length);
             return s;
         }
+
+        
         public static Guid ToGuid(this string t)
         {
             using (MD5 h = MD5.Create())

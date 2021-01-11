@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
@@ -10,7 +12,7 @@ using Serilog;
 
 namespace ModelingEvolution.Plumberd
 {
-   
+    
 
     public class PlumberBuilder
     {

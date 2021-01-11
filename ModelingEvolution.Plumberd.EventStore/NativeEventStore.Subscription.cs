@@ -216,7 +216,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                         //_log.Information("Reading {eventNumber} {eventType} from {streamName}", e.Event.EventNumber,ev.GetType().Name, _streamName);
                         if (e.OriginalEventNumber > _streamPosition || _streamPosition == null)
                         {
-                            await _onEvent(context, m, (IEvent) ev);
+                            await _onEvent(context, m, ev);
                             _streamPosition = e.OriginalEventNumber;
                         }
                         else
