@@ -92,55 +92,5 @@ namespace ModelingEvolution.Plumberd.Binding.v1
         public MethodInfo MethodInfo { get; private set; }
         public Type Type { get; private set; }
     }
-    class ProcessingUnitBinder : IHandlerBinder
-    {
-
-        public ProcessingUnitBinder(Type type)
-        {
-
-        }
-
-        public IHandlerBinder Discover(bool searchInProperties, Predicate<MethodInfo> methodFilter = null)
-        {
-            return this;
-        }
-
-        public IEnumerable<Type> Types()
-        {
-            throw new NotImplementedException();
-        }
-
-        public HandlerDispatcher CreateDispatcher()
-        {
-            // Many result signatures
-            // Many parameter signatures
-            
-            // When(Guid, TRecord)
-            // When(TMetadata, TRecord)
-            // Given(TRecord)
-            // When(IDictionary<string, object> obj, TRecord)
-            
-            // Action(TData)
-            // Happened(TData)
-
-            // Attributes on methods
-            // Fluent configuration of methods = through delegate pattern matching and naming.
-
-
-            // new flow looks like this:
-            // Metadata deserialization
-            // Resolution for context - can be command/event flow.
-            // With processing unit based on life-time 
-            // Deserialization of TRecord.
-            // Dispatching of TRecord to a method
-
-
-            // Adapting parameters
-            // Passing arguments
-            // Adapting the results
-            // Processing the results - saving more events.
-
-            throw new NotImplementedException();
-        }
-    }
+    
 }
