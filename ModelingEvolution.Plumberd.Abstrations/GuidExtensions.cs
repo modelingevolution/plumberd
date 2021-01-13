@@ -189,14 +189,5 @@ namespace ModelingEvolution.Plumberd
                 return s.Substring(start.Length);
             return s;
         }
-
-        
-        public static Guid ToGuid(this string t)
-        {
-            using (MD5 h = MD5.Create())
-            {
-                return new Guid(h.ComputeHash(Encoding.Default.GetBytes(t)));
-            }
-        }
     }
 }

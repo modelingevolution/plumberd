@@ -14,6 +14,7 @@ using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using BindingFlags = ModelingEvolution.Plumberd.Binding.BindingFlags;
+using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 
 namespace ModelingEvolution.Plumberd
 {
@@ -42,7 +43,7 @@ namespace ModelingEvolution.Plumberd
             IProcessingUnitConfig config = null,
             IEventHandlerBinder binder = null,
             ICommandInvoker invoker = null,
-            IEventStore eventStore = null,
+            IEventStore store = null,
             SynchronizationContext context = null);
 
         Task StartAsync(Predicate<IProcessingUnit> filter = null);
@@ -119,10 +120,28 @@ namespace ModelingEvolution.Plumberd
             return this;
         }
 
-        public Task<IProcessingUnit> RunController(object controller, IProcessingUnitConfig config = null, IEventHandlerBinder binder = null,
-            ICommandInvoker invoker = null, IEventStore eventStore = null, SynchronizationContext context = null)
+        public async Task<IProcessingUnit> RunController(object controller, 
+            IProcessingUnitConfig config = null, 
+            IEventHandlerBinder binder = null,
+            ICommandInvoker invoker = null, 
+            IEventStore store = null, 
+            SynchronizationContext context = null)
         {
-            throw new NotImplementedException();
+            var processingUnitType = controller.GetType();
+            var eventConfig = BuildConfiguration(processingUnitType, config, store ?? DefaultEventStore, ProcessingMode.EventHandler);
+
+            var eventBinder = binder ?? new EventHandlerBinder(processingUnitType)
+                .Discover(true,
+                    eventConfig != null
+                        ? eventConfig.BindingFlags & (BindingFlags.ProcessEvents | BindingFlags.ReturnAll)
+                        : BindingFlags.ProcessEvents | BindingFlags.ReturnAll);
+
+            var unit = (ProcessingContextFactory)Subscribe((t) => controller, 
+                processingUnitType, false,
+                eventConfig, eventBinder, invoker, store, context,ProcessingMode.EventHandler);
+            
+            await Start(unit);
+            return unit;
         }
 
 
@@ -267,22 +286,34 @@ namespace ModelingEvolution.Plumberd
         {
             filter ??= x => true;
 
-            foreach (var u in _units.Where(x=>filter(x)))
+            foreach (var u in _units.Where(x => filter(x)))
             {
-                var types = u.Binder
-                    .Types()
-                    .SelectMany(u.EventStore.Settings.RecordNamingConvention)
-                    .ToArray();
-
-                if (u.SynchronizationContext == null)
-                    await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
-                        u.Config.IsPersistent, ProcessEventsLoop, u, u.Config.ProjectionSchema, types);
-
-                else
-                    await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
-                        u.Config.IsPersistent, ProcessEventsLoopWithSync, u, u.Config.ProjectionSchema, types);
+                await Start(u);
             }
         }
+
+        private async Task Start(ProcessingContextFactory u)
+        {
+            var types = u.Binder
+                .Types()
+                .SelectMany(u.EventStore.Settings.RecordNamingConvention)
+                .ToArray();
+
+            EventHandler loop = ProcessEventsLoop;
+            if (u.SynchronizationContext != null)
+                //loop = async (c,m,e) => await ProcessEventsLoop(c,m,e);
+            //else 
+                loop = ProcessEventsLoopWithSync;
+
+
+            if (u.Config.ProjectionSchema != null)
+                await u.EventStore.Subscribe(u.Config.ProjectionSchema, u.Config.SubscribesFromBeginning,
+                    u.Config.IsPersistent, loop, u);
+            else
+                await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
+                    u.Config.IsPersistent, loop, u, types);
+        }
+
         async Task ProcessEventsLoop(IProcessingContext context, IMetadata m, IRecord e)
         {
             if (context.Config.ProcessingLag > TimeSpan.Zero)

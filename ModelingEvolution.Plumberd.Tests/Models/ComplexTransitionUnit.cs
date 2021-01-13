@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.StateTransitioning;
 
 namespace ModelingEvolution.Plumberd.Tests.Models
@@ -28,5 +30,17 @@ namespace ModelingEvolution.Plumberd.Tests.Models
             return st;
         }
 
+    }
+    [ProcessingUnitConfig(IsEventEmitEnabled = true, 
+        IsCommandEmitEnabled = false,
+        IsPersistent = true,
+        ProcessingMode = ProcessingMode.CommandHandler)]
+
+    public class SimpleCommandHandler
+    {
+        public SimpleEvent When(Guid g, SimpleCommand c)
+        {
+            return new SimpleEvent();
+        }
     }
 }

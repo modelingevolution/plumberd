@@ -225,62 +225,75 @@ namespace ModelingEvolution.Plumberd.EventStore
             }
         }
         
-       
-
         public async Task Subscribe(string name,
             bool fromBeginning,
             bool isPersistent,
             EventHandler onEvent,
-            IProcessingContextFactory processingFactory,
-            ProjectionSchema schema = null,
-            params string[] sourceEventTypes)
+            IProcessingContextFactory factory,
+            params string[] types)
         {
             await CheckConnectivity();
-            var types = sourceEventTypes.ToList();
-            types.Sort();
-
-            Guid key = String.Concat(types).ToGuid();
-            var streamName = schema?.StreamName ?? $"{_settings.ProjectionStreamPrefix}{name}-{key}";
+            Array.Sort(types);
             
-            if (types.Count > 1)
+            Guid key = String.Concat(types).ToGuid();
+
+            ProjectionSchema schema = new ProjectionSchema();
+            if (types.Length == 1)
             {
-                var projectionName = schema?.ProjectionName ?? $"{name}-{key}";
-                _settings.Logger.Information("Subscription for {ControllerName} with {projectionName} from {stream} on: {events}",
-                    processingFactory.Config.Type.Name,
-                    projectionName,
-                    streamName,
-                    string.Join(", ", types.Select(x => x.Replace("$et-", ""))));
+                // Direct, no projection name;
+                schema.StreamName = $"$et-{types[0]}";
+            }
+            else
+            {
+                // InDirect
+                schema.StreamName = $"{_settings.ProjectionStreamPrefix}{name}-{key}";
+                schema.ProjectionName = $"{name}-{key}";
+            }
+
+            schema.Script = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingStream(schema.StreamName).Script();
+
+            await Subscribe(schema, fromBeginning, isPersistent, onEvent, factory);
+        }
+        public async Task Subscribe(ProjectionSchema schema,
+            bool fromBeginning,
+            bool isPersistent,
+            EventHandler onEvent,
+            IProcessingContextFactory factory)
+        {
+
+            await CheckConnectivity();
+            
+            if (!schema.IsDirect)
+            {
+                var projectionName = schema.ProjectionName;
 
                 var projections = await _projectionsManager.ListContinuousAsync(_credentials);
                 // we make projection only when we need to.
                 if (!projections.Exists(x => x.Name == projectionName))
                 {
-                    var query = schema?.Script ?? new ProjectionSchemaBuilder().FromEventTypes(types).EmittingStream(streamName).Script();
+                    var query = schema.Script;
                     await _projectionsManager.CreateContinuousAsync(projectionName, query, false, _credentials);
                 }
                 else
                 {
-                    var query = schema?.Script ?? new ProjectionSchemaBuilder().FromEventTypes(types).EmittingStream(streamName).Script();
+                    var query = schema.Script;
                     var config = await _projectionsManager.GetConfigAsync(projectionName, _credentials);
 
                     var currentQuery = await _projectionsManager.GetQueryAsync(projectionName, _credentials);
 
                     if (query != currentQuery || !config.EmitEnabled)
                     {
-                        Log.Information("Updating continues projection definition and config: {projectionName}", projectionName);
+                        Log.Information("Updating continues projection definition and config: {projectionName}",
+                            projectionName);
                         await _projectionsManager.UpdateQueryAsync(projectionName, query, true, _credentials);
                     }
                 }
             }
-            else
-            {
-                streamName = $"$et-{sourceEventTypes[0]}";
-            }
 
             if (isPersistent)
-                await SubscribePersistently(fromBeginning, onEvent, streamName, processingFactory);
+                await SubscribePersistently(fromBeginning, onEvent, schema.StreamName, factory);
             else
-                await Subscribe(fromBeginning, onEvent, streamName, processingFactory);
+                await Subscribe(fromBeginning, onEvent, schema.StreamName, factory);
         }
         private async Task UpdateDefaultTrackingProjectionIfNeeded(string projectionName,
             string streamName,

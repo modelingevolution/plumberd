@@ -144,7 +144,7 @@ namespace ModelingEvolution.Plumberd.Metadata
     public readonly struct Metadata : IMetadata
     {
         private readonly IMetadataSchema _schema;
-        private readonly object[] _data;
+        private readonly object[] _data; // fixed?
         public Metadata(IMetadataSchema schema, bool read)
         {
             _schema = schema;
@@ -152,18 +152,20 @@ namespace ModelingEvolution.Plumberd.Metadata
         }
 
         public IMetadataSchema Schema => _schema;
-        
-
-       
-        public object this[MetadataProperty property]
+        public object this[int index]
         {
-            get => _data[property.Order];
+            get => _data[index];
             set
             {
-                if(_data[property.Order] != null)
+                if (_data[index] != null)
                     throw new InvalidOperationException("Cannot override metadata.");
-                _data[property.Order] = value;
+                _data[index] = value;
             }
+        }
+        public object this[MetadataProperty property]
+        {
+            get => this[property.Order];
+            set => this[property.Order] = value;
         }
     }
     public interface IMetadata

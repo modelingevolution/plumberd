@@ -17,6 +17,10 @@ namespace ModelingEvolution.Plumberd.Querying
 
         public event Func<Task> Changed;
 
+        public CollectionResult()
+        {
+            Items = new List<TResult>();
+        }
         internal async Task OnChanged(IList<TResult> result)
         {
             Items.Clear();
@@ -77,9 +81,9 @@ namespace ModelingEvolution.Plumberd.Querying
                 CollectionResult<TResult> results = new CollectionResult<TResult>();
                 var scopedProvider = (results.Scope = _serviceProvider.CreateScope()).ServiceProvider;
 
-                results.Model = scopedProvider.GetService<TModel>();
-                var queryHandler = scopedProvider.GetService<TQueryHandler>();
-                var projectionHandler = scopedProvider.GetService<TProjection>();
+                results.Model = scopedProvider.GetRequiredService<TModel>();
+                var queryHandler = scopedProvider.GetRequiredService<TQueryHandler>();
+                var projectionHandler = scopedProvider.GetRequiredService<TProjection>();
 
                 QueryHandlerBinder queryBinder = new QueryHandlerBinder(typeof(TQueryHandler)); // Should be cached.
                 

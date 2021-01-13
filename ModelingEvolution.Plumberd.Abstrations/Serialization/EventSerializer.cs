@@ -14,6 +14,7 @@ namespace ModelingEvolution.Plumberd.Serialization
     public interface IMetadataSerializerFactory
     {
         IMetadataSerializer Get(IContext context);
+        IMetadataSerializer Get(ContextScope context);
         void RegisterSchemaForContext(IMetadataSchema schema, ContextScope contextType);
         void RegisterSerializerForContext(IMetadataSerializer schema, ContextScope contextType);
     }
@@ -43,6 +44,10 @@ namespace ModelingEvolution.Plumberd.Serialization
             return new MetadataSerializer(schema);
         }
 
+        public IMetadataSerializer Get(ContextScope context)
+        {
+            return _schemas[context];
+        }
         public IMetadataSerializer Get(IContext context)
         {
             if (context is ICommandHandlerContext)

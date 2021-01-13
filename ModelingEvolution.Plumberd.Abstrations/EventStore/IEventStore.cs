@@ -11,13 +11,17 @@ namespace ModelingEvolution.Plumberd.EventStore
         IEventStoreSettings Settings { get; }
         IStream GetStream(string category, Guid id, IContext context = null);
         
-        Task Subscribe(string name, 
+        Task Subscribe(ProjectionSchema schema, 
             bool fromBeginning, 
             bool isPersistent,
             EventHandler onEvent,
-            IProcessingContextFactory processingContextFactory,
-            ProjectionSchema schema = null,
-            params string[] sourceEventTypes);
+            IProcessingContextFactory factory);
+        Task Subscribe(string name,
+            bool fromBeginning,
+            bool isPersistent,
+            EventHandler onEvent,
+            IProcessingContextFactory factory,
+            params string[] types);
     }
     public interface IEventStoreSettings
     {
@@ -31,6 +35,7 @@ namespace ModelingEvolution.Plumberd.EventStore
     }
     public class ProjectionSchema
     {
+        public bool IsDirect => string.IsNullOrWhiteSpace(ProjectionName);
         public string ProjectionName { get; set; }
         public string StreamName { get; set; }
         public string Script { get; set; }

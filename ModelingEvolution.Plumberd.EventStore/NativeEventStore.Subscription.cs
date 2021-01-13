@@ -207,6 +207,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             }
             private async Task OnEventAppeared(ResolvedEvent e)
             {
+                _log.Information("Event appeared: {steamName} {eventType}", e.Event.EventStreamId, e.Event.EventType);
                 using (var context = _processingContextFactory.Create())
                 {
                     using (StaticProcessingContext.CreateScope(context)) // should be moved to decorator.
@@ -252,6 +253,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             }
             private void OnSubscriptionDropped(EventStoreSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
             {
+                _log.Information("Subscription dropped {reason} {exception}", subscriptionDropReason, arg3.Message);
                 eventStoreCatchUpSubscription.Dispose();
                 Task.Run(TrySubscribe);
             }

@@ -23,7 +23,7 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="5.0.0" />
     <PackageReference Include="Serilog" Version="2.10.0" />
   </ItemGroup>
 
@@ -36,6 +36,10 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\protobuf-net\src\protobuf-net.Core\protobuf-net.Core.csproj" />
   </ItemGroup>
 
 </Project>

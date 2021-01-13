@@ -5,9 +5,6 @@ using System.Net;
 using System.Threading.Tasks;
 using Docker.DotNet;
 using Docker.DotNet.Models;
-using EventStore.ClientAPI.Embedded;
-using EventStore.Core;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 
@@ -15,7 +12,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
 {
     public class EventStoreServer
     {
-        private ClusterVNode _node;
+        //private ClusterVNode _node;
         private IHost _host;
 
         public static async Task<EventStoreServer> Start()
@@ -86,35 +83,35 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
                 await client.Containers.StartContainerAsync(data.ID, new ContainerStartParameters());
             }
         }
-        private async Task StartAsync()
-        {
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console()
-                .CreateLogger();
+        //private async Task StartAsync()
+        //{
+        //    Log.Logger = new LoggerConfiguration()
+        //        .WriteTo.Console()
+        //        .CreateLogger();
 
-            var nodeBuilder = EmbeddedVNodeBuilder
-                .AsSingleNode()
-                .EnableExternalTCP()
-                .EnableLoggingOfHttpRequests()
-                .OnDefaultEndpoints()
-                .StartStandardProjections()
-                .RunInMemory();
+        //    var nodeBuilder = EmbeddedVNodeBuilder
+        //        .AsSingleNode()
+        //        .EnableExternalTCP()
+        //        .EnableLoggingOfHttpRequests()
+        //        .OnDefaultEndpoints()
+        //        .StartStandardProjections()
+        //        .RunInMemory();
             
-            this._node = nodeBuilder.Build();
-            this._host = Host.CreateDefaultBuilder()
-                .ConfigureLogging(logging => logging.AddSerilog())
-                .ConfigureWebHostDefaults(builder =>
-                    builder.UseKestrel(server => 
-                            server.Listen(IPAddress.Loopback, 2113, 
-                            listenOptions => listenOptions.Use(next => new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync)
-                            ))
-                        .ConfigureServices(services => _node.Startup.ConfigureServices(services))
-                        .Configure(_node.Startup.Configure)
-                    ).Build();
+        //    this._node = nodeBuilder.Build();
+        //    this._host = Host.CreateDefaultBuilder()
+        //        .ConfigureLogging(logging => logging.AddSerilog())
+        //        .ConfigureWebHostDefaults(builder =>
+        //            builder.UseKestrel(server => 
+        //                    server.Listen(IPAddress.Loopback, 2113, 
+        //                    listenOptions => listenOptions.Use(next => new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync)
+        //                    ))
+        //                .ConfigureServices(services => _node.Startup.ConfigureServices(services))
+        //                .Configure(_node.Startup.Configure)
+        //            ).Build();
                 
-            await _node.StartAsync(true);
-            await _host.StartAsync();
-            await Task.Delay(30000);
-        }
+        //    await _node.StartAsync(true);
+        //    await _host.StartAsync();
+        //    await Task.Delay(30000);
+        //}
     }
 }

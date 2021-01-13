@@ -10,6 +10,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private string _fromStreams;
         private string _streamName;
         private string _projectionName;
+        private WhenStatement _whenStatement;
         public ProjectionSchemaBuilder FromEventTypes(IEnumerable<string> types)
         {
             StringBuilder query = new StringBuilder();
@@ -18,7 +19,19 @@ namespace ModelingEvolution.Plumberd.EventStore
             query.Append(string.Join(',', types.Select(i => $"'$et-{i}'")));
             query.Append("])");
             _fromStreams = query.ToString();
+            _whenStatement = FromEventsWhen;
             return this;
+        }
+
+        private static string FromEventsWhen(string streamName)
+        {
+            StringBuilder query = new StringBuilder();
+            
+            query.Append(".when( { \r\n    $any : function(s,e) { linkTo('");
+            query.Append(streamName);
+            query.Append("', e) }\r\n});");
+
+            return query.ToString();
         }
         public ProjectionSchemaBuilder FromStreams(params string[] streams)
         {
@@ -37,30 +50,36 @@ namespace ModelingEvolution.Plumberd.EventStore
         }
         public ProjectionSchema Build()
         {
-            if(string.IsNullOrWhiteSpace( _fromStreams))
-                throw new ArgumentException("From streams is not set. Have you forgotten to set 'FromEventTypes' or 'FromStreams'?");
-
-            if (string.IsNullOrWhiteSpace(_projectionName))
-                throw new ArgumentException("Projection name is not set. Have you forgotten to set 'FromHandler'?");
+            string script = Script();
 
             if (string.IsNullOrWhiteSpace(_streamName))
-                throw new ArgumentException("Stream name not set. Have you forgotten to set 'EmittingStream'?");
+                throw new ArgumentException("Stream name not set. Have you forgotten to set 'EmittingStream'?"); 
+            
+            if (!string.IsNullOrWhiteSpace(script))
+            {
+                if (string.IsNullOrWhiteSpace(_projectionName))
+                    throw new ArgumentException("Projection name is not set. Have you forgotten to set 'FromHandler'?");
+            }
 
             return new ProjectionSchema()
             {
-                Script = Script(),
+                Script = script,
                 ProjectionName = _projectionName,
                 StreamName = _streamName
             };
         }
+        
+        public ProjectionSchemaBuilder When(WhenStatement whenStatement)
+        {
+            _whenStatement = whenStatement;
+            return this;
+        }
         public string Script()
         {
-            StringBuilder query = new StringBuilder(_fromStreams);
+            if (_whenStatement == null) return null;
 
-            query.AppendLine();
-            query.Append(".when( { \r\n    $any : function(s,e) { linkTo('");
-            query.Append(_streamName);
-            query.Append("', e) }\r\n});");
+            StringBuilder query = new StringBuilder(_fromStreams);
+            query.Append(_whenStatement(_streamName));
 
             return query.ToString();
         }
@@ -69,5 +88,12 @@ namespace ModelingEvolution.Plumberd.EventStore
             this._streamName = streamName;
             return this;
         }
+
+        public ProjectionSchemaBuilder FromEventTypes(params string[] eventTypes)
+        {
+            return FromEventTypes(eventTypes.AsEnumerable());
+        }
+
+        public delegate string WhenStatement(string outputSteamName);
     }
 }
