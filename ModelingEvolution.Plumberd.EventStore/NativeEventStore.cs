@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
@@ -24,26 +23,10 @@ using ILogger = Serilog.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
-    static class StreamExtensions
-    {
-        public static async Task<int> ReadAllAsync(this Stream s, byte[] buffer, int offset, int count)
-        {
-            var r = await s.ReadAsync(buffer, offset, count);
-            while (r != count)
-            {
-                var n = await s.ReadAsync(buffer, offset + r, count - r);
-                if (n == 0) 
-                    return r;
-                r += n;
-            }
-            return r;
-        }
-    }
-
-
     public partial class NativeEventStore : IEventStore
     {
         private readonly ConcurrentBag<ISubscription> _subscriptions;
+        private readonly ProjectionConfigurations _projectionConfigurations;
         private bool _connected = false;
         private ILogger Log => _settings.Logger;
 
@@ -61,7 +44,11 @@ namespace ModelingEvolution.Plumberd.EventStore
                 ServerCertificateCustomValidationCallback = (r, cer, c, e) => true
             };
         }
-        
+
+        public async Task UpdateProjections()
+        {
+            await _projectionConfigurations.UpdateIfRequired();
+        }
         public async Task LoadEventFromFile(string file)
         {
             Log.Information("Loading events from file: {fileName}", file);
@@ -165,30 +152,33 @@ namespace ModelingEvolution.Plumberd.EventStore
 
         {
             _settings = settings;
-            
             _subscriptions = new ConcurrentBag<ISubscription>();
             _projectionsManager = projectionsManager;
             _connection = connection;
             _connection.ConnectAsync().Wait();
             _credentials = credentials;
-            
+            _projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
         }
-        public NativeEventStore(EventStoreSettings settings, 
-            Uri tcpUrl = null, 
+        public NativeEventStore(EventStoreSettings settings,
+            Uri tcpUrl = null,
             Uri httpProjectionUrl = null,
-            string userName = "admin", 
+            string userName = "admin",
             string password = "changeit",
             bool ignoreServerCert = false,
             bool disableTls = false,
-            Action<ConnectionSettingsBuilder> connectionBuilder = null)
+            Action<ConnectionSettingsBuilder> connectionBuilder = null,
+            IEnumerable<IProjectionConfig> configurations = null)
         {
             _settings = settings;
+            _subscriptions = new ConcurrentBag<ISubscription>();
+            _credentials = new UserCredentials(userName, password);
+            
+            
+
             httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
             tcpUrl = tcpUrl == null ? new Uri("tcp://127.0.0.1:1113") : tcpUrl;
 
-            _subscriptions = new ConcurrentBag<ISubscription>();
-            _credentials = new UserCredentials(userName, password);
-
+            
             var tcpSettings = ConnectionSettings.Create()
                 .DisableServerCertificateValidation()
                 //.UseDebugLogger()
@@ -211,7 +201,9 @@ namespace ModelingEvolution.Plumberd.EventStore
             _projectionsManager = new ProjectionsManager(new ConsoleLogger(), new DnsEndPoint(httpProjectionUrl.Host, httpProjectionUrl.Port), TimeSpan.FromSeconds(10),
                 ignoreServerCert ? IgnoreServerCertificateHandler() : null, httpProjectionUrl.Scheme);
             _connection = EventStoreConnection.Create(tcpSettings.Build(), tcpUrl);
-           
+            _projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
+            if (configurations != null)
+                _projectionConfigurations.Register(configurations);
         }
 
         
@@ -237,6 +229,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             
             Guid key = String.Concat(types).ToGuid();
 
+            // REFACTOR, SIMPLIFY
             ProjectionSchema schema = new ProjectionSchema();
             if (types.Length == 1)
             {
@@ -250,10 +243,16 @@ namespace ModelingEvolution.Plumberd.EventStore
                 schema.ProjectionName = $"{name}-{key}";
             }
 
-            schema.Script = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingStream(schema.StreamName).Script();
+            schema.Script = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingLinksToStream(schema.StreamName).Script();
 
             await Subscribe(schema, fromBeginning, isPersistent, onEvent, factory);
         }
+
+        public async Task Init()
+        {
+            await _projectionConfigurations.UpdateIfRequired();
+        }
+
         public async Task Subscribe(ProjectionSchema schema,
             bool fromBeginning,
             bool isPersistent,
@@ -263,32 +262,8 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             await CheckConnectivity();
             
-            if (!schema.IsDirect)
-            {
-                var projectionName = schema.ProjectionName;
-
-                var projections = await _projectionsManager.ListContinuousAsync(_credentials);
-                // we make projection only when we need to.
-                if (!projections.Exists(x => x.Name == projectionName))
-                {
-                    var query = schema.Script;
-                    await _projectionsManager.CreateContinuousAsync(projectionName, query, false, _credentials);
-                }
-                else
-                {
-                    var query = schema.Script;
-                    var config = await _projectionsManager.GetConfigAsync(projectionName, _credentials);
-
-                    var currentQuery = await _projectionsManager.GetQueryAsync(projectionName, _credentials);
-
-                    if (query != currentQuery || !config.EmitEnabled)
-                    {
-                        Log.Information("Updating continues projection definition and config: {projectionName}",
-                            projectionName);
-                        await _projectionsManager.UpdateQueryAsync(projectionName, query, true, _credentials);
-                    }
-                }
-            }
+            if (!schema.IsDirect) 
+                await _projectionConfigurations.UpdateProjectionSchema(schema);
 
             if (isPersistent)
                 await SubscribePersistently(fromBeginning, onEvent, schema.StreamName, factory);
@@ -299,7 +274,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             string streamName,
             IEnumerable<string> types)
         {
-            var query = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingStream(streamName).Script();
+            var query = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingLinksToStream(streamName).Script();
             var config = await _projectionsManager.GetConfigAsync(projectionName, _credentials);
             
             var currentQuery = await _projectionsManager.GetQueryAsync(projectionName, _credentials);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.Plumberd.Binding;
@@ -8,6 +9,22 @@ using ModelingEvolution.Plumberd.EventStore;
 
 namespace ModelingEvolution.Plumberd.Querying
 {
+    public class ObservableCollectionResult<TResult> : IObservableCollectionResult<TResult>
+    {
+        public ObservableCollection<TResult> SourceItems { get; }
+        public ObservableCollectionView<TResult> View { get; }
+        internal IServiceScope Scope { get; set; }
+        public object Model { get; internal set; }
+        public IProcessingUnit ProcessingUnit { get; internal set; }
+
+
+        public ObservableCollectionResult(ObservableCollection<TResult> source)
+        {
+            SourceItems = source;
+            View = new ObservableCollectionView<TResult>(source);
+        }
+        
+    }
     public class CollectionResult<TResult> : ICollectionResult<TResult>
     {
         public IList<TResult> Items { get; }
@@ -42,6 +59,10 @@ namespace ModelingEvolution.Plumberd.Querying
     public interface ISingleResultQuery<TResult> : ILiveQuery { }
     public interface ISingleResult<out TResult> { TResult Result { get; } }
 
+    public interface IObservableCollectionResult<TResult>
+    {
+        ObservableCollectionView<TResult> View { get; }
+    }
     public interface ICollectionResult<TResult>
     {
         IList<TResult> Items { get; }
@@ -49,12 +70,16 @@ namespace ModelingEvolution.Plumberd.Querying
     }
     public interface ILiveQueryExecutor
     {
-        ISingleResult<TResult> ExecuteSingle<TResult>(ISingleResultQuery<TResult> query, ProjectionSchema schema);
-        ICollectionResult<TResult> Execute<TResult>(ICollectionResultQuery<TResult> query, ProjectionSchema schema);
+        ISingleResult<TResult> ExecuteSingle<TResult>(ISingleResultQuery<TResult> query, string streamName);
+        ICollectionResult<TResult> Execute<TResult>(ICollectionResultQuery<TResult> query, string streamName);
 
         Task<ICollectionResult<TResult>> Execute<TQuery, TResult, TQueryHandler, TProjection, TModel>(
-            ICollectionResultQuery<TResult> query, ProjectionSchema schema)
+            ICollectionResultQuery<TResult> query, string streamName)
             where TQuery : ICollectionResultQuery<TResult>;
+
+        Task<IObservableCollectionResult<TResult>> Execute<TResult, TProjection, TModel>(
+            ICollectionResultQuery<TResult> query, string streamName,
+            Func<TModel, ObservableCollection<TResult>> accesor);
     }
     public class LiveQueryExecutor : ILiveQueryExecutor
     {
@@ -65,15 +90,15 @@ namespace ModelingEvolution.Plumberd.Querying
         {
             private readonly IServiceProvider _serviceProvider;
             private readonly IPlumberRuntime _plumber;
-            private readonly ProjectionSchema _schema;
+            private readonly string _streamName;
 
 
             public CollectionResultQueryExecutor(IServiceProvider serviceProvider, IPlumberRuntime plumber,
-                ProjectionSchema schema)
+                string streamName)
             {
                 _serviceProvider = serviceProvider;
                 _plumber = plumber;
-                _schema = schema;
+                _streamName = streamName;
             }
 
             public async Task<ICollectionResult<TResult>> Execute<TResult>(ICollectionResultQuery<TResult> query)
@@ -96,7 +121,7 @@ namespace ModelingEvolution.Plumberd.Querying
                     ProcessingMode = ProcessingMode.EventHandler,
                     SubscribesFromBeginning = true,
                     // Projection Schema => From Metadata.UserId or Event.Property
-                    ProjectionSchema = _schema,
+                    ProjectionSchema = new ProjectionSchema() { StreamName = _streamName },
                     OnAfterDispatch = async (unit, metadata, ev, r) =>
                     {
                         var result = await queryHandlerInvocation(queryHandler, (TQuery) query);
@@ -108,7 +133,48 @@ namespace ModelingEvolution.Plumberd.Querying
                 return results;
             }
         }
-        
+
+        class CollectionResultQueryExecutor<TResult, TProjection, TModel>
+        {
+            private readonly IServiceProvider _serviceProvider;
+            private readonly IPlumberRuntime _plumber;
+            private readonly string _streamName;
+
+
+            public CollectionResultQueryExecutor(IServiceProvider serviceProvider, IPlumberRuntime plumber,
+                string streamName)
+            {
+                _serviceProvider = serviceProvider;
+                _plumber = plumber;
+                _streamName = streamName;
+            }
+
+            public async Task<IObservableCollectionResult<TResult>> Execute<TResult>(ICollectionResultQuery<TResult> query, Func<TModel, ObservableCollection<TResult>> accesor)
+            {
+                var scope = _serviceProvider.CreateScope();
+                var scopedProvider = scope.ServiceProvider;
+                var model = scopedProvider.GetRequiredService<TModel>();
+                ObservableCollectionResult<TResult> results = new ObservableCollectionResult<TResult>(accesor(model));
+                results.Scope = scope;
+                results.Model = model;
+                
+                var projectionHandler = scopedProvider.GetRequiredService<TProjection>();
+
+                results.ProcessingUnit = await _plumber.RunController(projectionHandler, new ProcessingUnitConfig(typeof(TProjection))
+                {
+                    IsEventEmitEnabled = false,
+                    IsCommandEmitEnabled = false,
+                    IsPersistent = false,
+                    ProcessingMode = ProcessingMode.EventHandler,
+                    SubscribesFromBeginning = true,
+                    ProjectionSchema = new ProjectionSchema() { StreamName = _streamName },
+                    
+                });
+
+
+                return results;
+            }
+        }
 
         public LiveQueryExecutor(IServiceProvider serviceProvider, IPlumberRuntime plumber)
         {
@@ -116,22 +182,29 @@ namespace ModelingEvolution.Plumberd.Querying
             _plumber = plumber;
         }
 
-        public ISingleResult<TResult> ExecuteSingle<TResult>(ISingleResultQuery<TResult> query, ProjectionSchema schema)
+        public ISingleResult<TResult> ExecuteSingle<TResult>(ISingleResultQuery<TResult> query, string streamName)
         {
             throw new NotImplementedException();
         }
 
-        public ICollectionResult<TResult> Execute<TResult>(ICollectionResultQuery<TResult> query, ProjectionSchema schema)
+        public ICollectionResult<TResult> Execute<TResult>(ICollectionResultQuery<TResult> query, string streamName)
         {
             throw new NotImplementedException();
         }
 
 
-        public Task<ICollectionResult<TResult>> Execute<TQuery, TResult, TQueryHandler, TProjection, TModel>(ICollectionResultQuery<TResult> query, ProjectionSchema schema)
+        public Task<ICollectionResult<TResult>> Execute<TQuery, TResult, TQueryHandler, TProjection, TModel>(ICollectionResultQuery<TResult> query, string streamName)
             where TQuery : ICollectionResultQuery<TResult>
         {
-            var executor = new CollectionResultQueryExecutor<TQuery, TResult, TQueryHandler, TProjection, TModel>(_serviceProvider, _plumber, schema);
+            var executor = new CollectionResultQueryExecutor<TQuery, TResult, TQueryHandler, TProjection, TModel>(_serviceProvider, _plumber, streamName);
             return executor.Execute(query);
+        }
+        public Task<IObservableCollectionResult<TResult>> Execute<TResult, TProjection, TModel>(
+            ICollectionResultQuery<TResult> query, string streamName,
+            Func<TModel, ObservableCollection<TResult>> accesor)
+        {
+            var executor = new CollectionResultQueryExecutor<TResult, TProjection, TModel>(_serviceProvider, _plumber, streamName);
+            return executor.Execute(query, accesor);
         }
 
     }

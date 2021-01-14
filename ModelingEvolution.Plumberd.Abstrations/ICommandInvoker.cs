@@ -75,7 +75,7 @@ namespace ModelingEvolution.Plumberd
             if (context == null)
             {
                 // this is brand new invocation.
-                context = new CommandInvocationContext(id,c);
+                context = new CommandInvocationContext(id,c, Guid.Empty);
             }
             Type commandType = c.GetType();
             _logger.Information("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);

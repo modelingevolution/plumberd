@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ModelingEvolution.Plumberd
 {
@@ -31,6 +32,11 @@ namespace ModelingEvolution.Plumberd
                 onUpdate(k, v);
                 return v;
             });
+        }
+
+        public static async Task ExecuteForAll<T>(this IEnumerable<T> list, Func<T, Task> action)
+        {
+            foreach (var i in list) await action(i);
         }
         public static void ExecuteForAll<T>(this IEnumerable<T> list, Action<T> action)
         {

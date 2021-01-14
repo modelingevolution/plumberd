@@ -10,7 +10,7 @@ namespace ModelingEvolution.Plumberd.EventStore
     {
         IEventStoreSettings Settings { get; }
         IStream GetStream(string category, Guid id, IContext context = null);
-        
+        Task Init();
         Task Subscribe(ProjectionSchema schema, 
             bool fromBeginning, 
             bool isPersistent,

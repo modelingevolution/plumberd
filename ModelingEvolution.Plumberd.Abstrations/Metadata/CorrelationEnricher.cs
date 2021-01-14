@@ -18,12 +18,9 @@ namespace ModelingEvolution.Plumberd.Metadata
     {
         public static Guid UserId(this IMetadata ev)
         {
-            return Guid.Empty;
+            return (Guid)ev[ev.Schema.Enricher<UserIdEnricher>().UserIdProperty];
         }
-        public static string UserName(this IMetadata ev)
-        {
-            return string.Empty;
-        }
+       
     }
     public static class SystemMetadataEnricherExtensions
     {
@@ -37,7 +34,40 @@ namespace ModelingEvolution.Plumberd.Metadata
             return (string) m[MetadataProperty.Category];
         }
     }
+    public class UserIdEnricher : IMetadataEnricher
+    {
+        internal MetadataProperty UserIdProperty;
+        public void RegisterSchema(IMetadataSchema register)
+        {
+            this.UserIdProperty = register.Register<Guid>("UserId", this, true);
+        }
 
+        public IMetadata Enrich(IMetadata m, IRecord e, IContext context)
+        {
+            switch (context)
+            {
+                case IEventHandlerContext c:
+                    m[UserIdProperty] = c.Metadata.UserId();
+                   
+                    break;
+                case ICommandHandlerContext c:
+                    m[UserIdProperty] = c.Metadata.UserId();
+
+                    break;
+                case ICommandInvocationContext c:
+                    m[UserIdProperty] = c.UserId;
+                    break;
+                default:
+                    throw new NotSupportedException("Unsupported context.");
+            }
+            return m;
+        }
+
+        public IMetadataEnricher Clone()
+        {
+            return new UserIdEnricher();
+        }
+    }
     public class CorrelationEnricher : IMetadataEnricher
     {
         public MetadataProperty CorrelationId;

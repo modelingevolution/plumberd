@@ -74,6 +74,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             throw new NotImplementedException();
         }
 
+        public Task Init()
+        {
+            return Task.CompletedTask;
+        }
+
         public async Task Subscribe(ProjectionSchema schema,
             bool fromBeginning,
             bool isPersistent,

@@ -286,10 +286,14 @@ namespace ModelingEvolution.Plumberd
         {
             filter ??= x => true;
 
-            foreach (var u in _units.Where(x => filter(x)))
-            {
-                await Start(u);
-            }
+            await _units
+                .Where(x=>x.EventStore != null && filter(x))
+                .Select(x => x.EventStore)
+                .Distinct()
+                .ExecuteForAll(x=>x.Init());
+
+            await _units.Where(x => filter(x))
+                .ExecuteForAll(Start);
         }
 
         private async Task Start(ProcessingContextFactory u)

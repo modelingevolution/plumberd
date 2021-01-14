@@ -134,10 +134,13 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 Guid typeId = new Guid(i.TypeId.Value.Span);
                 var type = _typeRegister[typeId];
                 var cmd = Serializer.Deserialize(type, i.Data.Memory) as ICommand;
-                
-                await _commandInvoker.Execute(steamId, cmd);
 
-                await responseStream.WriteAsync(new WriteRsp() { Seq = i.Seq });
+                using (CommandInvocationContext cc = new CommandInvocationContext(steamId, cmd, context.UserId() ?? Guid.Empty))
+                {
+                    await _commandInvoker.Execute(steamId, cmd, cc);
+
+                    await responseStream.WriteAsync(new WriteRsp() {Seq = i.Seq});
+                }
             }
             
         }
