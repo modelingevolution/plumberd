@@ -15,7 +15,8 @@ namespace ModelingEvolution.Plumberd.EventStore
 
         Task Append(IRecord ev, IMetadata m);
 
-        IAsyncEnumerable<IRecord> Read();
+        IAsyncEnumerable<IRecord> ReadEvents();
+        IAsyncEnumerable<(IMetadata, IRecord)> Read();
     }
     public static class StaticStreamExtensions 
     {

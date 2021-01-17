@@ -7,13 +7,9 @@
 
   <ItemGroup>
     <PackageReference Include="EventStore.Client" Version="20.10.0" />
-    <PackageReference Include="Serilog" Version="2.10.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
-    <ProjectReference Include="..\ModelingEvolution.Plumberd.EventStore\ModelingEvolution.Plumberd.EventStore.csproj" />
     <ProjectReference Include="..\ModelingEvolution.Plumberd.Tests\ModelingEvolution.Plumberd.Tests.csproj" />
   </ItemGroup>
 

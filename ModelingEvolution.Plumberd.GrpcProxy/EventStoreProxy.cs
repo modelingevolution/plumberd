@@ -13,6 +13,7 @@ using Microsoft.Extensions.Primitives;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd;
 using ModelingEvolution.Plumberd.EventStore;
+using ModelingEvolution.Plumberd.GrpcProxy.Authentication;
 using ModelingEvolution.Plumberd.Metadata;
 using ProtoBuf;
 using Serilog;
@@ -27,22 +28,23 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         private readonly ICommandInvoker _commandInvoker;
         private readonly IEventStore _eventStore;
         private readonly ILogger _logger;
+        private readonly UsersModel _userModel;
 
         public EventStoreProxy(TypeRegister typeRegister, 
             ICommandInvoker commandInvoker, 
-            IEventStore eventStore, ILogger logger)
+            IEventStore eventStore, ILogger logger, UsersModel userModel)
         {
             _typeRegister = typeRegister;
             _commandInvoker = commandInvoker;
             _eventStore = eventStore;
             _logger = logger;
+            _userModel = userModel;
         }
 
         public async override Task ReadStream(ReadReq request, IServerStreamWriter<ReadRsp> responseStream, ServerCallContext context)
         {
-            _logger.Information("GrpcProxy -> ReadStream: {isAuthenticated} {userId} {userName}", context.IsAuthenticated(),
-                context.UserId(), context.UserName());
-            
+            await CheckAuthorizationData(context);
+
             ArrayBufferWriter<byte> buffer = new ArrayBufferWriter<byte>(128 * 1024);
 
             if (request.SchemaCase == ReadReq.SchemaOneofCase.GenericSchema)
@@ -87,6 +89,30 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 
         }
 
+        private async Task CheckAuthorizationData(ServerCallContext context)
+        {
+            var uid = context.UserId();
+            if (uid.HasValue)
+            {
+                var streamId = uid.Value;
+                var email = context.UserEmail();
+                var name = context.UserName();
+                var u = _userModel.FindByUserId(streamId);
+                if (u == null || u.Name != name || u.Email != email)
+                {
+                    var cmd = new RetrieveAuthorizationData()
+                    {
+                        Email = email,
+                        Name = name
+                    };
+                    using (CommandInvocationContext cc = new CommandInvocationContext(streamId, cmd, streamId))
+                    {
+                        await _commandInvoker.Execute(streamId, cmd, cc);
+                    }
+                }
+            }
+        }
+
         private async Task Transfer(IProcessingContext context,
             IMetadata metadata,
             IRecord ev,
@@ -128,6 +154,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 
         public async override Task WriteStream(IAsyncStreamReader<WriteReq> requestStream, IServerStreamWriter<WriteRsp> responseStream, ServerCallContext context)
         {
+            await CheckAuthorizationData(context);
+
             await foreach (var i in requestStream.ReadAllAsync())
             {
                 var steamId = new Guid(i.SteamId.Value.Span);

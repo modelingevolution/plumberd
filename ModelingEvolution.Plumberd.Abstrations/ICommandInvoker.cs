@@ -79,7 +79,7 @@ namespace ModelingEvolution.Plumberd
             }
             Type commandType = c.GetType();
             _logger.Information("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);
-            string name = commandType.GetCustomAttribute<StreamNameAttribute>()?.Name ?? commandType.Namespace.LastSegment('.');
+            string name = commandType.GetCustomAttribute<StreamAttribute>()?.Category ?? commandType.Namespace.LastSegment('.');
             var stream = _eventStore.GetStream($"{_eventStore.Settings.CommandStreamPrefix}{name}", id, context);
             await stream.Append(c, context);
         }

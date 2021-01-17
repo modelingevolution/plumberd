@@ -26,7 +26,7 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
             T n = new T();
             n.Id = id;
             var stream = _eventStore.GetStream(typeof(T).Name, id);
-            await n.RehydrateAsync(stream.Read());
+            await n.RehydrateAsync(stream.ReadEvents());
 
             return n;
         }

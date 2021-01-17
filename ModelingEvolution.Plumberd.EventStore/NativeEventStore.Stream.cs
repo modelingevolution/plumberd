@@ -57,11 +57,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                 var metadataBytes = _metadataSerializer.Serialize( metadata);
                 var eventBytes = _recordSerializer.Serialize(x, metadata);
-                var data = new global::EventStore.ClientAPI.EventData(x.Id, x.GetType().Name, true,  eventBytes, metadataBytes);
+                var eventType = x is ILink ? "$>" : x.GetType().Name;
+                var data = new global::EventStore.ClientAPI.EventData(x.Id, eventType, true,  eventBytes, metadataBytes);
                 return data;
             }
-
-            public async IAsyncEnumerable<IRecord> Read()
+            public async IAsyncEnumerable<(IMetadata, IRecord)> Read()
             {
                 StreamEventsSlice slice = null;
                 long start = StreamPosition.Start;
@@ -70,10 +70,41 @@ namespace ModelingEvolution.Plumberd.EventStore
                     slice = await _connection.ReadStreamEventsForwardAsync(_streamName, start, 100, true);
                     foreach (var i in slice.Events)
                     {
-                        var m = _metadataSerializer.Deserialize(i.Event.Metadata);
-                        var ev = _recordSerializer.Deserialize(i.Event.Data, m);
-                        
-                        yield return ev;
+                        var d = ReadEvent(i);
+
+                        yield return d;
+                    }
+                    start = slice.NextEventNumber;
+                } while (!slice.IsEndOfStream);
+            }
+
+            private (IMetadata, IRecord) ReadEvent(ResolvedEvent i)
+            {
+                var m = _metadataSerializer.Deserialize(i.Event.Metadata);
+
+                var streamId = i.Event.EventStreamId;
+                var splitIndex = streamId.IndexOf('-');
+
+                m[MetadataProperty.Category] = streamId.Remove(splitIndex);
+                m[MetadataProperty.StreamId] = Guid.Parse(streamId.Substring(splitIndex + 1));
+                m[MetadataProperty.StreamPosition] = (ulong) i.Event.EventNumber;
+
+                var ev = _recordSerializer.Deserialize(i.Event.Data, m);
+                return (m, ev);
+            }
+
+            public async IAsyncEnumerable<IRecord> ReadEvents()
+            {
+                StreamEventsSlice slice = null;
+                long start = StreamPosition.Start;
+                do
+                {
+                    slice = await _connection.ReadStreamEventsForwardAsync(_streamName, start, 100, true);
+                    foreach (var i in slice.Events)
+                    {
+                        var d = ReadEvent(i);
+
+                        yield return d.Item2;
                     }
                     start = slice.NextEventNumber;
                 } while (!slice.IsEndOfStream);

@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
@@ -84,7 +85,7 @@ namespace ModelingEvolution.Plumberd
             IEventStore store = null,
             SynchronizationContext context = null)
         {
-            controllerFactory ??= DefaultServiceProvider.GetService;
+            controllerFactory ??= DefaultServiceProvider.GetRequiredService;
 
             RegisterController(controllerFactory,
                 processingUnitType,
@@ -328,8 +329,14 @@ namespace ModelingEvolution.Plumberd
                 if (context.Config.IsEventEmitEnabled)
                     foreach (var (nm, nev) in result.Events)
                     {
-                        await context.EventStore.GetEventStream(nev.GetType(), nm, context)
-                            .Append(nev,context);
+                        if (nev is LinkEvent le)
+                        {
+                            await context.EventStore.GetStream(le.DestinationCategory, nm, context)
+                                .Append(nev, context);
+                        }
+                        else 
+                            await context.EventStore.GetEventStream(nev.GetType(), nm, context)
+                                .Append(nev,context);
                     }
 
                 if (context.Config.IsCommandEmitEnabled)

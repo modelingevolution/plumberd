@@ -79,6 +79,8 @@ namespace ModelingEvolution.Plumberd.Serialization
         byte[] Serialize(IRecord ev, IMetadata m);
         IRecord Deserialize(byte[] data, IMetadata m);
     }
+
+    
     /// <summary>
     /// <see cref="T:System.Text.Json.Serialization.JsonConverterFactory" /> to convert <see cref="T:System.TimeSpan" /> to and from strings. Supports <see cref="T:System.Nullable`1" />.
     /// </summary>
@@ -159,11 +161,17 @@ namespace ModelingEvolution.Plumberd.Serialization
         {
             _options = new JsonSerializerOptions();
             _options.Converters.Add(new JsonTimeSpanConverter());
+            
         }
         //private static readonly JsonSerializerSettings JSON_SETTINGS = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All };
         public byte[] Serialize(IRecord ev, IMetadata m)
         {
-            return JsonSerializer.SerializeToUtf8Bytes(ev, ev.GetType(), _options);
+            if (ev is ILink l)
+            {
+                return Encoding.UTF8.GetBytes($"{l.SourceStreamPosition}@{l.SourceCategory}-{l.SourceStreamId}");
+            } 
+            else 
+                return JsonSerializer.SerializeToUtf8Bytes(ev, ev.GetType(), _options);
         }
 
         public IRecord Deserialize(byte[] data, IMetadata m)

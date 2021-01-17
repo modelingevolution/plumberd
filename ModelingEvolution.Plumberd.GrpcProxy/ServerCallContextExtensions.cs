@@ -28,6 +28,14 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             var user = httpContext.User;
             return user?.Identity?.Name;
         }
+        public static string UserEmail(this ServerCallContext context)
+        {
+            var httpContext = context?.GetHttpContext();
+            var user = httpContext.User;
+            return user?.Claims.Where(x=>x.Type == ClaimTypes.Email || x.Type == "email")
+                .Select(x=>x.Value)
+                .FirstOrDefault();
+        }
 
         public static bool IsAuthenticated(this ServerCallContext context)
         {

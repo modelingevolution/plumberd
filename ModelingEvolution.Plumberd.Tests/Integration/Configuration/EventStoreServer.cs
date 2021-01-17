@@ -24,9 +24,9 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
         }
         public async Task StartInDocker()
         {
-            Uri uri = new Uri("npipe://./pipe/docker_engine");
+            //Uri uri = new Uri("npipe://./pipe/docker_engine");
 
-            DockerClient client = new DockerClientConfiguration(uri, defaultTimeout: TimeSpan.FromSeconds(5))
+            DockerClient client = new DockerClientConfiguration()
                 .CreateClient();
 
             var containers = await client.Containers.ListContainersAsync(new ContainersListParameters()

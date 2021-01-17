@@ -173,7 +173,6 @@ namespace ModelingEvolution.Plumberd.EventStore
             _subscriptions = new ConcurrentBag<ISubscription>();
             _credentials = new UserCredentials(userName, password);
             
-            
 
             httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
             tcpUrl = tcpUrl == null ? new Uri("tcp://127.0.0.1:1113") : tcpUrl;
@@ -336,7 +335,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             m[MetadataProperty.Category] = streamId.Remove(splitIndex);
             m[MetadataProperty.StreamId] = Guid.Parse(streamId.Substring(splitIndex + 1));
-
+            m[MetadataProperty.StreamPosition] = (ulong)r.Event.EventNumber;
             return (m, e);
         }
 
