@@ -9,12 +9,13 @@ using ModelingEvolution.Plumberd.EventStore;
 
 namespace ModelingEvolution.Plumberd.Querying
 {
-    public class ObservableCollectionResult<TModelItem> : IObservableCollectionResult<TModelItem>
+    public class ObservableCollectionResult<TModelItem, TProjection, TModel> : IObservableCollectionResult<TModelItem, TProjection, TModel>
     {
         public ObservableCollection<TModelItem> SourceItems { get; }
         public ObservableCollectionView<TModelItem> View { get; }
         internal IServiceScope Scope { get; set; }
-        public object Model { get; internal set; }
+        public TModel Model { get; internal set; }
+        public TProjection Projection { get; internal set; }
         public IProcessingUnit ProcessingUnit { get; internal set; }
 
 
@@ -26,15 +27,54 @@ namespace ModelingEvolution.Plumberd.Querying
         
     }
 
-    public interface IObservableCollectionResult<TResult>
+    public interface IObservableCollectionResult<TResult, TProjection, TModel>
     {
         ObservableCollectionView<TResult> View { get; }
+        TModel Model { get; }
+        TProjection Projection { get; }
     }
 
     public class LiveQueryExecutor : ILiveQueryExecutor
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IPlumberRuntime _plumber;
+
+        class ModelQueryExecutor<TProjection, TModel>
+        {
+            private readonly IServiceProvider _serviceProvider;
+            private readonly IPlumberRuntime _plumber;
+            private readonly string _streamName;
+            public ModelQueryExecutor(IServiceProvider serviceProvider, IPlumberRuntime plumber, string streamName)
+            {
+                _serviceProvider = serviceProvider;
+                _plumber = plumber;
+                _streamName = streamName;
+            }
+
+            public async Task<IModelResult<TProjection, TModel>> Execute()
+            {
+                var  results = new ModelResult<TProjection, TModel>();
+                var scopedProvider = (results.Scope = _serviceProvider.CreateScope()).ServiceProvider;
+
+                results.Model = scopedProvider.GetRequiredService<TModel>();
+                results.Projection= scopedProvider.GetRequiredService<TProjection>();
+
+                
+                results.ProcessingUnit = await _plumber.RunController(results.Projection, new ProcessingUnitConfig(typeof(TProjection))
+                {
+                    IsEventEmitEnabled = false,
+                    IsCommandEmitEnabled = false,
+                    IsPersistent = false,
+                    ProcessingMode = ProcessingMode.EventHandler,
+                    SubscribesFromBeginning = true,
+                    // Projection Schema => From Metadata.UserId or Event.Property
+                    ProjectionSchema = new ProjectionSchema() { StreamName = _streamName },
+                });
+
+
+                return results;
+            }
+        }
         class CollectionResultQueryExecutor<TQuery, TResult, TQueryHandler, TProjection, TModel>
             where TQuery:ICollectionResultQuery<TResult>
         {
@@ -99,18 +139,19 @@ namespace ModelingEvolution.Plumberd.Querying
                 _streamName = streamName;
             }
 
-            public async Task<IObservableCollectionResult<TModelItem>> Execute(ICollectionResultQuery<TModelItem> query, Func<TModel, ObservableCollection<TModelItem>> accesor)
+            public async Task<IObservableCollectionResult<TModelItem, TProjection, TModel>> Execute(ICollectionResultQuery<TModelItem> query, Func<TModel, ObservableCollection<TModelItem>> accesor)
             {
                 var scope = _serviceProvider.CreateScope();
                 var scopedProvider = scope.ServiceProvider;
                 var model = scopedProvider.GetRequiredService<TModel>();
-                ObservableCollectionResult<TModelItem> results = new ObservableCollectionResult<TModelItem>(accesor(model));
-                results.Scope = scope;
-                results.Model = model;
-                
-                var projectionHandler = scopedProvider.GetRequiredService<TProjection>();
+                var results = new ObservableCollectionResult<TModelItem, TProjection, TModel>(accesor(model))
+                {
+                    Scope = scope, 
+                    Model = model, 
+                    Projection = scopedProvider.GetRequiredService<TProjection>()
+                };
 
-                results.ProcessingUnit = await _plumber.RunController(projectionHandler, new ProcessingUnitConfig(typeof(TProjection))
+                results.ProcessingUnit = await _plumber.RunController(results.Projection, new ProcessingUnitConfig(typeof(TProjection))
                 {
                     IsEventEmitEnabled = false,
                     IsCommandEmitEnabled = false,
@@ -184,14 +225,19 @@ namespace ModelingEvolution.Plumberd.Querying
             throw new NotImplementedException();
         }
 
-
+        public Task<IModelResult<TProjection, TModel>> Execute<TProjection, TModel>(string streamName)
+        {
+            var executor = new ModelQueryExecutor<TProjection, TModel>(_serviceProvider, _plumber, streamName);
+            return executor.Execute();
+        }
+        
         public Task<ICollectionResult<TResult>> Execute<TQuery, TResult, TQueryHandler, TProjection, TModel>(ICollectionResultQuery<TResult> query, string streamName)
             where TQuery : ICollectionResultQuery<TResult>
         {
             var executor = new CollectionResultQueryExecutor<TQuery, TResult, TQueryHandler, TProjection, TModel>(_serviceProvider, _plumber, streamName);
             return executor.Execute(query);
         }
-        public Task<IObservableCollectionResult<TResult>> Execute<TResult, TProjection, TModel>(
+        public Task<IObservableCollectionResult<TResult, TProjection, TModel>> Execute<TResult, TProjection, TModel>(
             ICollectionResultQuery<TResult> query, string streamName,
             Func<TModel, ObservableCollection<TResult>> accesor)
         {

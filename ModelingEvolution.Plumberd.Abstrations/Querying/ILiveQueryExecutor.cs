@@ -9,11 +9,14 @@ namespace ModelingEvolution.Plumberd.Querying
         ISingleResult<TResult> ExecuteSingle<TResult>(ISingleResultQuery<TResult> query, string streamName);
         ICollectionResult<TResult> Execute<TResult>(ICollectionResultQuery<TResult> query, string streamName);
 
+
+        Task<IModelResult<TProjection, TModel>> Execute<TProjection, TModel>(string streamName);
+
         Task<ICollectionResult<TModelItem>> Execute<TQuery, TModelItem, TQueryHandler, TProjection, TModel>(
             ICollectionResultQuery<TModelItem> query, string streamName)
             where TQuery : ICollectionResultQuery<TModelItem>;
 
-        Task<IObservableCollectionResult<TModelItem>> Execute<TModelItem, TProjection, TModel>(
+        Task<IObservableCollectionResult<TModelItem, TProjection, TModel>> Execute<TModelItem, TProjection, TModel>(
             ICollectionResultQuery<TModelItem> query, string streamName,
             Func<TModel, ObservableCollection<TModelItem>> accesor);
 

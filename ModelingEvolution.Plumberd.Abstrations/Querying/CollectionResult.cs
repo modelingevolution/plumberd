@@ -6,6 +6,13 @@ using ModelingEvolution.Plumberd.EventProcessing;
 
 namespace ModelingEvolution.Plumberd.Querying
 {
+    public class ModelResult<TProjection, TModel> : IModelResult<TProjection, TModel>
+    {
+        public TProjection Projection { get; internal set; }
+        public TModel Model { get; internal set; }
+        public IServiceScope Scope { get; set; }
+        public IProcessingUnit ProcessingUnit { get; set; }
+    }
     public class CollectionResult<TModelItem> : ICollectionResult<TModelItem>
     {
         public IList<TModelItem> Items { get; }
