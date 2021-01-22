@@ -9,10 +9,11 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
         /// <summary>
         /// Number of events that the aggregate received
         /// </summary>
-        ulong Version { get; }
-        Guid Id { get; set; }
-        void Rehydrate(IEnumerable<IRecord> events);
-        Task RehydrateAsync(IAsyncEnumerable<IRecord> events);
-        IEvent[] Execute(ICommand cmd);
+        public ulong Version { get; }
+
+        public Guid Id { get; set; }
+        public void Rehydrate(IEnumerable<IRecord> events);
+        public Task RehydrateAsync(IAsyncEnumerable<IRecord> events);
+        public IEvent[] Execute(ICommand cmd);
     }
 }

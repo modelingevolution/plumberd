@@ -5,7 +5,7 @@ using ModelingEvolution.Plumberd.StateTransitioning;
 
 namespace ModelingEvolution.Plumberd.Tests.Models
 {
-    public class ComplexTransitionUnit : StateTransitionUnit<ComplexTransitionUnit, ComplexTransitionUnit.State>
+    public class ComplexTransitionUnit : RootAggregate<ComplexTransitionUnit, ComplexTransitionUnit.State>
     {
         public struct State
         {

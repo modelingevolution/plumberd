@@ -5,16 +5,16 @@ using System.Threading.Tasks;
 
 namespace ModelingEvolution.Plumberd.StateTransitioning
 {
-    public abstract class StateTransitionUnit<TUnit, TState> : IStateTransitionUnit
-        where TUnit : StateTransitionUnit<TUnit, TState>
+    public abstract class RootAggregate<TUnit, TState> : IStateTransitionUnit, IRootAggregate 
+        where TUnit : RootAggregate<TUnit, TState>
         where TState : new()
     {
-        static StateTransitionUnit()
+        static RootAggregate()
         {
-            _binder = new StateTransitionBinder<TState>(typeof(TUnit)).Discover();
+            _binder = new RootAggregateBinder<TState>(typeof(TUnit)).Discover();
         }
 
-        private static readonly StateTransitionBinder<TState> _binder;
+        private static readonly RootAggregateBinder<TState> _binder;
         public virtual Guid Id
         {
             get => _id;
@@ -33,7 +33,7 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
         private Guid _id;
         protected TState _state;
 
-        protected StateTransitionUnit()
+        protected RootAggregate()
         {
             _state = new TState();
         }
@@ -80,5 +80,4 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
 
 
     }
-
 }
