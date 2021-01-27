@@ -43,50 +43,79 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 
         public async override Task ReadStream(ReadReq request, IServerStreamWriter<ReadRsp> responseStream, ServerCallContext context)
         {
-            await CheckAuthorizationData(context);
-
-            ArrayBufferWriter<byte> buffer = new ArrayBufferWriter<byte>(128 * 1024);
-
-            if (request.SchemaCase == ReadReq.SchemaOneofCase.GenericSchema)
+            IDisposable resources = null;
+            
+            SemaphoreSlim subExit = new SemaphoreSlim(0);
+            try
             {
-                SemaphoreSlim subExit = new SemaphoreSlim(0);
-                EventHandler handler = (c,m,e) => Transfer(c,m,e,responseStream,context, buffer);
-                ProjectionSchema schema = new ProjectionSchema
+                await CheckAuthorizationData(context);
+
+                ArrayBufferWriter<byte> buffer = new ArrayBufferWriter<byte>(128 * 1024);
+
+                if (request.SchemaCase == ReadReq.SchemaOneofCase.GenericSchema)
                 {
-                    ProjectionName = request.GenericSchema.Name,
-                    Script = request.GenericSchema.Script,
-                    StreamName = request.GenericSchema.StreamName
-                };
-                _logger.Information("GrpcProxy -> Subscribing -> Generic({projectionName},{script},{steamName})", 
-                    schema.ProjectionName, 
-                    schema.Script, 
-                    schema.StreamName);
+                    EventHandler handler = async (c, m, e) =>
+                    {
+                        try
+                        {
+                            await Transfer(c, m, e, responseStream, context, buffer);
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            subExit.Release(1);
+                        }
+                    };
+                    ProjectionSchema schema = new ProjectionSchema
+                    {
+                        ProjectionName = request.GenericSchema.Name,
+                        Script = request.GenericSchema.Script,
+                        StreamName = request.GenericSchema.StreamName
+                    };
+                    _logger.Information("GrpcProxy -> Subscribing -> Generic({projectionName},{script},{steamName})",
+                        schema.ProjectionName,
+                        schema.Script,
+                        schema.StreamName);
 
-                IProcessingContextFactory f = new GrpcContextFactory();
-                await _eventStore.Subscribe(schema,
-                    request.FromBeginning,
-                    request.IsPersistent,
-                    handler, f);
-                await subExit.WaitAsync();
+                    IProcessingContextFactory f = new GrpcContextFactory();
+                    resources = await _eventStore.Subscribe(schema,
+                        request.FromBeginning,
+                        request.IsPersistent,
+                        handler, f);
+                    
+                    await subExit.WaitAsync();
+                }
+                else if (request.SchemaCase == ReadReq.SchemaOneofCase.EventTypeSchema)
+                {
+                    IProcessingContextFactory f = new GrpcContextFactory();
+
+                    EventHandler handler = async (c, m, e) =>
+                    {
+                        try
+                        {
+                            await Transfer(c, m, e, responseStream, context, buffer);
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            subExit.Release(1);
+                        }
+                    };
+
+                    _logger.Information("GrpcProxy -> Subscribing -> EventType({name,eventTypes})",
+                        request.EventTypeSchema.Name,
+                        string.Join(", ", request.EventTypeSchema.EventTypes));
+
+                    resources = await _eventStore.Subscribe(request.EventTypeSchema.Name,
+                        request.FromBeginning,
+                        request.IsPersistent,
+                        handler, f, request.EventTypeSchema.EventTypes.ToArray());
+
+                    await subExit.WaitAsync();
+                }
             }
-            else if (request.SchemaCase == ReadReq.SchemaOneofCase.EventTypeSchema)
+            finally
             {
-                IProcessingContextFactory f = new GrpcContextFactory();
-                SemaphoreSlim subExit = new SemaphoreSlim(0);
-                EventHandler handler = (c, m, e) => Transfer(c, m, e, responseStream, context, buffer);
-
-                _logger.Information("GrpcProxy -> Subscribing -> EventType({name,eventTypes})",
-                    request.EventTypeSchema.Name,
-                    string.Join(", ", request.EventTypeSchema.EventTypes));
-
-                await _eventStore.Subscribe(request.EventTypeSchema.Name,
-                    request.FromBeginning,
-                    request.IsPersistent,
-                    handler, f, request.EventTypeSchema.EventTypes.ToArray());
-
-                await subExit.WaitAsync();
+                resources?.Dispose();
             }
-
         }
 
         private async Task CheckAuthorizationData(ServerCallContext context)
@@ -94,6 +123,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             var uid = context.UserId();
             if (uid.HasValue)
             {
+                Debug.WriteLine($"CheckAuthorization: {uid}");
                 var streamId = uid.Value;
                 var email = context.UserEmail();
                 var name = context.UserName();
@@ -111,6 +141,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     }
                 }
             }
+            else Debug.WriteLine("No UserId!");
         }
 
         private async Task Transfer(IProcessingContext context,

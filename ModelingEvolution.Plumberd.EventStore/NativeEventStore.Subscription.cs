@@ -11,12 +11,12 @@ namespace ModelingEvolution.Plumberd.EventStore
 {
     public partial class NativeEventStore : IEventStore
     {
-        interface ISubscription
+        interface INativeSubscription : ISubscription
         {
             Task Subscribe();
         }
 
-        private class PersistentSubscription : ISubscription
+        private class PersistentSubscription : INativeSubscription
         {
             private readonly NativeEventStore _parent;
             private readonly ILogger _log;
@@ -26,6 +26,8 @@ namespace ModelingEvolution.Plumberd.EventStore
             private readonly IProcessingContextFactory _processingContextFactory;
             private readonly IEventStoreConnection _connection;
             private long? _processedEvent;
+            private EventStorePersistentSubscriptionBase _subscription;
+
             public PersistentSubscription(NativeEventStore parent, 
                 ILogger log, 
                 in bool fromBeginning, 
@@ -47,7 +49,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 try
                 {
                     _log.Information("Connecting to persistent subscription {subscriptionName}.", _streamName);
-                    await _connection.ConnectToPersistentSubscriptionAsync(_streamName,
+                    this._subscription = await _connection.ConnectToPersistentSubscriptionAsync(_streamName,
                         Environment.MachineName,
                         OnEventAppeared,
                         userCredentials: _parent._credentials,
@@ -65,7 +67,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                         _parent._credentials);
 
                     _log.Information("Connecting to persistent subscription {subscriptionName}.", _streamName);
-                    await _connection.ConnectToPersistentSubscriptionAsync(_streamName, 
+                    this._subscription = await _connection.ConnectToPersistentSubscriptionAsync(_streamName, 
                         Environment.MachineName,
                         OnEventAppeared, userCredentials: _parent._credentials,
                         subscriptionDropped: OnSubscriptionDropped);
@@ -140,8 +142,13 @@ namespace ModelingEvolution.Plumberd.EventStore
                     }
 
             }
+
+            public void Dispose()
+            {
+                _subscription.Stop(TimeSpan.FromSeconds(5));
+            }
         }
-        private class ContinuesSubscription : ISubscription
+        private class ContinuesSubscription : INativeSubscription
         {
             private readonly NativeEventStore _parent;
             private readonly ILogger _log;
@@ -151,6 +158,9 @@ namespace ModelingEvolution.Plumberd.EventStore
             private readonly IProcessingContextFactory _processingContextFactory;
             private readonly IEventStoreConnection _connection;
             private long? _streamPosition = null;
+            private EventStoreStreamCatchUpSubscription _subscriptionCatchUp;
+            private EventStoreSubscription _subscription;
+
             public ContinuesSubscription(NativeEventStore parent,
                 ILogger log,
                 in bool fromBeginning,
@@ -178,7 +188,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                 if (_fromBeginning || _streamPosition > 0)
                 {
-                    _connection.SubscribeToStreamFrom(_streamName, 
+                    this._subscriptionCatchUp = _connection.SubscribeToStreamFrom(_streamName, 
                         _streamPosition,
                         CatchUpSubscriptionSettings.Default, 
                         OnEventAppeared, 
@@ -187,7 +197,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 }
                 else
                 {
-                    await _connection.SubscribeToStreamAsync(_streamName, 
+                    this._subscription = await _connection.SubscribeToStreamAsync(_streamName, 
                         true, 
                         OnEventAppeared, 
                         subscriptionDropped: OnSubscriptionDropped);
@@ -256,6 +266,12 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _log.Information("Subscription dropped {reason} {exception}", subscriptionDropReason, arg3.Message);
                 eventStoreCatchUpSubscription.Dispose();
                 Task.Run(TrySubscribe);
+            }
+
+            public void Dispose()
+            {
+                _subscriptionCatchUp?.Stop(TimeSpan.FromSeconds(10));
+                _subscription?.Dispose();
             }
         }
     }

@@ -103,7 +103,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             collection.AddSingleton(plumberRuntime);
             collection.AddSingleton(plumberRuntime.DefaultEventStore);
             collection.AddSingleton(plumberRuntime.DefaultCommandInvoker);
-            collection.AddSingleton<EventStoreProxy>();
+            collection.AddScoped<EventStoreProxy>();
 
             TypeRegister tr = new TypeRegister();
             tr.Index(typeof(FooCommand).Assembly.GetTypes().Where(x => typeof(IRecord).IsAssignableFrom(x))

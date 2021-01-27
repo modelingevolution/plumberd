@@ -12,6 +12,24 @@ namespace ModelingEvolution.Plumberd
 {
     public static class Extensions
     {
+        public static Guid SymetricCombine(this Guid x, Guid y)
+        {
+            if (x.CompareTo(y) > 0)
+                return x.Combine(y);
+            else return y.Combine(x);
+        }
+        public static Guid Combine(this Guid x, Guid y)
+        {
+            byte[] a = x.ToByteArray();
+            byte[] b = y.ToByteArray();
+            ulong r1 = BitConverter.ToUInt64(a, 0) ^ BitConverter.ToUInt64(b, 8);
+            ulong r2 = BitConverter.ToUInt64(a, 8) ^ BitConverter.ToUInt64(b, 0);
+
+            var r = new Span<byte>(new byte[16]);
+            BitConverter.TryWriteBytes(r.Slice(0, 8), r1);
+            BitConverter.TryWriteBytes(r.Slice(8, 8), r2);
+            return new Guid(r);
+        }
         public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TKey, TValue> onAdd)
         {
             if (dict.TryGetValue(key, out var value))

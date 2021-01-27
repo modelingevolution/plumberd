@@ -216,7 +216,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             }
         }
         
-        public async Task Subscribe(string name,
+        public async Task<ISubscription> Subscribe(string name,
             bool fromBeginning,
             bool isPersistent,
             EventHandler onEvent,
@@ -244,7 +244,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             schema.Script = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingLinksToStream(schema.StreamName).Script();
 
-            await Subscribe(schema, fromBeginning, isPersistent, onEvent, factory);
+            return await Subscribe(schema, fromBeginning, isPersistent, onEvent, factory);
         }
 
         public async Task Init()
@@ -252,7 +252,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             await _projectionConfigurations.UpdateIfRequired();
         }
 
-        public async Task Subscribe(ProjectionSchema schema,
+        public async Task<ISubscription> Subscribe(ProjectionSchema schema,
             bool fromBeginning,
             bool isPersistent,
             EventHandler onEvent,
@@ -265,9 +265,9 @@ namespace ModelingEvolution.Plumberd.EventStore
                 await _projectionConfigurations.UpdateProjectionSchema(schema);
 
             if (isPersistent)
-                await SubscribePersistently(fromBeginning, onEvent, schema.StreamName, factory);
+                return await SubscribePersistently(fromBeginning, onEvent, schema.StreamName, factory);
             else
-                await Subscribe(fromBeginning, onEvent, schema.StreamName, factory);
+                return await Subscribe(fromBeginning, onEvent, schema.StreamName, factory);
         }
         private async Task UpdateDefaultTrackingProjectionIfNeeded(string projectionName,
             string streamName,
@@ -287,7 +287,7 @@ namespace ModelingEvolution.Plumberd.EventStore
        
        
 
-        private async Task Subscribe(bool fromBeginning,
+        private async Task<ISubscription> Subscribe(bool fromBeginning,
             EventHandler onEvent,
             string streamName, 
             IProcessingContextFactory processingContextFactory)
@@ -295,10 +295,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             ContinuesSubscription s = new ContinuesSubscription(this, Log, fromBeginning, onEvent, streamName, processingContextFactory);
             await s.Subscribe();
             _subscriptions.Add(s);
+            return s;
         }
         
        
-        private async Task SubscribePersistently(bool fromBeginning,
+        private async Task<ISubscription> SubscribePersistently(bool fromBeginning,
             EventHandler onEvent,
             string streamName, 
             IProcessingContextFactory processingContextFactory)
@@ -306,6 +307,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             PersistentSubscription s = new PersistentSubscription(this, Log, fromBeginning, onEvent, streamName, processingContextFactory);
             await s.Subscribe();
             _subscriptions.Add(s);
+            return s;
         }
 
         

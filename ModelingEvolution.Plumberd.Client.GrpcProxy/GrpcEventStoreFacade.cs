@@ -40,6 +40,12 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     }
     public class GrpcEventStoreFacade : IEventStore
     {
+        class Subscription : ISubscription
+        {
+            public void Dispose()
+            {
+            }
+        }
         private readonly TypeRegister _typeRegister;
         private readonly Func<GrpcChannel> _channel;
         private readonly IMetadataSerializerFactory _factory;
@@ -79,7 +85,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             return Task.CompletedTask;
         }
 
-        public async Task Subscribe(ProjectionSchema schema,
+        public async Task<ISubscription> Subscribe(ProjectionSchema schema,
             bool fromBeginning,
             bool isPersistent,
             EventHandler onEvent,
@@ -106,9 +112,10 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             var result = client.ReadStream(r, null, null, token);
 
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
+            return new Subscription();
         }
 
-        public async Task Subscribe(string name, 
+        public async Task<ISubscription> Subscribe(string name, 
             bool fromBeginning, 
             bool isPersistent, 
             EventHandler onEvent,
@@ -133,6 +140,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             //    Debug.WriteLine(i.Seq);
             //}
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
+            return new Subscription();
         }
 
         private async Task Read(AsyncServerStreamingCall<ReadRsp> callContext,

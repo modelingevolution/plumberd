@@ -5,18 +5,21 @@ using Serilog;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
-   
+    public interface ISubscription : IDisposable
+    {
+
+    }
     public interface IEventStore
     {
         IEventStoreSettings Settings { get; }
         IStream GetStream(string category, Guid id, IContext context = null);
         Task Init();
-        Task Subscribe(ProjectionSchema schema, 
+        Task<ISubscription> Subscribe(ProjectionSchema schema, 
             bool fromBeginning, 
             bool isPersistent,
             EventHandler onEvent,
             IProcessingContextFactory factory);
-        Task Subscribe(string name,
+        Task<ISubscription> Subscribe(string name,
             bool fromBeginning,
             bool isPersistent,
             EventHandler onEvent,
