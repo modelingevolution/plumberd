@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Modellution\Shared\Modellution.Shared.csproj" />
     <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
     <ProjectReference Include="..\ModelingEvolution.Plumberd.EventStore\ModelingEvolution.Plumberd.EventStore.csproj" />
     <ProjectReference Include="..\ModelingEvolution.Plumberd.GrpcProxy\ModelingEvolution.Plumberd.GrpcProxy.csproj" />

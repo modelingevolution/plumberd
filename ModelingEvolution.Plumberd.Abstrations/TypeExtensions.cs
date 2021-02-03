@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Security.Cryptography;
@@ -10,8 +11,32 @@ using System.Text;
 
 namespace ModelingEvolution.Plumberd
 {
+    public struct ImplementedInterface
+    {
+        public Type ArgumentType { get; init; }
+        public Type ConcreteInterface { get; init; }
+        public Type ImplementationType { get; init; }
+        public bool IsImplemented => ArgumentType != null;
+
+    }
     public static class TypeExtensions
     {
+        public static ImplementedInterface GetGenericInterfaceArgument(this Type type, Type genericType)
+        {
+            var implementedInterface = type.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == genericType);
+            if (implementedInterface != null)
+            {
+                var argType = implementedInterface.GetGenericArguments()[0];
+                return new ImplementedInterface()
+                {
+                    ArgumentType = argType,
+                    ConcreteInterface = genericType.MakeGenericType(argType),
+                    ImplementationType = type
+                };
+            }
+
+            return new ImplementedInterface() { ImplementationType = type };
+        }
         public static byte[] ToHash(this string t)
         {
             using (SHA256 h = SHA256.Create())

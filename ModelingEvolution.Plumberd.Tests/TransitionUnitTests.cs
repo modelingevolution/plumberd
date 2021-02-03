@@ -12,6 +12,7 @@ using Xunit;
 
 namespace ModelingEvolution.Plumberd.Tests
 {
+    
     public class SerializationTests
     {
         [Fact]

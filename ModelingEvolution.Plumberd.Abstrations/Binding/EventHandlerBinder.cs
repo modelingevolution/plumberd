@@ -77,7 +77,7 @@ namespace ModelingEvolution.Plumberd.Binding
             foreach (var i in methods.Where(x =>
                 (CommandHandlerMethodNames.Contains(x.Name) && x.HasCommandHandlerParameters())))
             {
-                if (i.ReturnsEvents() || i.ReturnsNothing())
+                if (i.ReturnsEvents() || i.ReturnsNothing() || i.ReturnsCommands())
                     yield return i;
             }
 

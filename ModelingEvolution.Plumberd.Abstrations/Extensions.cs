@@ -51,7 +51,7 @@ namespace ModelingEvolution.Plumberd
                 return v;
             });
         }
-
+       
         public static async Task ExecuteForAll<T>(this IEnumerable<T> list, Func<T, Task> action)
         {
             foreach (var i in list) await action(i);

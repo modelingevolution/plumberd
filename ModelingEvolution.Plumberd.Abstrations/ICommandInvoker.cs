@@ -55,6 +55,7 @@ namespace ModelingEvolution.Plumberd
             return m;
         }
     }
+    
     public class CommandInvoker : ICommandInvoker
     {
         private readonly IEventStore _eventStore;
@@ -64,9 +65,7 @@ namespace ModelingEvolution.Plumberd
             _eventStore = eventStore;
             _logger = logger;
         }
-
-
-        
+     
 
         public async Task Execute(Guid id, ICommand c, IContext context = null)
         {
