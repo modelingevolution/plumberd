@@ -15,7 +15,7 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
 
         public StateTransition<TState>.Given Given
         {
-            get { return (st, ev) => _givens[ev.GetType()](st, ev); }
+            get => (st, ev) => _givens.TryGetValue(ev.GetType(), out var given) ? given(st, ev) : st;
         }
 
         public StateTransition<TState>.When When

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using EventStore.ClientAPI;
+using Microsoft.Extensions.Configuration;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using ILogger = Serilog.ILogger;
@@ -34,6 +35,35 @@ namespace ModelingEvolution.Plumberd.EventStore
             _httpUrl = new Uri("http://127.0.0.1:2113/");
             _metadataSerializer = null;
             _projectionConfigs = new List<IProjectionConfig>();
+        }
+
+        public NativeEventStoreBuilder WithConfig(IConfiguration c)
+        {
+            
+            this.SetIfNotEmpty(ref _tcpUrl, c["EventStore:TcpUrl"]);
+            this.SetIfNotEmpty(ref _httpUrl, c["EventStore:HttpUrl"]);
+            this.SetIfNotEmpty(ref _userName, c["EventStore:User"]);
+            this.SetIfNotEmpty(ref _password, c["EventStore:Password"]);
+
+            var isInsecure = c["EventStore:Insecure"];
+            if (!string.IsNullOrWhiteSpace(isInsecure))
+            {
+                if (bool.Parse(isInsecure))
+                    this.InSecure();
+            }
+            Serilog.Log.Information("EventStore TcpUrl: {tcpUrl}", _tcpUrl);
+            Serilog.Log.Information("EventStore HttpUrl: {httpUrl}", _httpUrl);
+            return this;
+        }
+        private void SetIfNotEmpty(ref string dst, string src)
+        {
+            if (!string.IsNullOrWhiteSpace(src))
+                dst = src;
+        }
+        private void SetIfNotEmpty(ref Uri dst, string url)
+        {
+            if(!string.IsNullOrWhiteSpace(url))
+                dst = new Uri(url);
         }
 
         public NativeEventStoreBuilder WithProjectionsConfigFrom(Assembly a)
