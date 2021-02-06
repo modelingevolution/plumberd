@@ -44,7 +44,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         public async override Task ReadStream(ReadReq request, IServerStreamWriter<ReadRsp> responseStream, ServerCallContext context)
         {
             IDisposable resources = null;
-            
+            _logger.Information("GrpcProxy -> Reading started.");
             SemaphoreSlim subExit = new SemaphoreSlim(0);
             try
             {
@@ -62,6 +62,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         }
                         catch (InvalidOperationException ex)
                         {
+                            _logger.Warning(ex, "Reading ended.");
                             subExit.Release(1);
                         }
                     };
@@ -96,6 +97,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         }
                         catch (InvalidOperationException ex)
                         {
+                            _logger.Warning(ex, "Reading ended.");
                             subExit.Release(1);
                         }
                     };
@@ -123,7 +125,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             var uid = context.UserId();
             if (uid.HasValue)
             {
-                Debug.WriteLine($"CheckAuthorization: {uid}");
+                Debug.WriteLine($"GrpcProxy -> CheckAuthorization: {uid}");
                 var streamId = uid.Value;
                 var email = context.UserEmail();
                 var name = context.UserName();
@@ -164,8 +166,10 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 buffer.Clear();
                 if (value is DateTimeOffset dto)
                 {
-                    Serializer.Serialize(buffer, dto.DateTime);
-                    Serializer.Serialize(buffer, dto.Offset);
+                    BitConverter.TryWriteBytes(buffer.GetSpan(sizeof(Int64)), dto.DateTime.Ticks);
+                    buffer.Advance(sizeof(Int64));
+                    BitConverter.TryWriteBytes(buffer.GetSpan(sizeof(Int64)), dto.Offset.Ticks);
+                    buffer.Advance(sizeof(Int64));
                 }
                 else
                 {
@@ -179,7 +183,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 };
                 rsp.MetadataProps.Add(metadataProperty);
             }
-            _logger.Information("GrpcProxy -> Subscription.WriteAsync");
+            _logger.Information("GrpcProxy -> Subscription.WriteResponse({recordType})", ev.GetType().Name);
             await responseStream.WriteAsync(rsp);
         }
 

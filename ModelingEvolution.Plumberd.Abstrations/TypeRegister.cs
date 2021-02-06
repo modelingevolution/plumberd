@@ -33,7 +33,7 @@ namespace ModelingEvolution.Plumberd
                 if (_index.TryGetValue(id, out var t))
                     return t;
 
-                string db = ToString();
+                //string db = ToString();
                 return null;
             }
         }

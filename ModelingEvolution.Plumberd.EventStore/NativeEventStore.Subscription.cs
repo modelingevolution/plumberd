@@ -123,7 +123,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             private void OnSubscriptionDropped(EventStorePersistentSubscriptionBase s, SubscriptionDropReason r, Exception e)
             {
-                _log.Warning("Subscription dropped! {ProcessingMode} {ProcessingUnitType}", _processingContextFactory.Config.ProcessingMode, _processingContextFactory.Config.Type.Name);
+                _log.Warning(e,"Subscription dropped! {ProcessingMode} {ProcessingUnitType} {Reason}", _processingContextFactory.Config.ProcessingMode, _processingContextFactory.Config.Type.Name, r);
                 Task.Run(TrySubscribe);
             }
 
