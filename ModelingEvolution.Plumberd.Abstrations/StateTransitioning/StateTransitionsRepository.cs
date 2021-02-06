@@ -4,14 +4,6 @@ using ModelingEvolution.Plumberd.EventStore;
 
 namespace ModelingEvolution.Plumberd.StateTransitioning
 {
-    public interface IStateTransitionsRepository
-    {
-        Task<T> Get<T>(Guid id) where T : IStateTransitionUnit, new();
-        Task<T> ExecuteAndSave<T>(Guid id, ICommand cmd, ICommandHandlerContext context = null) where T : IStateTransitionUnit, new();
-        Task<T> ExecuteAndSave<T>(T arg, ICommand cmd, ICommandHandlerContext context = null) where T : IStateTransitionUnit;
-        Task Save<T>( T arg,  IEvent[] events, ICommandHandlerContext context = null) where T : IStateTransitionUnit;
-    }
-
     public class StateTransitionsRepository : IStateTransitionsRepository
     {
         private readonly IEventStore _eventStore;
@@ -26,7 +18,7 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
             T n = new T();
             n.Id = id;
             var stream = _eventStore.GetStream(typeof(T).Name, id);
-            await n.RehydrateAsync(stream.Read());
+            await n.RehydrateAsync(stream.ReadEvents());
 
             return n;
         }

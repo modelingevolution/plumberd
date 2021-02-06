@@ -55,6 +55,7 @@ namespace ModelingEvolution.Plumberd
             return m;
         }
     }
+    
     public class CommandInvoker : ICommandInvoker
     {
         private readonly IEventStore _eventStore;
@@ -64,9 +65,7 @@ namespace ModelingEvolution.Plumberd
             _eventStore = eventStore;
             _logger = logger;
         }
-
-
-        
+     
 
         public async Task Execute(Guid id, ICommand c, IContext context = null)
         {
@@ -75,11 +74,11 @@ namespace ModelingEvolution.Plumberd
             if (context == null)
             {
                 // this is brand new invocation.
-                context = new CommandInvocationContext(id,c);
+                context = new CommandInvocationContext(id,c, Guid.Empty);
             }
             Type commandType = c.GetType();
             _logger.Information("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);
-            string name = commandType.GetCustomAttribute<StreamNameAttribute>()?.Name ?? commandType.Namespace.LastSegment('.');
+            string name = commandType.GetCustomAttribute<StreamAttribute>()?.Category ?? commandType.Namespace.LastSegment('.');
             var stream = _eventStore.GetStream($"{_eventStore.Settings.CommandStreamPrefix}{name}", id, context);
             await stream.Append(c, context);
         }

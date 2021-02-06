@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
+using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
@@ -41,7 +42,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
 
             using (StaticProcessingContext.CreateScope(context))
             {
-                var cmd = (await plumber.DefaultEventStore.GetCommandStream<FooCommand>(id).Read()
+                var cmd = (await plumber.DefaultEventStore.GetCommandStream<FooCommand>(id).ReadEvents()
                         .ToArrayAsync())
                     .OfType<FooCommand>()
                     .FirstOrDefault();
@@ -129,7 +130,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             sw.Start();
             do
             {
-                records = await correlationStream.Read().ToArrayAsync();
+                records = await correlationStream.ReadEvents().ToArrayAsync();
             }
             while (records.Length < 2 && sw.Elapsed < TimeSpan.FromSeconds(10));
 
@@ -141,6 +142,39 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             ((FooEvent)records[1]).Id.ShouldBe(commandHandler.ReturningEvent.Id);
         }
 
+        [Fact]
+        public async Task InvokeCommand_HandleCommand_HandleEvent_LinkCheck()
+        {
+            Guid id = Guid.NewGuid();
+            FooCommand command = new FooCommand();
+            FooEvent ev = new FooEvent();
+
+            var projection = new FooLinkProjection();
+            var commandHandler = new FooCommandHandler() { ReturningEvent = ev };
+
+            var plumber = await CreatePlumber();
+            plumber.RegisterController(projection);
+            plumber.RegisterController(commandHandler);
+            await plumber.StartAsync();
+
+            await plumber.DefaultCommandInvoker.Execute(id, command);
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            do
+            {
+                await Task.Delay(100);
+            } while (projection.Count == 0 && sw.Elapsed < TimeSpan.FromSeconds(10));
+
+            var nStore = (NativeEventStore)plumber.DefaultEventStore;
+            await Task.Delay(200);
+            var eventHandlerContext = NSubstitute.Substitute.For<IEventHandlerContext>();
+            var data = await nStore.GetStream("/FooLink", projection.StreamId, eventHandlerContext).Read().ToArrayAsync();
+            data.Length.ShouldBe(1);
+            projection.Event.ShouldNotBeNull();
+            data[0].Item2.ShouldBeEquivalentTo(projection.Event);
+
+        }
         [Fact]
         public async Task InvokeCommand_HandleCommand_HandleEvent_MetadataCheck()
         {
@@ -171,9 +205,11 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             projection.Event.Id.ShouldBe(ev.Id);
             projection.Metadata.Category().ShouldBe("Foo");
             projection.Metadata.StreamId().ShouldBe(id);
+            projection.Metadata.StreamPosition().ShouldBe(0UL);
             projection.Metadata.CausationId().ShouldBe(command.Id);
             projection.Metadata.CorrelationId().ShouldBe(command.Id);
             projection.Metadata.Created().ShouldBe(DateTimeOffset.Now, TimeSpan.FromSeconds(5));
+
         }
         
         private async Task<IPlumberRuntime> CreatePlumber()

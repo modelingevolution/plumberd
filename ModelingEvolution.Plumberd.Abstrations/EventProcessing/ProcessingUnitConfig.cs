@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.Binding;
+using ModelingEvolution.Plumberd.EventStore;
+using ModelingEvolution.Plumberd.Metadata;
 using BindingFlags = ModelingEvolution.Plumberd.Binding.BindingFlags;
 
 namespace ModelingEvolution.Plumberd.EventProcessing
@@ -52,5 +55,8 @@ namespace ModelingEvolution.Plumberd.EventProcessing
         public ProcessingMode ProcessingMode { get;  set; }
         public BindingFlags BindingFlags { get; }
         public TimeSpan ProcessingLag { get; set; }
+        public AfterDispatchHandler OnAfterDispatch { get; set; }
+        public ProjectionSchema ProjectionSchema { get; set; }
     }
+    public delegate Task AfterDispatchHandler(object processingUnit, IMetadata m, IRecord ev, ProcessingResults result);
 }

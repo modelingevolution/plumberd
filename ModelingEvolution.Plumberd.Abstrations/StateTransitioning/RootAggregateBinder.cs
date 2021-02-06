@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace ModelingEvolution.Plumberd.StateTransitioning
 {
-    public class StateTransitionBinder<TState>
+    public class RootAggregateBinder<TState>
     {
         private const BindingFlags FLAGS = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.InvokeMethod;
         private readonly Type _type;
@@ -15,7 +15,7 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
 
         public StateTransition<TState>.Given Given
         {
-            get { return (st, ev) => _givens[ev.GetType()](st, ev); }
+            get => (st, ev) => _givens.TryGetValue(ev.GetType(), out var given) ? given(st, ev) : st;
         }
 
         public StateTransition<TState>.When When
@@ -23,14 +23,14 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
             get { return (st, cmd) => _whens[cmd.GetType()](st, cmd); }
         }
 
-        public StateTransitionBinder(Type type)
+        public RootAggregateBinder(Type type)
         {
             _type = type;
             _givens = new Dictionary<Type, StateTransition<TState>.Given>();
             _whens = new Dictionary<Type, StateTransition<TState>.When>();
         }
 
-        public StateTransitionBinder<TState> Discover()
+        public RootAggregateBinder<TState> Discover()
         {
             var methods = _type.GetMethods(FLAGS);
             foreach (var i in methods.Where(x => (x.Name == "When" || x.Name == "Given")))

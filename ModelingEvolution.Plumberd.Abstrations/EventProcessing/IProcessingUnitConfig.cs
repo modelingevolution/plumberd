@@ -1,5 +1,6 @@
 ﻿using System;
 using ModelingEvolution.Plumberd.Binding;
+using ModelingEvolution.Plumberd.EventStore;
 
 namespace ModelingEvolution.Plumberd.EventProcessing
 {
@@ -12,5 +13,7 @@ namespace ModelingEvolution.Plumberd.EventProcessing
         ProcessingMode ProcessingMode { get; }
         BindingFlags BindingFlags { get; }
         TimeSpan ProcessingLag { get; set; }
+        AfterDispatchHandler OnAfterDispatch { get; }
+        ProjectionSchema ProjectionSchema { get; }
     }
 }

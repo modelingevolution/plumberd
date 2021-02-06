@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
@@ -17,7 +18,7 @@ namespace ModelingEvolution.Plumberd
             LifetimeMode mode = LifetimeMode.Singleton,
             SynchronizationContext context = null)
         {
-            Func<Type, object> factory = runtime.DefaultServiceProvider.GetService;
+            Func<Type, object> factory = runtime.DefaultServiceProvider.GetRequiredService;
             if (sp != null)
                 factory = sp.GetService;
 
@@ -45,7 +46,7 @@ namespace ModelingEvolution.Plumberd
         public static IPlumberRuntime RegisterController<T>(this IPlumberRuntime runtime,
             Func<Type, object> factory = null,
             IProcessingUnitConfig config = null,
-            IHandlerBinder binder = null,
+            IEventHandlerBinder binder = null,
             ICommandInvoker invoker = null,
             IEventStore eventStore = null,
             SynchronizationContext context = null)

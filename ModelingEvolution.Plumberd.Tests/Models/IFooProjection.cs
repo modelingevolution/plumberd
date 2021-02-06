@@ -23,7 +23,27 @@ namespace ModelingEvolution.Plumberd.Tests.Models
         }
         
     }
+    [ProcessingUnitConfig(
+        IsCommandEmitEnabled = false,
+        IsEventEmitEnabled = true,
+        IsPersistent = true,
+        SubscribesFromBeginning = false)]
+    public class FooLinkProjection
+    {
+        public Guid StreamId = Guid.NewGuid();
+        public IMetadata Metadata;
+        public FooEvent Event;
 
+        public int Count = 0;
+
+        public async Task<(Guid, IEvent)> Given(IMetadata m, FooEvent ev)
+        {
+            Count += 1;
+            Metadata = m;
+            Event = ev;
+            return (StreamId, m.Link("/FooLink"));
+        }
+    }
     public class FooProjection 
     {
         public IMetadata Metadata;

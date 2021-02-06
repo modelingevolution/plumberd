@@ -9,23 +9,34 @@ using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd.Binding
 {
-    public interface IHandlerBinder
+    public delegate Task<TResult> QueryHandler<in TQuery, in TQueryHandler, TResult>(TQueryHandler handler, TQuery query);
+    public class QueryHandlerBinder
     {
-        IHandlerBinder Discover(bool searchInProperties, Predicate<MethodInfo> methodFilter = null);
-        IEnumerable<Type> Types();
-        HandlerDispatcher CreateDispatcher();
-    }
+        private readonly Type _type;
 
-    public static class HandlerBinderExtensions
-    {
-        public static IHandlerBinder Discover(this IHandlerBinder binder, bool searchInProperties, BindingFlags flags)
+        public QueryHandlerBinder(Type type)
         {
-            BinderFilter f = new BinderFilter(flags);
-            return binder.Discover(searchInProperties, f.Filter);
+            _type = type;
+        }
+        public QueryHandler<TQuery, TQueryHandler, TResult> Create<TQuery, TQueryHandler, TResult>()
+        {
+            var methods = _type.GetMethods(System.Reflection.BindingFlags.Instance |
+                             System.Reflection.BindingFlags.InvokeMethod |
+                             System.Reflection.BindingFlags.NonPublic |
+                             System.Reflection.BindingFlags.Public);
+            var mth = methods
+                .Where(x => !x.IsAbstract && x.ReturnType == typeof(Task<TResult>) && (x.Name == "Execute" || x.Name.StartsWith("Find")) )
+                .Select(x=>new { Method = x, Parameters = x.GetParameters() })
+                .FirstOrDefault(x => x.Parameters.Length == 1 && x.Parameters[0].ParameterType == typeof(TQuery));
+            if (mth != null)
+            {
+                var action = mth.Method.CreateDelegate<QueryHandler<TQuery, TQueryHandler, TResult>>();
+                return action;
+            } else throw new ArgumentException("Could not find method. ");
         }
         
     }
-    public partial class HandlerBinder : IHandlerBinder
+    public partial class EventHandlerBinder : IEventHandlerBinder
     {
         public HandlerDispatcher CreateDispatcher()
         {
@@ -66,7 +77,7 @@ namespace ModelingEvolution.Plumberd.Binding
             foreach (var i in methods.Where(x =>
                 (CommandHandlerMethodNames.Contains(x.Name) && x.HasCommandHandlerParameters())))
             {
-                if (i.ReturnsEvents() || i.ReturnsNothing())
+                if (i.ReturnsEvents() || i.ReturnsNothing() || i.ReturnsCommands())
                     yield return i;
             }
 

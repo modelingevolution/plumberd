@@ -1,13 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using EventStore.ClientAPI;
+using Microsoft.Extensions.Configuration;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
-using Serilog;
+using ILogger = Serilog.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
+    
     public class NativeEventStoreBuilder
     {
+        private readonly List<IProjectionConfig> _projectionConfigs;
         private IMetadataSerializerFactory _metadataSerializer;
         private IRecordSerializer _recordSerializer;
         private IMetadataFactory _metadataFactory;
@@ -28,8 +34,59 @@ namespace ModelingEvolution.Plumberd.EventStore
             _password = "changeit";
             _httpUrl = new Uri("http://127.0.0.1:2113/");
             _metadataSerializer = null;
+            _projectionConfigs = new List<IProjectionConfig>();
         }
 
+        public NativeEventStoreBuilder WithConfig(IConfiguration c)
+        {
+            
+            this.SetIfNotEmpty(ref _tcpUrl, c["EventStore:TcpUrl"]);
+            this.SetIfNotEmpty(ref _httpUrl, c["EventStore:HttpUrl"]);
+            this.SetIfNotEmpty(ref _userName, c["EventStore:User"]);
+            this.SetIfNotEmpty(ref _password, c["EventStore:Password"]);
+
+            var isInsecure = c["EventStore:Insecure"];
+            if (!string.IsNullOrWhiteSpace(isInsecure))
+            {
+                if (bool.Parse(isInsecure))
+                    this.InSecure();
+            }
+            Serilog.Log.Information("EventStore TcpUrl: {tcpUrl}", _tcpUrl);
+            Serilog.Log.Information("EventStore HttpUrl: {httpUrl}", _httpUrl);
+            return this;
+        }
+        private void SetIfNotEmpty(ref string dst, string src)
+        {
+            if (!string.IsNullOrWhiteSpace(src))
+                dst = src;
+        }
+        private void SetIfNotEmpty(ref Uri dst, string url)
+        {
+            if(!string.IsNullOrWhiteSpace(url))
+                dst = new Uri(url);
+        }
+
+        public NativeEventStoreBuilder WithProjectionsConfigFrom(Assembly a)
+        {
+            var configs = a.GetTypes()
+                .Where(x => typeof(IProjectionConfig).IsAssignableFrom(x) && !x.IsAbstract && x.IsClass)
+                .Select(x => Activator.CreateInstance(x))
+                .Cast<IProjectionConfig>();
+            foreach (var i in configs)
+                WithProjectionsConfig(i);
+            return this;
+        }
+        public NativeEventStoreBuilder WithProjectionsConfig<TProjectionConfig>()
+        where TProjectionConfig: IProjectionConfig, new()
+        {
+            TProjectionConfig config = new TProjectionConfig();
+            return WithProjectionsConfig(config);
+        }
+        public NativeEventStoreBuilder WithProjectionsConfig(IProjectionConfig config)
+        {
+            _projectionConfigs.Add(config);
+            return this;
+        }
         public NativeEventStoreBuilder WithMetadataFactory(IMetadataFactory f)
         {
             _metadataFactory = f;
@@ -65,6 +122,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private NativeEventStoreBuilder WithDefaultEnrichers()
         {
             return WithMetadataEnricher<CorrelationEnricher>(ContextScope.All)
+                    .WithMetadataEnricher<UserIdEnricher>(ContextScope.All)
                     .WithMetadataEnricher(() => new RecordTypeEnricher(TypeNamePersistenceConvention.AssemblyQualifiedName), ContextScope.All)
                     .WithMetadataEnricher(() => new ProcessingUnitEnricher(TypeNamePersistenceConvention.Name), ContextScope.Event | ContextScope.Command)
                     .WithMetadataEnricher<CreateTimeEnricher>(ContextScope.All);
@@ -97,6 +155,16 @@ namespace ModelingEvolution.Plumberd.EventStore
             _disableTls = true;
             return this;
         }
+
+        public NativeEventStoreBuilder WithConnectionCustomization(Action<ConnectionSettingsBuilder> customizaiton)
+        {
+            _connectionCustomizations = customizaiton;
+            return this;
+        }
+        private Action<ConnectionSettingsBuilder> _connectionCustomizations;
+
+         
+
         public NativeEventStore Build(bool checkConnectivity = true)
         {
             if (!_withoutDefaultEnrichers)
@@ -128,7 +196,9 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _userName,
                 _password,
                 _ignoreCert, 
-                _disableTls);
+                _disableTls,
+                _connectionCustomizations,
+                _projectionConfigs);
             
             // Temporary
             if(checkConnectivity)

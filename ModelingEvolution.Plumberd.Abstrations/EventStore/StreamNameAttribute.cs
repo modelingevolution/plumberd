@@ -2,13 +2,13 @@
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
-    public class StreamNameAttribute : Attribute
+    public class StreamAttribute : Attribute
     {
-        public StreamNameAttribute(string name)
+        public StreamAttribute(string category)
         {
-            Name = name;
+            Category = category;
         }
 
-        public string Name { get; private set; }
+        public string Category { get; private set; }
     }
 }

@@ -130,6 +130,7 @@ namespace ModelingEvolution.Plumberd.Metadata
             {
                 f.RegisterSystem(MetadataProperty.Category);
                 f.RegisterSystem(MetadataProperty.StreamId);
+                f.RegisterSystem(MetadataProperty.StreamPosition);
             }
         }
     }
@@ -144,7 +145,7 @@ namespace ModelingEvolution.Plumberd.Metadata
     public readonly struct Metadata : IMetadata
     {
         private readonly IMetadataSchema _schema;
-        private readonly object[] _data;
+        private readonly object[] _data; // fixed?
         public Metadata(IMetadataSchema schema, bool read)
         {
             _schema = schema;
@@ -152,30 +153,65 @@ namespace ModelingEvolution.Plumberd.Metadata
         }
 
         public IMetadataSchema Schema => _schema;
-        
-
-       
-        public object this[MetadataProperty property]
+        public object this[int index]
         {
-            get => _data[property.Order];
+            get => _data[index];
             set
             {
-                if(_data[property.Order] != null)
+                if (_data[index] != null)
                     throw new InvalidOperationException("Cannot override metadata.");
-                _data[property.Order] = value;
+                _data[index] = value;
             }
         }
+        public object this[MetadataProperty property]
+        {
+            get => this[property.Order];
+            set => this[property.Order] = value;
+        }
+
+        public ILink Link(string destinationCategory)
+        {
+            string category = this.Category();
+            Guid streamId = this.StreamId();
+            ulong streamPosition = this.StreamPosition();
+            return new LinkEvent(category, 
+                streamId, 
+                streamPosition, 
+                destinationCategory);
+        }
+    }
+
+    readonly struct LinkEvent : ILink
+    {
+        public LinkEvent(string sourceCategory, 
+            Guid sourceStreamId, 
+            ulong sourceStreamPosition, 
+            string destinationCategory)
+        {
+            SourceCategory = sourceCategory;
+            SourceStreamId = sourceStreamId;
+            SourceStreamPosition = sourceStreamPosition;
+            DestinationCategory = destinationCategory;
+            Id = Guid.NewGuid();
+        }
+        public string DestinationCategory { get; }
+        public Guid Id { get; }
+        public string SourceCategory { get; }
+        public Guid SourceStreamId { get; }
+        public ulong SourceStreamPosition { get; }
     }
     public interface IMetadata
     {
         IMetadataSchema Schema { get; }
         object this[MetadataProperty property] { get; set; }
+        ILink Link(string destinationCategory);
     }
 
     public sealed class MetadataProperty
     {
         public static readonly MetadataProperty StreamId = new MetadataProperty("StreamId", typeof(Guid), -1, null, false);
         public static readonly MetadataProperty Category = new MetadataProperty("Category", typeof(String),-1, null, false);
+        public static readonly MetadataProperty StreamPosition = new MetadataProperty("StreamPosition", typeof(ulong), -1, null, false);
         public MetadataProperty(string name, 
             Type type, 
             int order, 

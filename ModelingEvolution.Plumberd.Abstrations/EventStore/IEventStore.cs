@@ -5,18 +5,26 @@ using Serilog;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
-   
+    public interface ISubscription : IDisposable
+    {
+
+    }
     public interface IEventStore
     {
         IEventStoreSettings Settings { get; }
         IStream GetStream(string category, Guid id, IContext context = null);
-        
-        Task Subscribe(string name, 
+        Task Init();
+        Task<ISubscription> Subscribe(ProjectionSchema schema, 
             bool fromBeginning, 
             bool isPersistent,
             EventHandler onEvent,
-            IProcessingContextFactory processingContextFactory,
-            params string[] sourceEventTypes);
+            IProcessingContextFactory factory);
+        Task<ISubscription> Subscribe(string name,
+            bool fromBeginning,
+            bool isPersistent,
+            EventHandler onEvent,
+            IProcessingContextFactory factory,
+            params string[] types);
     }
     public interface IEventStoreSettings
     {
@@ -27,5 +35,12 @@ namespace ModelingEvolution.Plumberd.EventStore
         string CommandStreamPrefix { get; }
         Func<Type,string[]> RecordNamingConvention { get; }
         ILogger Logger { get; }
+    }
+    public class ProjectionSchema
+    {
+        public bool IsDirect => string.IsNullOrWhiteSpace(ProjectionName);
+        public string ProjectionName { get; set; }
+        public string StreamName { get; set; }
+        public string Script { get; set; }
     }
 }

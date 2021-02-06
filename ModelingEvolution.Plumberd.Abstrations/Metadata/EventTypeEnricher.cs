@@ -2,6 +2,7 @@
 
 namespace ModelingEvolution.Plumberd.Metadata
 {
+   
     public class RecordTypeEnricher : IMetadataEnricher
     {
         internal MetadataProperty Property;

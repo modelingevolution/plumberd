@@ -14,6 +14,7 @@ namespace ModelingEvolution.Plumberd.Serialization
     public interface IMetadataSerializerFactory
     {
         IMetadataSerializer Get(IContext context);
+        IMetadataSerializer Get(ContextScope context);
         void RegisterSchemaForContext(IMetadataSchema schema, ContextScope contextType);
         void RegisterSerializerForContext(IMetadataSerializer schema, ContextScope contextType);
     }
@@ -43,6 +44,10 @@ namespace ModelingEvolution.Plumberd.Serialization
             return new MetadataSerializer(schema);
         }
 
+        public IMetadataSerializer Get(ContextScope context)
+        {
+            return _schemas[context];
+        }
         public IMetadataSerializer Get(IContext context)
         {
             if (context is ICommandHandlerContext)
@@ -74,6 +79,8 @@ namespace ModelingEvolution.Plumberd.Serialization
         byte[] Serialize(IRecord ev, IMetadata m);
         IRecord Deserialize(byte[] data, IMetadata m);
     }
+
+    
     /// <summary>
     /// <see cref="T:System.Text.Json.Serialization.JsonConverterFactory" /> to convert <see cref="T:System.TimeSpan" /> to and from strings. Supports <see cref="T:System.Nullable`1" />.
     /// </summary>
@@ -154,11 +161,17 @@ namespace ModelingEvolution.Plumberd.Serialization
         {
             _options = new JsonSerializerOptions();
             _options.Converters.Add(new JsonTimeSpanConverter());
+            
         }
         //private static readonly JsonSerializerSettings JSON_SETTINGS = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All };
         public byte[] Serialize(IRecord ev, IMetadata m)
         {
-            return JsonSerializer.SerializeToUtf8Bytes(ev, ev.GetType(), _options);
+            if (ev is ILink l)
+            {
+                return Encoding.UTF8.GetBytes($"{l.SourceStreamPosition}@{l.SourceCategory}-{l.SourceStreamId}");
+            } 
+            else 
+                return JsonSerializer.SerializeToUtf8Bytes(ev, ev.GetType(), _options);
         }
 
         public IRecord Deserialize(byte[] data, IMetadata m)

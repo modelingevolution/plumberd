@@ -19,9 +19,10 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             return eventStore.GetEventStream(typeof(TEvent), id);
         }
+        
         public static IStream GetEventStream(this IEventStore eventStore, Type eventType, Guid id, IContext context = null)
         {
-            string name = eventType.GetCustomAttribute<StreamNameAttribute>()?.Name ?? eventType.Namespace.LastSegment('.');
+            string name = eventType.GetCustomAttribute<StreamAttribute>()?.Category ?? eventType.Namespace.LastSegment('.');
 
             return eventStore.GetStream(name, id, context);
         }
@@ -34,7 +35,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             where TCommand : ICommand
         {
             
-            string name = typeof(TCommand).GetCustomAttribute<StreamNameAttribute>()?.Name ?? typeof(TCommand).Namespace.LastSegment('.');
+            string name = typeof(TCommand).GetCustomAttribute<StreamAttribute>()?.Category ?? typeof(TCommand).Namespace.LastSegment('.');
             
             return eventStore.GetStream($"{eventStore.Settings.CommandStreamPrefix}{name}", id);
         }

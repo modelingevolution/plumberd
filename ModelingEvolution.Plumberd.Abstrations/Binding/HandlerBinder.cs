@@ -9,9 +9,9 @@ using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd.Binding
 {
-    public class HandlerBinder<TProcessingUnit> : HandlerBinder
+    public class EventHandlerBinder<TProcessingUnit> : EventHandlerBinder
     {
-        public HandlerBinder() : base(typeof(TProcessingUnit))
+        public EventHandlerBinder() : base(typeof(TProcessingUnit))
         {
 
         }
@@ -28,19 +28,19 @@ namespace ModelingEvolution.Plumberd.Binding
         ProcessCommands = 0x1 << 4,
     }
 
-    public partial class HandlerBinder : IHandlerBinder
+    public partial class EventHandlerBinder : IEventHandlerBinder
     {
         protected const System.Reflection.BindingFlags FLAGS = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
         private readonly List<(Type, MethodInfo)> _methods;
         private readonly Dictionary<Type, List<(PropertyInfo, MethodInfo)>> _models;
         private readonly Type _type;
-        public HandlerBinder(Type type)
+        public EventHandlerBinder(Type type)
         {
             _type = type;
             _methods = new List<(Type, MethodInfo)>();
             _models = new Dictionary<Type, List<(PropertyInfo, MethodInfo)>>();
         }
-        public virtual IHandlerBinder Discover(bool searchInProperties, Predicate<MethodInfo> methodFilter = null)
+        public virtual IEventHandlerBinder Discover(bool searchInProperties, Predicate<MethodInfo> methodFilter = null)
         {
             methodFilter ??= (x => true);
 

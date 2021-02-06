@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
@@ -10,7 +12,7 @@ using Serilog;
 
 namespace ModelingEvolution.Plumberd
 {
-   
+    
 
     public class PlumberBuilder
     {
@@ -127,11 +129,13 @@ namespace ModelingEvolution.Plumberd
     {
         public Guid Id { get;  }
         public ICommand Command { get;  }
+        public Guid UserId { get; }
 
-        public CommandInvocationContext(Guid id, ICommand command)
+        public CommandInvocationContext(Guid id, ICommand command, Guid userId)
         {
             Id = id;
             Command = command;
+            UserId = userId;
         }
 
         public void Dispose()
@@ -142,7 +146,7 @@ namespace ModelingEvolution.Plumberd
     {
         Guid Id { get; }
         ICommand Command { get; }
-
+        Guid UserId { get; }
     }
 
     public interface ICommandHandlerContext : IProcessingContext

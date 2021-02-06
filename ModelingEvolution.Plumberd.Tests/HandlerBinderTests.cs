@@ -33,7 +33,7 @@ namespace ModelingEvolution.Plumberd.Tests
         [ClassData(typeof(RecordsData))]
         public async Task Discovery(IRecord r, bool isEmptyEmit)
         {
-            HandlerBinder<ComplexProcessingUnit> binder = new HandlerBinder<ComplexProcessingUnit>();
+            EventHandlerBinder<ComplexProcessingUnit> binder = new EventHandlerBinder<ComplexProcessingUnit>();
             binder.Discover(true);
 
             this.Sut = binder.CreateDispatcher();

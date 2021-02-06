@@ -6,11 +6,30 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ModelingEvolution.Plumberd
 {
     public static class Extensions
     {
+        public static Guid SymetricCombine(this Guid x, Guid y)
+        {
+            if (x.CompareTo(y) > 0)
+                return x.Combine(y);
+            else return y.Combine(x);
+        }
+        public static Guid Combine(this Guid x, Guid y)
+        {
+            byte[] a = x.ToByteArray();
+            byte[] b = y.ToByteArray();
+            ulong r1 = BitConverter.ToUInt64(a, 0) ^ BitConverter.ToUInt64(b, 8);
+            ulong r2 = BitConverter.ToUInt64(a, 8) ^ BitConverter.ToUInt64(b, 0);
+
+            var r = new Span<byte>(new byte[16]);
+            BitConverter.TryWriteBytes(r.Slice(0, 8), r1);
+            BitConverter.TryWriteBytes(r.Slice(8, 8), r2);
+            return new Guid(r);
+        }
         public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TKey, TValue> onAdd)
         {
             if (dict.TryGetValue(key, out var value))
@@ -31,6 +50,11 @@ namespace ModelingEvolution.Plumberd
                 onUpdate(k, v);
                 return v;
             });
+        }
+       
+        public static async Task ExecuteForAll<T>(this IEnumerable<T> list, Func<T, Task> action)
+        {
+            foreach (var i in list) await action(i);
         }
         public static void ExecuteForAll<T>(this IEnumerable<T> list, Action<T> action)
         {
@@ -83,6 +107,15 @@ namespace ModelingEvolution.Plumberd
                 a.Add(value);
             else a.Insert(index, value);
         }
+
+        public static void AddRange<T>(this IList<T> list, IEnumerable<T> other)
+        {
+            if(list is List<T> l)
+                l.AddRange(other);
+            else
+                foreach (var i in other)
+                    list.Add(i);
+        }
         public static Int32 BinarySearch<T>(this IList<T> a, T value, IComparer<T> comparer = null)
         {
             Int32 left = 0;
@@ -102,9 +135,11 @@ namespace ModelingEvolution.Plumberd
             }
             return high;
         }
+
+        
         public static void Merge<TDestination, TSource>(this IList<TDestination> destination,
-            IList<TSource> source, Func<TDestination, TSource, bool> match,
-            Action<TDestination, TSource> onUpdate, Func<TDestination> onCreate = null)
+            IList<TSource> source, Func<TDestination, TSource, bool> match = null,
+            Action<TDestination, TSource> onUpdate = null, Func<TDestination> onCreate = null)
         {
             if (onCreate == null)
                 onCreate = Activator.CreateInstance<TDestination>;
@@ -177,13 +212,6 @@ namespace ModelingEvolution.Plumberd
             if (s.StartsWith(start))
                 return s.Substring(start.Length);
             return s;
-        }
-        public static Guid ToGuid(this string t)
-        {
-            using (MD5 h = MD5.Create())
-            {
-                return new Guid(h.ComputeHash(Encoding.Default.GetBytes(t)));
-            }
         }
     }
 }

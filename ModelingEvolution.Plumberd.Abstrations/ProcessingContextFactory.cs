@@ -17,12 +17,12 @@ namespace ModelingEvolution.Plumberd
         private readonly HandlerDispatcher _dispatcher;
         private readonly IProcessingUnitConfig _config;
         private readonly IEventStore _store;
-        private readonly IHandlerBinder _binder;
+        private readonly IEventHandlerBinder _binder;
         private readonly ICommandInvoker _commandInvoker;
         private readonly ProcessingMode _processingMode;
         private SynchronizationContext _synchronizationContext;
 
-        internal IHandlerBinder Binder => _binder;
+        internal IEventHandlerBinder Binder => _binder;
         internal HandlerDispatcher Dispatcher => _dispatcher;
         public IProcessingUnitConfig Config => _config;
         internal Type Type => _type;
@@ -36,7 +36,7 @@ namespace ModelingEvolution.Plumberd
             HandlerDispatcher dispatcher,
             IEventStore store,
             ICommandInvoker commandInvoker,
-            IHandlerBinder binder,
+            IEventHandlerBinder binder,
             IProcessingUnitConfig config,
             SynchronizationContext synchronizationContext)
         {

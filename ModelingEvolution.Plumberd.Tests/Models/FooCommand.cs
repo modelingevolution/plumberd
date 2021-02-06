@@ -2,7 +2,7 @@ using ModelingEvolution.Plumberd.EventStore;
 
 namespace ModelingEvolution.Plumberd.Tests.Models
 {
-    [StreamName("Foo")]
+    [Stream("Foo")]
     public class FooCommand : Command
     {
         public string Name { get; set; }
