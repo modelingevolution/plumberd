@@ -8,6 +8,7 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
     public interface IAggregateRepository<TAggregate> where TAggregate : IRootAggregate, new()
     {
         Task<TAggregate> Get(Guid id);
+        Task<IRecord[]> GetEvents(Guid id);
         Task<IExecuteResult<TAggregate>> Execute<TCommand>(Guid id, TCommand cmd) where TCommand : ICommand;
 
         Task<IExecuteResult<TAggregate>> Execute<TCommand>(TAggregate aggregate, TCommand cmd)

@@ -26,6 +26,18 @@ namespace ModelingEvolution.Plumberd
             BitConverter.TryWriteBytes(span.Slice(8), b);
             return new Guid(span);
         }
+        public static Guid Combine(this Guid x, int value)
+        {
+            return x.Combine(((ulong)value).ToGuid());
+        }
+        public static Guid Combine(this Guid x, string value)
+        {
+            return x.Combine(value.ToGuid());
+        }
+        public static Guid Combine(this Guid x, ulong value)
+        {
+            return x.Combine(value.ToGuid());
+        }
         public static Guid Combine(this Guid x, Guid y)
         {
             byte[] a = x.ToByteArray();

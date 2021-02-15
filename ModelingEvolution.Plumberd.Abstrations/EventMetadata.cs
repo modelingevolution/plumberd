@@ -82,7 +82,7 @@ namespace ModelingEvolution.Plumberd
         }
     }
 
-    internal class EventHandlerContext : IEventHandlerContext
+    public class EventHandlerContext : IEventHandlerContext
     {
         private readonly ProcessingContextFactory _parent;
         private readonly bool _dispose;

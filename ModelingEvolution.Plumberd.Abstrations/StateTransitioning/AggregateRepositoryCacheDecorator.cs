@@ -31,6 +31,11 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
             return result;
         }
 
+        public Task<IRecord[]> GetEvents(Guid id)
+        {
+            return _next.GetEvents(id);
+        }
+
         public async Task<IExecuteResult<TAggregate>> Execute<TCommand>(Guid id, TCommand cmd) where TCommand : ICommand
         {
             var aggregate = await this.Get(id);

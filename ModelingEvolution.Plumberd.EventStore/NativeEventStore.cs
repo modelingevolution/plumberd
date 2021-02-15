@@ -180,8 +180,8 @@ namespace ModelingEvolution.Plumberd.EventStore
             
             var tcpSettings = ConnectionSettings.Create()
                 //.DisableServerCertificateValidation()
-                .UseDebugLogger()
-                .EnableVerboseLogging()
+                //.UseDebugLogger()
+                //.EnableVerboseLogging()
                 .KeepReconnecting()
                 .KeepRetrying()
                 .LimitReconnectionsTo(1000)
