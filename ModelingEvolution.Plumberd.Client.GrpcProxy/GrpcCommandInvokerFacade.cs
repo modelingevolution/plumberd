@@ -31,8 +31,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             _buffer = new ArrayBufferWriter<byte>(1024*128); // 128 KB
         }
 
-       
-        
+
+        public Task Execute(Guid id, ICommand c, Guid userId)
+        {
+            return Execute(id, c, new CommandInvocationContext(id, c, userId));
+        }
         public async Task Execute(Guid id, ICommand c, IContext context = null)
         {
             var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(_channel);

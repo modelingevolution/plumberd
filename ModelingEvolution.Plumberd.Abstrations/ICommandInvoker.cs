@@ -10,6 +10,7 @@ namespace ModelingEvolution.Plumberd
     public interface ICommandInvoker
     {
         Task Execute(Guid id, ICommand c, IContext context = null);
+        Task Execute(Guid id, ICommand c, Guid userId);
     }
 
     public interface ICommandInvokerMetadataFactory
@@ -81,6 +82,11 @@ namespace ModelingEvolution.Plumberd
             string name = commandType.GetCustomAttribute<StreamAttribute>()?.Category ?? commandType.Namespace.LastSegment('.');
             var stream = _eventStore.GetStream($"{_eventStore.Settings.CommandStreamPrefix}{name}", id, context);
             await stream.Append(c, context);
+        }
+
+        public Task Execute(Guid id, ICommand c, Guid userId)
+        {
+            return Execute(id, c, new CommandInvocationContext(id, c, userId));
         }
     }
 }

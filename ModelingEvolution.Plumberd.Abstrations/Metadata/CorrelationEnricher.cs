@@ -18,7 +18,8 @@ namespace ModelingEvolution.Plumberd.Metadata
     {
         public static Guid UserId(this IMetadata ev)
         {
-            return (Guid)ev[ev.Schema.Enricher<UserIdEnricher>().UserIdProperty];
+            var enricher = ev.Schema.Enricher<UserIdEnricher>();
+            return (Guid)ev[enricher.UserIdProperty];
         }
        
     }
@@ -40,7 +41,7 @@ namespace ModelingEvolution.Plumberd.Metadata
     }
     public class UserIdEnricher : IMetadataEnricher
     {
-        internal MetadataProperty UserIdProperty;
+        public MetadataProperty UserIdProperty { get; private set; }
         public void RegisterSchema(IMetadataSchema register)
         {
             this.UserIdProperty = register.Register<Guid>("UserId", this, true);

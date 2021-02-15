@@ -18,6 +18,14 @@ namespace ModelingEvolution.Plumberd
                 return x.Combine(y);
             else return y.Combine(x);
         }
+
+        public static Guid ToGuid(this ulong a, ulong b = 0)
+        {
+            Span<byte> span = new Span<byte>(new byte[16]);
+            BitConverter.TryWriteBytes(span, a);
+            BitConverter.TryWriteBytes(span.Slice(8), b);
+            return new Guid(span);
+        }
         public static Guid Combine(this Guid x, Guid y)
         {
             byte[] a = x.ToByteArray();

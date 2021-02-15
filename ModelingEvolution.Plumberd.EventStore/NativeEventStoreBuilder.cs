@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using Microsoft.Extensions.Configuration;
 using ModelingEvolution.Plumberd.Metadata;
@@ -202,7 +203,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             
             // Temporary
             if(checkConnectivity)
-                es.CheckConnectivity().GetAwaiter().GetResult();
+                Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
             
             return es;
         }

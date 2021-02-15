@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -28,6 +29,22 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
             _cache.Set(key, result, cacheEntryOptions);
 
             return result;
+        }
+
+        public async Task<IExecuteResult<TAggregate>> Execute<TCommand>(Guid id, TCommand cmd) where TCommand : ICommand
+        {
+            var aggregate = await this.Get(id);
+            return await _next.Execute(aggregate, cmd);
+        }
+
+        public Task<IExecuteResult<TAggregate>> Execute<TCommand>(TAggregate aggregate, TCommand cmd) where TCommand : ICommand
+        {
+            return _next.Execute(aggregate, cmd);
+        }
+
+        public Task AppendEvents(Guid id, IEnumerable<IEvent> events)
+        {
+            return _next.AppendEvents(id, events);
         }
     }
 }

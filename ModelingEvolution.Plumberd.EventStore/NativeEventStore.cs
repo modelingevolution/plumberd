@@ -179,9 +179,9 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             
             var tcpSettings = ConnectionSettings.Create()
-                .DisableServerCertificateValidation()
-                //.UseDebugLogger()
-                //.EnableVerboseLogging()
+                //.DisableServerCertificateValidation()
+                .UseDebugLogger()
+                .EnableVerboseLogging()
                 .KeepReconnecting()
                 .KeepRetrying()
                 .LimitReconnectionsTo(1000)
@@ -190,10 +190,16 @@ namespace ModelingEvolution.Plumberd.EventStore
                 .SetDefaultUserCredentials(_credentials);
 
             if (disableTls)
+            {
                 tcpSettings = tcpSettings.DisableTls();
+                Log.Warning("DisableTls");
+            }
 
             if (ignoreServerCert)
+            {
                 tcpSettings = tcpSettings.DisableServerCertificateValidation();
+                Log.Warning("DisableServerCertificateValidation");
+            }
 
             connectionBuilder?.Invoke(tcpSettings);
 
@@ -210,8 +216,11 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             if (!_connected)
             {
+                Log.Information("Establishing connection.");
                 await _connection.ConnectAsync();
+                Log.Information("Testing reading.");
                 var slice = await _connection.ReadAllEventsBackwardAsync(Position.End, 1, true, _credentials);
+                Log.Information("Connected.");
                 _connected = true;
             }
         }

@@ -16,7 +16,7 @@ namespace ModelingEvolution.Plumberd.Querying
         private readonly ObservableCollection<TDst> _filtered;
         private Predicate<TDst> _filter;
         private readonly bool _isReadOnly;
-        private readonly bool _isReadOnly1;
+        
 
         public Predicate<TDst> Filter
         {
@@ -160,7 +160,7 @@ namespace ModelingEvolution.Plumberd.Querying
 
         bool IList.IsReadOnly
         {
-            get { return _isReadOnly1; }
+            get { return _isReadOnly; }
         }
 
         object? IList.this[int index]
