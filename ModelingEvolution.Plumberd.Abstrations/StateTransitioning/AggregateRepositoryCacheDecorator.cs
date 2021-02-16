@@ -35,21 +35,5 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
         {
             return _next.GetEvents(id);
         }
-
-        public async Task<IExecuteResult<TAggregate>> Execute<TCommand>(Guid id, TCommand cmd) where TCommand : ICommand
-        {
-            var aggregate = await this.Get(id);
-            return await _next.Execute(aggregate, cmd);
-        }
-
-        public Task<IExecuteResult<TAggregate>> Execute<TCommand>(TAggregate aggregate, TCommand cmd) where TCommand : ICommand
-        {
-            return _next.Execute(aggregate, cmd);
-        }
-
-        public Task AppendEvents(Guid id, IEnumerable<IEvent> events)
-        {
-            return _next.AppendEvents(id, events);
-        }
     }
 }
