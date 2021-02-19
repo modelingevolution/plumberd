@@ -31,6 +31,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     public interface ISessionManager
     {
         Guid GetSessionId(Uri url);
+        Guid Default();
     }
 
     public class SessionManager : ISessionManager
@@ -45,6 +46,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         public Guid GetSessionId(Uri url)
         {
             return _sessions.GetOrAdd(url, x => Guid.NewGuid());
+        }
+
+        public Guid Default()
+        {
+            return _sessions.Values.First();
         }
     }
     /// <summary>
