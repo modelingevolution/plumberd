@@ -131,7 +131,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             StringBuilder query = new StringBuilder();
 
             query.Append("fromStreams([");
-            query.Append(string.Join(',', streams));
+            query.Append(string.Join(',', streams.Select(x=>$"'{x}'")));
             query.Append("])");
             _fromStreams = query.ToString();
             return this;

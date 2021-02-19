@@ -124,6 +124,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             return WithMetadataEnricher<CorrelationEnricher>(ContextScope.All)
                     .WithMetadataEnricher<UserIdEnricher>(ContextScope.All)
+                    .WithMetadataEnricher<SessionEnricher>(ContextScope.All)
                     .WithMetadataEnricher(() => new RecordTypeEnricher(TypeNamePersistenceConvention.AssemblyQualifiedName), ContextScope.All)
                     .WithMetadataEnricher(() => new ProcessingUnitEnricher(TypeNamePersistenceConvention.Name), ContextScope.Event | ContextScope.Command)
                     .WithMetadataEnricher<CreateTimeEnricher>(ContextScope.All);
