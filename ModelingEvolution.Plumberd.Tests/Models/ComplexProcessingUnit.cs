@@ -16,6 +16,8 @@ namespace ModelingEvolution.Plumberd.Tests.Models
         {
             _log.WriteLine("CommandHandler | Task When(Guid, Command2)");
         }
+
+       
         public void When(Guid id, Command1 cmd)
         {
             _log.WriteLine("CommandHandler | void When(Guid, Command1)");

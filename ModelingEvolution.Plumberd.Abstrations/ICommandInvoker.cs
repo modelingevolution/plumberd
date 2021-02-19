@@ -10,7 +10,7 @@ namespace ModelingEvolution.Plumberd
     public interface ICommandInvoker
     {
         Task Execute(Guid id, ICommand c, IContext context = null);
-        Task Execute(Guid id, ICommand c, Guid userId);
+        Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId);
     }
 
     public interface ICommandInvokerMetadataFactory
@@ -75,7 +75,7 @@ namespace ModelingEvolution.Plumberd
             if (context == null)
             {
                 // this is brand new invocation.
-                context = new CommandInvocationContext(id,c, Guid.Empty);
+                context = new CommandInvocationContext(id,c, Guid.Empty, Guid.Empty);
             }
             Type commandType = c.GetType();
             _logger.Information("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);
@@ -84,9 +84,9 @@ namespace ModelingEvolution.Plumberd
             await stream.Append(c, context);
         }
 
-        public Task Execute(Guid id, ICommand c, Guid userId)
+        public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId)
         {
-            return Execute(id, c, new CommandInvocationContext(id, c, userId));
+            return Execute(id, c, new CommandInvocationContext(id, c, userId, sessionId));
         }
     }
 }

@@ -323,7 +323,28 @@ namespace ModelingEvolution.Plumberd
         {
             if (context.Config.ProcessingLag > TimeSpan.Zero)
                 await Task.Delay(context.Config.ProcessingLag);
-            var result = await context.Dispatcher(context.ProcessingUnit, m, e);
+            ProcessingResults result = new ProcessingResults();
+            try
+            {
+                result = await context.Dispatcher(context.ProcessingUnit, m, e);
+            }
+            catch (ProcessingException ex)
+            {
+                // we need to write the response.
+                var recordType = e.GetType();
+                var exceptionType = ex.Payload.GetType();
+                var et = typeof(EventException<,>).MakeGenericType(recordType, exceptionType);
+                IRecord record = (IRecord)Activator.CreateInstance(et, e, ex.Payload);
+
+                if (e is ICommand)
+                    await context.EventStore.GetCommandStream(recordType, m.StreamId(), context).Append(record); 
+                else 
+                    await context.EventStore.GetEventStream(recordType, m.StreamId(), context).Append(record);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
             if (!result.IsEmpty)
             {
                 if (context.Config.IsEventEmitEnabled)

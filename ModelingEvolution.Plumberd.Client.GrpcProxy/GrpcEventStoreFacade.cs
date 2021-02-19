@@ -57,6 +57,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     }
     public class GrpcEventStoreFacade : IEventStore
     {
+        private readonly Guid _sessionId = Guid.NewGuid();
+        
         class Subscription : ISubscription
         {
             public void Dispose()
@@ -64,19 +66,22 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             }
         }
         private readonly TypeRegister _typeRegister;
-        private readonly Func<GrpcChannel> _channel;
+        private readonly Func<Channel> _channel;
         private readonly IMetadataSerializerFactory _factory;
+        private readonly Func<ISessionManager> _sessionManager;
         private readonly ArrayBufferWriter<byte> _buffer;
         private readonly IMetadataSchema _mSchema;
         private readonly Dictionary<Guid, MetadataProperty> _mPropIndex;
 
-        public GrpcEventStoreFacade(Func<GrpcChannel> channel, 
+        public GrpcEventStoreFacade(Func<Channel> channel, 
             IMetadataFactory eventMetadataFactory,
-            IMetadataSerializerFactory factory, 
+            IMetadataSerializerFactory factory,
+            Func<ISessionManager> sessionManager,
             TypeRegister typeRegister)
         {
             _channel = channel;
             _factory = factory;
+            _sessionManager = sessionManager;
             _typeRegister = typeRegister;
 
             _buffer = new ArrayBufferWriter<byte>(1024 * 128); // 128 KB
@@ -108,7 +113,9 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             EventHandler onEvent,
             IProcessingContextFactory factory)
         {
-            var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(_channel());
+            var channel = _channel();
+            var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(channel.GrpcChannel);
+            
             var gSchema = new GenericProjectionSchema();
             if (!String.IsNullOrWhiteSpace(schema.ProjectionName))
                 gSchema.Name = schema.ProjectionName;
@@ -125,8 +132,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             r.IsPersistent = isPersistent;
             r.GenericSchema = gSchema;
 
+            var metadata = new Grpc.Core.Metadata();
+            metadata.Add("SessionId-bin", _sessionManager().GetSessionId(channel.Address).ToByteArray());
+
             CancellationToken token = new CancellationToken();
-            var result = client.ReadStream(r, null, null, token);
+            var result = client.ReadStream(r, metadata, null, token);
 
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
             return new Subscription();
@@ -139,7 +149,10 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             IProcessingContextFactory factory,
             params string[] sourceEventTypes)
         {
-            var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(_channel());
+            var channel = _channel();
+            var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(channel.GrpcChannel);
+            var metadata = new Grpc.Core.Metadata();
+            metadata.Add("SessionId-bin", _sessionManager().GetSessionId(channel.Address).ToByteArray());
 
             ReadReq r = new ReadReq();
             r.FromBeginning = fromBeginning;
@@ -151,11 +164,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             };
 
             CancellationToken token = new CancellationToken();
-            var result = client.ReadStream(r, null, null, token);
-            //await foreach (var i in result.ResponseStream.ReadAllAsync())
-            //{
-            //    Debug.WriteLine(i.Seq);
-            //}
+            var result = client.ReadStream(r, metadata, null, token);
+           
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
             return new Subscription();
         }

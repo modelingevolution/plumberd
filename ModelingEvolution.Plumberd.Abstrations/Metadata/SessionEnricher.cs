@@ -10,19 +10,6 @@ namespace ModelingEvolution.Plumberd.Metadata
     }
     public class SessionEnricher : IMetadataEnricher
     {
-        private readonly Guid _sessionId;
-        private const string SESSION_ID_KEY = "SessionId";
-        public SessionEnricher()
-        {
-            var sessionId = AppDomain.CurrentDomain.GetData(SESSION_ID_KEY);
-            if (sessionId == null)
-            {
-                sessionId = this._sessionId = Guid.NewGuid();
-                AppDomain.CurrentDomain.SetData(SESSION_ID_KEY, sessionId);
-            }
-            else
-                _sessionId = (Guid) sessionId;
-        }
         public MetadataProperty SessionIdProperty { get; set; }
         public void RegisterSchema(IMetadataSchema register)
         {
@@ -42,7 +29,7 @@ namespace ModelingEvolution.Plumberd.Metadata
                     m[SessionIdProperty] = c.Metadata.SessionId();
                     break;
                 case ICommandInvocationContext c:
-                    m[SessionIdProperty] = _sessionId;
+                    m[SessionIdProperty] = c.ClientSessionId;
                     break;
                 default:
                     throw new NotSupportedException("Unsupported context.");

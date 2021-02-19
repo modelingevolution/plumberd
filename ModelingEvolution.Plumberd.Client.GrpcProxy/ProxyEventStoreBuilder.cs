@@ -43,6 +43,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private readonly List<(Func<IMetadataEnricher>, ContextScope)> _enrichers;
         private GrpcChannel _channel;
         private TypeRegister _typeRegister;
+        private Uri _channelAddress;
 
         public ProxyEventStoreBuilder WithMetadataEnricher<T>(ContextScope scope)
             where T : IMetadataEnricher
@@ -64,8 +65,9 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             this._typeRegister = tp;
             return this;
         }
-        public ProxyEventStoreBuilder WithChannel(GrpcChannel channel)
+        public ProxyEventStoreBuilder WithChannel(GrpcChannel channel, Uri address)
         {
+            this._channelAddress = address;
             this._channel = channel;
             return this;
         }
@@ -101,12 +103,12 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             metadataSerializerFactory.RegisterSchemaForContext(eventMetadataFactory.Schema(ContextScope.Event), ContextScope.Event);
             metadataSerializerFactory.RegisterSchemaForContext(eventMetadataFactory.Schema(ContextScope.Invocation), ContextScope.Invocation);
 
-            Func<GrpcChannel> channelFactory = null;
-            if (_channel != null) channelFactory = () => _channel;
-            else channelFactory = sp.GetService<GrpcChannel>;
-
+            Func<Channel> channelFactory = null;
+            if (_channel != null) channelFactory = () => new Channel(_channel, _channelAddress);
+            else channelFactory = sp.GetService<Channel>;
+            Func<ISessionManager> sessionManager = sp.GetService<ISessionManager>;
             eventMetadataFactory.LockRegistration();
-            var es = new GrpcEventStoreFacade(channelFactory, eventMetadataFactory, metadataSerializerFactory, _typeRegister);
+            var es = new GrpcEventStoreFacade(channelFactory, eventMetadataFactory, metadataSerializerFactory, sessionManager, _typeRegister);
             
             return es;
         }

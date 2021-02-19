@@ -57,7 +57,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                 var metadataBytes = _metadataSerializer.Serialize( metadata);
                 var eventBytes = _recordSerializer.Serialize(x, metadata);
-                var eventType = x is ILink ? "$>" : x.GetType().Name;
+                var eventType = x is ILink ? "$>" : _store.Settings.RecordNamingConvention(x.GetType())[0];  
                 var data = new global::EventStore.ClientAPI.EventData(x.Id, eventType, true,  eventBytes, metadataBytes);
                 return data;
             }

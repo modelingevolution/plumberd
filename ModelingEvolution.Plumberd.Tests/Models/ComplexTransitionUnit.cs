@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.StateTransitioning;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.Tests.Models
 {
@@ -41,6 +43,17 @@ namespace ModelingEvolution.Plumberd.Tests.Models
         public SimpleEvent When(Guid g, SimpleCommand c)
         {
             return new SimpleEvent();
+        }
+    }
+    [ProcessingUnitConfig(IsEventEmitEnabled = true,
+        IsCommandEmitEnabled = false,
+        IsPersistent = true,
+        ProcessingMode = ProcessingMode.CommandHandler)]
+    public class CommandHandlerWithExceptions
+    {
+        public async Task<IEvent> When(Guid id, CommandRaisingException cmd)
+        {
+            throw new ProcessingException<MyExceptionData>(new MyExceptionData(){ Text = "Yes, yes yes!" });
         }
     }
 }
