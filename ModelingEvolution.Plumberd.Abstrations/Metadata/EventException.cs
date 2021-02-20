@@ -5,6 +5,11 @@ using ProtoBuf;
 
 namespace ModelingEvolution.Plumberd.Metadata
 {
+    public interface IEventException
+    {
+        public IRecord Record { get; }
+        public IErrorEvent ExceptionData { get; }
+    }
     /// <summary>
     /// Name of event would be - {Exception}
     /// like: NotFound
@@ -13,8 +18,9 @@ namespace ModelingEvolution.Plumberd.Metadata
     /// <typeparam name="TExceptionData"></typeparam>
     [EventTypeName(typeof(ExceptionEventTypeNameProvider))]
     [ProtoContract]
-    public class EventException<TRecord, TExceptionData> : IEvent
+    public class EventException<TRecord, TExceptionData> : IEvent, IEventException
     where TRecord: IRecord
+    where TExceptionData: IErrorEvent
     {
         [ProtoMember(1)]
         public Guid Id { get; set;  }
@@ -29,6 +35,8 @@ namespace ModelingEvolution.Plumberd.Metadata
             Id = Guid.NewGuid();
         }
 
+        IRecord IEventException.Record => this.Record;
+        IErrorEvent IEventException.ExceptionData => this.ExceptionData;
         public EventException(TRecord record, TExceptionData exceptionData)
         {
             this.Record = record;

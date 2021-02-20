@@ -2,6 +2,10 @@
 
 namespace ModelingEvolution.Plumberd
 {
+    public interface IErrorEvent : IEvent
+    {
+        string Message { get; }
+    }
     public interface IEvent : IRecord
     {
         

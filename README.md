@@ -177,3 +177,20 @@ In this stage will focus on performance.
 - Integrate security through metadata-stream
 - Make enrichers to save info about the verion to metadata-stream.
 - Create the concept of consistent stream migration and event-version. 
+
+## GRPC & Error handling
+- Each client creates a session-id - which identified the client's client. One running client == one session id. 
+- When invoking a command, command handler might throw exception. This exceptions need to be propagated to the app and dispatched. 
+- CommandInvoker can "chain" exception-handler, that will be invoked when exception is propagated back to the client. It will use 'correlation-id' to dispatch right handler. 
+
+-- Under the hood:
+- When invoking a command 'session-id' will be appended to metadata. 
+- When invoking a command handler, when exception is rised and Exception event will be emited in 'command-stream', that starts typically with '>'. 
+- A projection with copy 'error-exceptions' responses to 'session-stream'.
+- Each grpc client can subscribe to this stream and thus receive exceptions.
+
+### Usage
+1. Register approparite error to be copied to session-stream using SessionProjection
+2. Index Exception in TypeRegister: **register.Index(typeof(EventException<CommandType, ErrorType>));**
+3. In command handler raise **new ProcessingException<ErrorType>**
+4. In your .razor file invoke the command using ICommandManager.Execute - with appropriate overload. 
