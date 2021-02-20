@@ -13,7 +13,7 @@ namespace ModelingEvolution.Plumberd.Client.Tests
 {
     public class CommandManagerTests
     {
-        private CommandErrorSubscriptionManager Sut;
+        private CommandManager Sut;
         private readonly ICommandInvoker _commandInvoker;
         private readonly IPlumberRuntime _plumber;
         private readonly ISessionManager _sessionManager;
@@ -26,7 +26,7 @@ namespace ModelingEvolution.Plumberd.Client.Tests
             _plumber = Substitute.For<IPlumberRuntime>();
             _sessionManager = Substitute.For<ISessionManager>();
             var processingUnit = Substitute.For<IProcessingUnit>();
-            Sut = new CommandErrorSubscriptionManager(_commandInvoker, this._plumber, this._sessionManager);
+            Sut = new CommandManager( new CommandErrorSubscriptionManager(this._plumber, this._sessionManager), _commandInvoker);
             _plumber.RunController(Arg.Do<object>(x => _handler=x), Arg.Any<IProcessingUnitConfig>(), Arg.Do<IEventHandlerBinder>(x => this._binder = x)).Returns(Task.FromResult(processingUnit));
             
         }

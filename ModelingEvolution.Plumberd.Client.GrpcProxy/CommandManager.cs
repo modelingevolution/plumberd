@@ -15,6 +15,7 @@ namespace ModelingEvolution.Plumberd.Client
 {
     public interface ICommandManager
     {
+        void SubscribeErrorHandler(Action<ICommand, IErrorEvent> onError);
         void SubscribeErrorHandler<TCommand, TError>(Action<TCommand, TError> onError)
             where TCommand : ICommand
             where TError : IErrorEvent;
@@ -63,7 +64,10 @@ namespace ModelingEvolution.Plumberd.Client
         {
             _manager.SubscribeErrorHandler(onError);
         }
-
+        public void SubscribeErrorHandler(Action<ICommand, IErrorEvent> onError)
+        {
+            _manager.SubscribeErrorHandler(onError);
+        }
         public Task Execute<TCommand>(Guid id, TCommand c) where TCommand : ICommand
         {
             return _commandInvoker.Execute(id, c);
