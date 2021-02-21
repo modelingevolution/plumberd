@@ -6,9 +6,9 @@ namespace ModelingEvolution.Plumberd.EventProcessing
     [Serializable]
     public abstract class ProcessingException : Exception
     {
-        protected readonly object _payload;
-        public object Payload => _payload;
-        protected ProcessingException(object payload)
+        protected readonly IErrorEvent _payload;
+        public IErrorEvent Payload => _payload;
+        protected ProcessingException(IErrorEvent payload)
         {
             _payload = payload;
         }
@@ -16,6 +16,7 @@ namespace ModelingEvolution.Plumberd.EventProcessing
 
     [Serializable]
     public class ProcessingException<TPayload> : ProcessingException
+    where TPayload: IErrorEvent
     {
         public new TPayload Payload => (TPayload) _payload;
 

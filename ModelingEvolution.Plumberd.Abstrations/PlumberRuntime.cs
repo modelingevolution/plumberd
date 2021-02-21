@@ -333,13 +333,12 @@ namespace ModelingEvolution.Plumberd
                 // we need to write the response.
                 var recordType = e.GetType();
                 var exceptionType = ex.Payload.GetType();
-                var et = typeof(EventException<,>).MakeGenericType(recordType, exceptionType);
-                IRecord record = (IRecord)Activator.CreateInstance(et, e, ex.Payload);
+                var et = ex.Payload;
 
                 if (e is ICommand)
-                    await context.EventStore.GetCommandStream(recordType, m.StreamId(), context).Append(record); 
+                    await context.EventStore.GetCommandStream(recordType, m.StreamId(), context).Append(et); 
                 else 
-                    await context.EventStore.GetEventStream(recordType, m.StreamId(), context).Append(record);
+                    await context.EventStore.GetEventStream(recordType, m.StreamId(), context).Append(et);
             }
             catch (Exception ex)
             {

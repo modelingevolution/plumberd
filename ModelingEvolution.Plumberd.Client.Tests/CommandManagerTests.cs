@@ -26,7 +26,8 @@ namespace ModelingEvolution.Plumberd.Client.Tests
             _plumber = Substitute.For<IPlumberRuntime>();
             _sessionManager = Substitute.For<ISessionManager>();
             var processingUnit = Substitute.For<IProcessingUnit>();
-            Sut = new CommandManager( new CommandErrorSubscriptionManager(this._plumber, this._sessionManager), _commandInvoker);
+            this._manager = new CommandErrorSubscriptionManager(this._plumber, this._sessionManager);
+            Sut = new CommandManager( _manager, _commandInvoker);
             _plumber.RunController(Arg.Do<object>(x => _handler=x), Arg.Any<IProcessingUnitConfig>(), Arg.Do<IEventHandlerBinder>(x => this._binder = x)).Returns(Task.FromResult(processingUnit));
             
         }
@@ -35,6 +36,7 @@ namespace ModelingEvolution.Plumberd.Client.Tests
         private Guid _aggregateId = Guid.NewGuid();
         private Command1 _cmd = new Command1();
         private IEventHandlerBinder _binder;
+        private CommandErrorSubscriptionManager _manager;
 
         [Fact]
         public async Task ExecuteWithCorrelationId()
@@ -45,8 +47,9 @@ namespace ModelingEvolution.Plumberd.Client.Tests
             var eventException = await Invoke();
 
             actual.ShouldNotBeNull();
-            actual.ShouldBe(eventException.ExceptionData);
+            actual.ShouldBe(eventException);
             await _commandInvoker.Received(1).Execute(_aggregateId, _cmd, null);
+            _manager.Count.ShouldBe(1);
         }
         [Fact]
         public async Task ExecuteWithCommandWithGenericErrorType()
@@ -58,8 +61,24 @@ namespace ModelingEvolution.Plumberd.Client.Tests
             var eventException = await Invoke();
 
             actual.ShouldNotBeNull();
-            actual.ShouldBe(eventException.ExceptionData);
+            actual.ShouldBe(eventException);
             await _commandInvoker.Received(1).Execute(_aggregateId, _cmd, null);
+            _manager.Count.ShouldBe(1);
+        }
+
+        [Fact]
+        public async Task Cleanup()
+        {
+            IErrorEvent actual = null;
+            _manager.TimeOut = TimeSpan.Zero;
+
+            await Sut.Execute<Command1, MyExceptionData>(_aggregateId, _cmd, (cmd, errorEvent) => { actual = errorEvent; });
+
+            var eventException = await Invoke();
+
+            actual.ShouldBeNull();
+            await _commandInvoker.Received(1).Execute(_aggregateId, _cmd, null);
+            _manager.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -72,8 +91,9 @@ namespace ModelingEvolution.Plumberd.Client.Tests
             var eventException = await Invoke();
 
             actual.ShouldNotBeNull();
-            actual.ShouldBe(eventException.ExceptionData);
+            actual.ShouldBe(eventException);
             await _commandInvoker.Received(1).Execute(_aggregateId, _cmd, null);
+            _manager.Count.ShouldBe(1);
         }
 
 
@@ -86,14 +106,15 @@ namespace ModelingEvolution.Plumberd.Client.Tests
             var eventException = await Invoke();
 
             actual.ShouldNotBeNull();
-            actual.ShouldBe(eventException.ExceptionData);
+            actual.ShouldBe(eventException);
             await _commandInvoker.Received(1).Execute(_aggregateId, _cmd, null);
+            _manager.Count.ShouldBe(1);
         }
 
-        private async Task<EventException<Command1, MyExceptionData>> Invoke()
+        private async Task< MyExceptionData> Invoke()
         {
             IMetadata m = MetadataFactory.Create(_aggregateId, Guid.NewGuid(), _cmd.Id);
-            var eventException = new EventException<Command1, MyExceptionData>(_cmd, new MyExceptionData());
+            var eventException = new MyExceptionData();
             await _binder.CreateDispatcher()(_handler, m, eventException);
             return eventException;
         }
