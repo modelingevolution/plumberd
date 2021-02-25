@@ -12,13 +12,29 @@ namespace ModelingEvolution.Plumberd.Querying
         
         public IServiceScope Scope { get; set; }
         public IProcessingUnit ProcessingUnit { get; set; }
+
+        public void Dispose()
+        {
+            Scope?.Dispose();
+        }
     }
     public class ModelResult<TProjection, TModel> : IModelResult<TProjection, TModel>
     {
         public TProjection Projection { get; internal set; }
         public TModel Model { get; internal set; }
+        public event Action ModelChanged;
+
+        public void FireChanged()
+        {
+            ModelChanged?.Invoke();
+        }
         public IServiceScope Scope { get; set; }
         public IProcessingUnit ProcessingUnit { get; set; }
+
+        public void Dispose()
+        {
+            Scope?.Dispose();
+        }
     }
     public class CollectionResult<TModelItem> : ICollectionResult<TModelItem>
     {

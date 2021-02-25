@@ -9,13 +9,14 @@ namespace ModelingEvolution.Plumberd.Querying
         IList<TResult> Items { get; }
         event Func<Task> Changed;
     }
-    public interface IProjectionResult<out TProjection>
+    public interface IProjectionResult<out TProjection>: IDisposable
     {
         TProjection Projection { get; }
     }
-    public interface IModelResult<out TProjection, out TModel>
+    public interface IModelResult<out TProjection, out TModel> : IDisposable
     {
         TProjection Projection { get; }
         TModel Model { get; }
+        event Action ModelChanged;
     }
 }

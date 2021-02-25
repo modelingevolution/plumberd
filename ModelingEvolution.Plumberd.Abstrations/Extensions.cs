@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,6 +34,12 @@ namespace ModelingEvolution.Plumberd
         public static Guid Combine(this Guid x, string value)
         {
             return x.Combine(value.ToGuid());
+        }
+        public static Guid Combine<TEnum>(this Guid x, TEnum value)
+        where TEnum : Enum
+        {
+            ulong v = Unsafe.As<TEnum, ulong>(ref value);
+            return x.Combine(v.ToGuid());
         }
         public static Guid Combine(this Guid x, ulong value)
         {
@@ -70,6 +77,11 @@ namespace ModelingEvolution.Plumberd
                 onUpdate(k, v);
                 return v;
             });
+        }
+        public static TValue AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> collection, TKey key, TValue value)
+            where TValue : new()
+        {
+            return collection.AddOrUpdate(key, k => value, (k,p)=> value);
         }
        
         public static async Task ExecuteForAll<T>(this IEnumerable<T> list, Func<T, Task> action)

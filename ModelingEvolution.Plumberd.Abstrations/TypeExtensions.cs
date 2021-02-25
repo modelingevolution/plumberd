@@ -2,12 +2,15 @@
 using System.Buffers;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ModelingEvolution.Plumberd
 {
@@ -19,8 +22,36 @@ namespace ModelingEvolution.Plumberd
         public bool IsImplemented => ArgumentType != null;
 
     }
+
+    public static class ServiceCollectionExtensions
+    {
+        public static void AddSingletons(this IServiceCollection services, IEnumerable<Type> types)
+        {
+            foreach (var s in types) services.AddSingleton(s);
+        }
+        public static void AddScopedServices(this IServiceCollection services, IEnumerable<Type> types)
+        {
+            foreach (var s in types) services.AddScoped(s);
+        }
+    }
     public static class TypeExtensions
     {
+        public static IEnumerable<Type> HavingAttribute<T>(this IEnumerable<Type> items)
+        where T:Attribute
+        {
+            return items.Where(x => x.GetCustomAttribute<T>() != null);
+        }
+        public static IEnumerable<Type> HavingAttribute<T>(this IEnumerable<Type> items, Predicate<T> filter)
+            where T:Attribute
+        {
+            return items.Select(x => new { Attr = typeof(T).GetCustomAttribute<T>(), Type =x})
+                .Where(x=>x.Attr != null && filter(x.Attr))
+                .Select(x=>x.Type);
+        }
+        public static IEnumerable<Type> IsAssignableToClass<T>(this IEnumerable<Type> items)
+        {
+            return items.Where(x => typeof(T).IsAssignableFrom(x) && x.IsClass && !x.IsAbstract);
+        }
         public static ImplementedInterface GetGenericInterfaceArgument(this Type type, Type genericType)
         {
             var implementedInterface = type.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == genericType);

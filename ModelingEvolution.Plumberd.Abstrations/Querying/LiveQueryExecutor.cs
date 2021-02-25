@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
+#pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.Querying
 {
@@ -82,7 +83,7 @@ namespace ModelingEvolution.Plumberd.Querying
                     SubscribesFromBeginning = true,
                     // Projection Schema => From Metadata.UserId or Event.Property
                     ProjectionSchema = new ProjectionSchema() { StreamName = _streamName },
-                    
+                    OnAfterDispatch = async (u,m,e,r) => results.FireChanged()
                 });
 
 
@@ -216,7 +217,7 @@ namespace ModelingEvolution.Plumberd.Querying
                     ProcessingMode = ProcessingMode.EventHandler,
                     SubscribesFromBeginning = true,
                     ProjectionSchema = new ProjectionSchema() { StreamName = _streamName },
-
+                    
                 });
 
 
