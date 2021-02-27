@@ -38,7 +38,7 @@ namespace ModelingEvolution.Plumberd
         public static Guid Combine<TEnum>(this Guid x, TEnum value)
         where TEnum : Enum
         {
-            ulong v = Unsafe.As<TEnum, ulong>(ref value);
+            ulong v = Convert.ToUInt64(value);
             return x.Combine(v.ToGuid());
         }
         public static Guid Combine(this Guid x, ulong value)
