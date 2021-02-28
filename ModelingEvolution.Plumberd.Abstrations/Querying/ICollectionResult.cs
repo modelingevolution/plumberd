@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace ModelingEvolution.Plumberd.Querying
 {
-    public interface ICollectionResult<TResult>
+    public interface ICollectionResult<TResult> : IDisposable
     {
         IList<TResult> Items { get; }
         event Func<Task> Changed;

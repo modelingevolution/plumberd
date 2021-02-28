@@ -41,11 +41,18 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             _userModel = userModel;
         }
 
-        public async override Task ReadStream(ReadReq request, IServerStreamWriter<ReadRsp> responseStream, ServerCallContext context)
+        public async override Task ReadStream(ReadReq request, 
+            IServerStreamWriter<ReadRsp> responseStream, 
+            ServerCallContext context)
         {
             IDisposable resources = null;
             _logger.Information("GrpcProxy -> Reading started.");
             SemaphoreSlim subExit = new SemaphoreSlim(0);
+            context.CancellationToken.Register(() =>
+            {
+                _logger.Information("GrpcProxy -> Releasing connection.");
+                subExit.Release(1);
+            });
             try
             {
                 await CheckAuthorizationData(context);
@@ -84,6 +91,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         handler, f);
                     
                     await subExit.WaitAsync();
+                    
                 }
                 else if (request.SchemaCase == ReadReq.SchemaOneofCase.EventTypeSchema)
                 {
@@ -112,11 +120,13 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         handler, f, request.EventTypeSchema.EventTypes.ToArray());
 
                     await subExit.WaitAsync();
+                    
                 }
             }
             finally
             {
                 resources?.Dispose();
+                _logger.Information("GrpcProxy -> Reading finished, resources released.");
             }
         }
 

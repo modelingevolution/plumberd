@@ -61,8 +61,16 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         
         class Subscription : ISubscription
         {
+            private readonly Action _cleanUp;
+
+            public Subscription(Action cleanUp)
+            {
+                _cleanUp = cleanUp;
+            }
+
             public void Dispose()
             {
+                _cleanUp();
             }
         }
         private readonly TypeRegister _typeRegister;
@@ -135,11 +143,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             var metadata = new Grpc.Core.Metadata();
             metadata.Add("SessionId-bin", _sessionManager().GetSessionId(channel.Address).ToByteArray());
 
-            CancellationToken token = new CancellationToken();
-            var result = client.ReadStream(r, metadata, null, token);
+            CancellationTokenSource source = new CancellationTokenSource();
+            var result = client.ReadStream(r, metadata, null, source.Token);
 
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
-            return new Subscription();
+            return new Subscription(() => result.Dispose());
         }
 
         public async Task<ISubscription> Subscribe(string name, 
@@ -162,12 +170,12 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 Name = name,
                 EventTypes = { sourceEventTypes }
             };
-
-            CancellationToken token = new CancellationToken();
-            var result = client.ReadStream(r, metadata, null, token);
+            CancellationTokenSource source = new CancellationTokenSource();
            
+            var result = client.ReadStream(r, metadata, null, source.Token);
+            
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
-            return new Subscription();
+            return new Subscription(() => result.Dispose());
         }
 
         private async Task Read(AsyncServerStreamingCall<ReadRsp> callContext,
@@ -226,16 +234,15 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                     await onEvent(context, metadata, ev);
                 }
             }
+            catch (RpcException e) when (e.Status.StatusCode == StatusCode.Cancelled)
+            {
+                Serilog.Log.Information(e, "Streaming was cancelled from the client!");
+            }
             catch (Exception ex)
             {
                 Serilog.Log.Error(ex, "Reading failed.");
             }
             Serilog.Log.Debug("Read closed.");
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            
         }
     }
 }

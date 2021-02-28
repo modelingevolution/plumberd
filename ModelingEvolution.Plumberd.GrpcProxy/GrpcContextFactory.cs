@@ -33,5 +33,9 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         {
             return new EventHandlerContext();
         }
+
+        public void Dispose()
+        {
+        }
     }
 }

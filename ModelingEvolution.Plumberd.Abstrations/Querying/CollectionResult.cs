@@ -16,6 +16,7 @@ namespace ModelingEvolution.Plumberd.Querying
         public void Dispose()
         {
             Scope?.Dispose();
+            ProcessingUnit?.Dispose();
         }
     }
     public class ModelResult<TProjection, TModel> : IModelResult<TProjection, TModel>
@@ -34,6 +35,7 @@ namespace ModelingEvolution.Plumberd.Querying
         public void Dispose()
         {
             Scope?.Dispose();
+            ProcessingUnit?.Dispose();
         }
     }
     public class CollectionResult<TModelItem> : ICollectionResult<TModelItem>
@@ -60,5 +62,10 @@ namespace ModelingEvolution.Plumberd.Querying
         }
 
 
+        public void Dispose()
+        {
+            Scope?.Dispose();
+            ProcessingUnit?.Dispose();
+        }
     }
 }

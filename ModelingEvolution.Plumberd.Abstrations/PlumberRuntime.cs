@@ -140,8 +140,8 @@ namespace ModelingEvolution.Plumberd
             var unit = (ProcessingContextFactory)Subscribe((t) => controller, 
                 processingUnitType, false,
                 eventConfig, eventBinder, invoker, store, context,ProcessingMode.EventHandler);
-            
-            await Start(unit);
+
+            unit.Subscription = await Start(unit);
             return unit;
         }
 
@@ -297,7 +297,7 @@ namespace ModelingEvolution.Plumberd
                 .ExecuteForAll(Start);
         }
 
-        private async Task Start(ProcessingContextFactory u)
+        private async Task<ISubscription> Start(ProcessingContextFactory u)
         {
             var types = u.Binder
                 .Types()
@@ -312,10 +312,10 @@ namespace ModelingEvolution.Plumberd
 
 
             if (u.Config.ProjectionSchema != null)
-                await u.EventStore.Subscribe(u.Config.ProjectionSchema, u.Config.SubscribesFromBeginning,
+                return await u.EventStore.Subscribe(u.Config.ProjectionSchema, u.Config.SubscribesFromBeginning,
                     u.Config.IsPersistent, loop, u);
             else
-                await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
+                return await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
                     u.Config.IsPersistent, loop, u, types);
         }
 
