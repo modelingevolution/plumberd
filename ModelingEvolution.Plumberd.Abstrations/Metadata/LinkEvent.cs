@@ -7,15 +7,15 @@ namespace ModelingEvolution.Plumberd.Metadata
         public LinkEvent(string sourceCategory, 
             Guid sourceStreamId, 
             ulong sourceStreamPosition, 
-            string destinationCategory)
+            string dstStreamCategory)
         {
             SourceCategory = sourceCategory;
             SourceStreamId = sourceStreamId;
             SourceStreamPosition = sourceStreamPosition;
-            DestinationCategory = destinationCategory;
+            StreamCategory = dstStreamCategory;
             Id = Guid.NewGuid();
         }
-        public string DestinationCategory { get; }
+        public string StreamCategory { get; }
         public Guid Id { get; }
         public string SourceCategory { get; }
         public Guid SourceStreamId { get; }

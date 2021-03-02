@@ -55,6 +55,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             }
         }
     }
+
     public class GrpcEventStoreFacade : IEventStore
     {
         private readonly Guid _sessionId = Guid.NewGuid();

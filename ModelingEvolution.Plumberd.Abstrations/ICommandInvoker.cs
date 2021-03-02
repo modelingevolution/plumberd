@@ -60,11 +60,14 @@ namespace ModelingEvolution.Plumberd
     public class CommandInvoker : ICommandInvoker
     {
         private readonly IEventStore _eventStore;
-        private ILogger _logger;
-        public CommandInvoker(IEventStore eventStore, ILogger logger)
+        private readonly ILogger _logger;
+        private readonly IServiceProvider _serviceProvider;
+
+        public CommandInvoker(IEventStore eventStore, ILogger logger, IServiceProvider serviceProvider)
         {
             _eventStore = eventStore;
             _logger = logger;
+            _serviceProvider = serviceProvider;
         }
      
 
@@ -79,9 +82,21 @@ namespace ModelingEvolution.Plumberd
             }
             Type commandType = c.GetType();
             _logger.Information("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);
-            string name = commandType.GetCustomAttribute<StreamAttribute>()?.Category ?? commandType.Namespace.LastSegment('.');
+            
+            string name = GetStreamName(commandType,c);
+            
             var stream = _eventStore.GetStream($"{_eventStore.Settings.CommandStreamPrefix}{name}", id, context);
             await stream.Append(c, context);
+        }
+
+        private string GetStreamName(Type commandType, ICommand c)
+        {
+            if (c is IStreamAware sa)
+                return sa.StreamCategory;
+            
+            var streamAttr = commandType.GetCustomAttribute<StreamAttribute>();
+            return streamAttr != null ? streamAttr.Category : commandType.Namespace.LastSegment('.');
+            
         }
 
         public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId)

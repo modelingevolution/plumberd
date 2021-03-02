@@ -52,7 +52,7 @@ namespace ModelingEvolution.Plumberd
             {
                 var factory = new CommandInvokerMetadataFactory();
                 
-                DefaultCommandInvoker = new CommandInvoker(DefaultEventStore, Logger);
+                DefaultCommandInvoker = new CommandInvoker(DefaultEventStore, Logger, DefaultServiceProvider);
             }
 
             if (DefaultServiceProvider == null)
@@ -157,6 +157,7 @@ namespace ModelingEvolution.Plumberd
         //public ICommand Command { get; } // It's used in enrichers.
     }
 
+    
     public interface IProcessingContext : IContext
     {
         Type ProcessingUnitType { get; }

@@ -97,8 +97,10 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             metadata.Add("SessionId-bin", sessionId.ToByteArray());
 
             var writeStream = client.WriteStream(metadata);
-            await writeStream.RequestStream.WriteAsync(msg);
-            await writeStream.RequestStream.CompleteAsync();
+            {
+                await writeStream.RequestStream.WriteAsync(msg);
+                await writeStream.RequestStream.CompleteAsync();
+            }
         }
 
 

@@ -349,14 +349,16 @@ namespace ModelingEvolution.Plumberd
                 if (context.Config.IsEventEmitEnabled)
                     foreach (var (nm, nev) in result.Events)
                     {
-                        if (nev is LinkEvent le)
+                        if (nev is IStreamAware le) 
                         {
-                            await context.EventStore.GetStream(le.DestinationCategory, nm, context)
+                            await context.EventStore.GetStream(le.StreamCategory, nm, context)
                                 .Append(nev, context);
                         }
-                        else 
-                            await context.EventStore.GetEventStream(nev.GetType(), nm, context)
+                        else
+                        {
+                           await context.EventStore.GetEventStream(nev.GetType(), nm, context)
                                 .Append(nev,context);
+                        }
                     }
 
                 if (context.Config.IsCommandEmitEnabled)

@@ -11,7 +11,11 @@ namespace ModelingEvolution.Plumberd
         
     }
 
-    public interface ILink : IEvent
+    public interface IStreamAware 
+    {
+        string StreamCategory { get; }
+    }
+    public interface ILink : IEvent, IStreamAware
     {
         string SourceCategory { get; }
         Guid SourceStreamId { get; }
