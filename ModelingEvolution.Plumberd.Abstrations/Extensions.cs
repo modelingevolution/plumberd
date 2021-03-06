@@ -230,6 +230,11 @@ namespace ModelingEvolution.Plumberd
                 return ms.ToArray();
             }
         }
+
+        public static string[] ToLines(this string multiline)
+        {
+            return multiline.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        }
         public static string GetLine(this string multiline, int number)
         {
             string[] lines = multiline.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
