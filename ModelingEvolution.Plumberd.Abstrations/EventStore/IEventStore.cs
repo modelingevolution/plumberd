@@ -19,6 +19,7 @@ namespace ModelingEvolution.Plumberd.EventStore
     /// </summary>
     public class UploadBlob : ICommand, IStreamAware
     {
+        public ExtraProperties Properties { get; set; }
         public Guid Id { get; set; }
         public long Size { get; set; }
         public string Name { get; set; }
@@ -43,26 +44,48 @@ namespace ModelingEvolution.Plumberd.EventStore
     }
     
     [ProtoContract]
-    //[ProtoInclude(100, typeof(ImageBlockUploaded))]
     [JsonConverter(typeof(JsonInheritanceConverter<BlobUploadReason>))]
     public abstract class BlobUploadReason
     {
 
     }
     [ProtoContract]
+    public class ImageProperties : ExtraProperties
+    {
+        [ProtoMember(1)]
+        public int Width { get; set; }
+        [ProtoMember(2)]
+        public int Height { get; set; }
+
+        public override string ToString()
+        {
+            return $"{nameof(Width)}: {Width}, {nameof(Height)}: {Height}";
+        }
+    }
+
+    [JsonConverter(typeof(JsonInheritanceConverter<ExtraProperties>))]
+    [ProtoContract]
+    [ProtoInclude(100, typeof(ImageProperties))]
+    public abstract class ExtraProperties
+    {
+        
+    }
+
+    [ProtoContract]
     public class BlobUploaded : IEvent, IStreamAware
     {
         [ProtoMember(1)]
         public Guid Id { get; set; }
         
+
         [ProtoMember(2)]
-        public long Size { get; set; }
-        
+        public string StreamCategory { get; set; }
+
         [ProtoMember(3)]
-        public string Name { get; set; }
+        public long Size { get; set; }
 
         [ProtoMember(4)]
-        public string StreamCategory { get; set; }
+        public string Name { get; set; }
 
         public TReason GetReason<TReason>() where TReason : BlobUploadReason
         {
@@ -70,6 +93,10 @@ namespace ModelingEvolution.Plumberd.EventStore
 
         [ProtoMember(5)]
         public BlobUploadReason Reason { get; set; }
+
+        [ProtoMember(6)]
+        public ExtraProperties Properties { get; set; }
+
         public string Url(IMetadata m)
         {
             return $"/blob/{m.Category()}-{m.StreamId()}";

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Grpc.AspNetCore.Server.Internal;
@@ -128,7 +130,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 }
             }
             _logger.Information("Blob {fileName} written.", fileName);
-            await InvokeUploadEvent(context, blobDescriptor, writtenBytes, userId);
+            await InvokeUploadEvent(context, blobDescriptor, writtenBytes, userId, fileName);
             
             return new BlobData()
             {
@@ -136,18 +138,53 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 WrittenBytes = writtenBytes
             };
         }
+        private static string[] bitmapExtensions = new string[] {".png",".jpg",".jpeg",".bmp"};
 
         private async Task InvokeUploadEvent(ServerCallContext context, 
             BlobDescriptor blobDescriptor, 
             long writtenBytes,
-            Guid userId)
+            Guid userId, string fileName)
         {
+            ExtraProperties props = null;
+            var ext = Path.GetExtension(blobDescriptor.FileName).ToLowerInvariant();
+            if (bitmapExtensions.Contains(ext))
+            {
+                using var image = Image.FromFile(fileName);
+                props = new ImageProperties() 
+                { 
+                    Width = image.Width, 
+                    Height = image.Width
+                };
+            } 
+            else if(ext == ".svg")
+            {
+                // let's read view-port.
+                XmlDocument doc = new XmlDocument();
+                doc.Load(fileName);
+                var viewBoxAttr = doc.DocumentElement
+                    .Attributes.OfType<XmlAttribute>()
+                    .FirstOrDefault(x => x.Name == "viewBox");
+
+                if (viewBoxAttr != null)
+                {
+                    string[] values = viewBoxAttr.Value.Split(new char[]{' ',','}, StringSplitOptions.RemoveEmptyEntries);
+                    if(values.Length == 4)
+                        props = new ImageProperties()
+                        {
+                            Width = int.Parse(values[2]),
+                            Height = int.Parse(values[3])
+                        };
+                }
+            }
+
+            
             var uploadBlob = new UploadBlob()
             {
                 Name = blobDescriptor.FileName,
                 StreamCategory = blobDescriptor.Category,
                 Size = writtenBytes,
-                Reason = blobDescriptor.BlobUploadReason
+                Reason = blobDescriptor.BlobUploadReason,
+                Properties = props
             };
 
             var streamId = blobDescriptor.Id;
