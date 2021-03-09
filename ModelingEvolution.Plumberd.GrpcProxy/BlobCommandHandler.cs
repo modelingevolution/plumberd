@@ -17,7 +17,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy.Authentication
             {
                 Name = cmd.Name,
                 Size = cmd.Size,
-                StreamCategory = cmd.StreamCategory
+                StreamCategory = cmd.StreamCategory,
+                Reason = cmd.Reason
             };
         }
     }

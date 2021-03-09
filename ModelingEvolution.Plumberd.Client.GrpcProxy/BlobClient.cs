@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Buffers;
 using System.IO;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using ModelingEvolution.EventStore.GrpcProxy;
+using ModelingEvolution.Plumberd.EventStore;
+using ProtoBuf;
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
@@ -42,7 +45,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             _sessionManager = sessionManager;
         }
 
-        public async Task Write(Guid id, string category, string fileName, bool forceOverride, Stream data)
+        public async Task Write(Guid id, 
+            string category, 
+            string fileName,
+            bool forceOverride, 
+            Stream data, BlobUploadReason reason=null)
         {
             _client ??= new GrpcEventStoreProxy.GrpcEventStoreProxyClient(_channel.GrpcChannel);
 
@@ -54,6 +61,12 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             m.Add("chunk_size-bin", BitConverter.GetBytes(BUFFER_SIZE));
             m.Add("force_override-bin", BitConverter.GetBytes(forceOverride));
             m.Add("sessionid-bin", _sessionManager.Default().ToByteArray());
+            if (reason != null)
+            {
+                var reasonBuffer = new ArrayBufferWriter<byte>(1024);
+                Serializer.Serialize(reasonBuffer, reason);
+                m.Add("upload_reason-bin", reasonBuffer.WrittenSpan.ToArray());
+            }
             // context is disposable but we cannot DISPOSE IT!
             var context = _client.WriteBlob(m);
             byte[] buffer = new byte[BUFFER_SIZE];

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
@@ -27,6 +29,25 @@ namespace ModelingEvolution.Plumberd.EventStore
         }
         // should switch to enums at least.
         public string StreamCategory { get; set; }
+        public BlobUploadReason Reason { get; set; }
+    }
+
+    public class IncludedAsAttribute : Attribute
+    {
+        public IncludedAsAttribute(int fieldNumber)
+        {
+            FieldNumber = fieldNumber;
+        }
+
+        public int FieldNumber { get; private set; }
+    }
+    
+    [ProtoContract]
+    //[ProtoInclude(100, typeof(ImageBlockUploaded))]
+    [JsonConverter(typeof(JsonInheritanceConverter<BlobUploadReason>))]
+    public abstract class BlobUploadReason
+    {
+
     }
     [ProtoContract]
     public class BlobUploaded : IEvent, IStreamAware
@@ -39,6 +60,16 @@ namespace ModelingEvolution.Plumberd.EventStore
         
         [ProtoMember(3)]
         public string Name { get; set; }
+
+        [ProtoMember(4)]
+        public string StreamCategory { get; set; }
+
+        public TReason GetReason<TReason>() where TReason : BlobUploadReason
+        {
+            return (TReason)Reason;}
+
+        [ProtoMember(5)]
+        public BlobUploadReason Reason { get; set; }
         public string Url(IMetadata m)
         {
             return $"/blob/{m.Category()}-{m.StreamId()}";
@@ -47,8 +78,6 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             Id = Guid.NewGuid();
         }
-        [ProtoMember(4)]
-        public string StreamCategory { get; set; }
     }
     public interface IEventStore
     {

@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -18,11 +19,14 @@ using EventStore.ClientAPI.SystemData;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using Newtonsoft.Json;
+using ProtoBuf.Meta;
+using ProtoBuf;
 using Serilog.Core;
 using ILogger = Serilog.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
+   
     public partial class NativeEventStore : IEventStore
     {
         private readonly ConcurrentBag<ISubscription> _subscriptions;

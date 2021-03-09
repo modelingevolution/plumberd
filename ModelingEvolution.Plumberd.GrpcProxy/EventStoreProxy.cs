@@ -27,6 +27,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 {
     public readonly struct BlobDescriptor
     {
+        public readonly BlobUploadReason BlobUploadReason { get; init; }
         public readonly string FileName { get; init; }
         public readonly string Category { get; init; }
         public readonly Guid Sha1 { get; init; }
@@ -35,13 +36,15 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         public readonly int ChunkSize { get; init; }
         public readonly bool ForceOverride { get; init; }
 
-        public BlobDescriptor(string fileName, 
-            string category, 
-            Guid sha1, 
-            Guid id, 
-            long size, 
-            int chunkSize, bool forceOverride)
+        public BlobDescriptor(string fileName,
+            string category,
+            Guid sha1,
+            Guid id,
+            long size,
+            int chunkSize, bool forceOverride, 
+            BlobUploadReason blobUploadReason)
         {
+            BlobUploadReason = blobUploadReason;
             FileName = fileName;
             Category = category;
             Sha1 = sha1;
@@ -143,7 +146,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             {
                 Name = blobDescriptor.FileName,
                 StreamCategory = blobDescriptor.Category,
-                Size = writtenBytes
+                Size = writtenBytes,
+                Reason = blobDescriptor.BlobUploadReason
             };
 
             var streamId = blobDescriptor.Id;
@@ -162,13 +166,20 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             byte[] size64 = metadata.GetValueBytes("size-bin");
             byte[] chunkSize32 = metadata.GetValueBytes("chunk_size-bin");
             byte[] forceOverride = metadata.GetValueBytes("force_override-bin");
+            byte[] reason = metadata.GetValueBytes("upload_reason-bin");
+            BlobUploadReason blobUploadReason = null;
+            if (reason != null)
+            {
+                blobUploadReason = Serializer.Deserialize<BlobUploadReason>(reason.AsSpan());
+            }
             var desc = new BlobDescriptor(fileName,
                 table,
                 sha1 == null ? Guid.Empty : new Guid(sha1),
                 new Guid(id),
                 BitConverter.ToInt64(size64),
                 BitConverter.ToInt32(chunkSize32),
-                BitConverter.ToBoolean(forceOverride));
+                BitConverter.ToBoolean(forceOverride), 
+                blobUploadReason);
 
             if (string.IsNullOrWhiteSpace(desc.FileName))
                 throw new ArgumentException("FileName");
@@ -191,7 +202,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         {
             IDisposable resources = null;
             _logger.Information("GrpcProxy -> Reading started.");
-            SemaphoreSlim subExit = new SemaphoreSlim(0);
+            using SemaphoreSlim subExit = new SemaphoreSlim(0);
             context.CancellationToken.Register(() =>
             {
                 _logger.Information("GrpcProxy -> Releasing connection.");
@@ -202,7 +213,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 await CheckAuthorizationData(context);
 
                 ArrayBufferWriter<byte> buffer = new ArrayBufferWriter<byte>(128 * 1024);
-
+                
                 if (request.SchemaCase == ReadReq.SchemaOneofCase.GenericSchema)
                 {
                     EventHandler handler = async (c, m, e) =>
