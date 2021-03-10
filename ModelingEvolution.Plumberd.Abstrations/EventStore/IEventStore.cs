@@ -53,9 +53,9 @@ namespace ModelingEvolution.Plumberd.EventStore
     public class ImageProperties : ExtraProperties
     {
         [ProtoMember(1)]
-        public int Width { get; set; }
+        public double Width { get; set; }
         [ProtoMember(2)]
-        public int Height { get; set; }
+        public double Height { get; set; }
 
         public override string ToString()
         {

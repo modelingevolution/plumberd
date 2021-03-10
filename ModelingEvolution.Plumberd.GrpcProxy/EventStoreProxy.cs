@@ -171,8 +171,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     if(values.Length == 4)
                         props = new ImageProperties()
                         {
-                            Width = int.Parse(values[2]),
-                            Height = int.Parse(values[3])
+                            Width = double.Parse(values[2]),
+                            Height = double.Parse(values[3])
                         };
                 }
             }
