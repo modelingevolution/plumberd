@@ -148,7 +148,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             var result = client.ReadStream(r, metadata, null, source.Token);
 
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
-            return new Subscription(() => result.Dispose());
+            return new Subscription(() =>
+            {
+                source.Cancel();
+                result.Dispose();
+            });
         }
 
         public async Task<ISubscription> Subscribe(string name, 
@@ -176,7 +180,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             var result = client.ReadStream(r, metadata, null, source.Token);
             
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
-            return new Subscription(() => result.Dispose());
+            return new Subscription(() =>
+            {
+                source.Cancel();
+                result.Dispose();
+            });
         }
 
         private async Task Read(AsyncServerStreamingCall<ReadRsp> callContext,
@@ -237,7 +245,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             }
             catch (RpcException e) when (e.Status.StatusCode == StatusCode.Cancelled)
             {
-                Serilog.Log.Information(e, "Streaming was cancelled from the client!");
+                Serilog.Log.Information( "Streaming was cancelled from the client!");
             }
             catch (Exception ex)
             {
