@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd.Querying
 {
@@ -12,11 +13,12 @@ namespace ModelingEvolution.Plumberd.Querying
     public interface IProjectionResult<out TProjection>: IDisposable
     {
         TProjection Projection { get; }
+        event Action<IMetadata, IRecord> ModelsChanged;
     }
     public interface IModelResult<out TProjection, out TModel> : IDisposable
     {
         TProjection Projection { get; }
         TModel Model { get; }
-        event Action ModelChanged;
+        event Action<IMetadata, IRecord> ModelChanged;
     }
 }

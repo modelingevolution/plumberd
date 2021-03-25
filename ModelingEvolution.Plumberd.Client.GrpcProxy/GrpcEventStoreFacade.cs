@@ -150,7 +150,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
             return new Subscription(() =>
             {
-                source.Cancel();
+                //source.Cancel();
                 result.Dispose();
             });
         }
@@ -182,7 +182,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
             return new Subscription(() =>
             {
-                source.Cancel();
+                //source.Cancel();
                 result.Dispose();
             });
         }

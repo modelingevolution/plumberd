@@ -45,7 +45,7 @@ namespace ModelingEvolution.Plumberd.Querying
                     SubscribesFromBeginning = true,
                     // Projection Schema => From Metadata.UserId or Event.Property
                     ProjectionSchema = new ProjectionSchema() { StreamName = _streamName },
-
+                    OnAfterDispatch = async (u, m, e, r) => results.FireChanged(m,e)
                 });
 
 
@@ -83,7 +83,7 @@ namespace ModelingEvolution.Plumberd.Querying
                     SubscribesFromBeginning = true,
                     // Projection Schema => From Metadata.UserId or Event.Property
                     ProjectionSchema = new ProjectionSchema() { StreamName = _streamName },
-                    OnAfterDispatch = async (u,m,e,r) => results.FireChanged()
+                    OnAfterDispatch = async (u,m,e,r) => results.FireChanged(m,e)
                 });
 
 

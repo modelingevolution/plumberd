@@ -141,6 +141,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             _projectionName = handerType.Name;
             return this;
         }
+        public ProjectionSchemaBuilder ForView(string viewName)
+        {
+            _projectionName = viewName;
+            return this;
+        }
         public ProjectionSchema Build()
         {
             string script = Script();
