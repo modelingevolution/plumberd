@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,8 @@ using System.Threading.Tasks;
 
 namespace ModelingEvolution.Plumberd.Collections
 {
-    public class ModelIndex<TModel> where TModel:new()
+    public class ModelIndex<TModel> : IEnumerable<KeyValuePair<Guid,TModel>>
+        where TModel:new()
     {
         private readonly ConcurrentDictionary<Guid, TModel> _index;
         public void Clear()
@@ -50,6 +52,16 @@ namespace ModelingEvolution.Plumberd.Collections
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return _index.GetOrAdd(id, x => new TModel()); }
+        }
+
+        public IEnumerator<KeyValuePair<Guid,TModel>> GetEnumerator()
+        {
+            return _index.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable) _index).GetEnumerator();
         }
     }
 }
