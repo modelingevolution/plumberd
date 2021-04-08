@@ -64,4 +64,59 @@ namespace ModelingEvolution.Plumberd.Collections
             return ((IEnumerable) _index).GetEnumerator();
         }
     }
+    public class ModelIndex<TKey,TModel> : IEnumerable<KeyValuePair<TKey, TModel>>
+        where TModel : new()
+    {
+        private readonly ConcurrentDictionary<TKey, TModel> _index;
+        public void Clear()
+        {
+            _index.Clear();
+        }
+
+        public bool ContainsKey(TKey key)
+        {
+            return _index.ContainsKey(key);
+        }
+
+        public bool TryGetValue(TKey key, out TModel value)
+        {
+            return _index.TryGetValue(key, out value);
+        }
+
+        public bool TryRemove(TKey key, out TModel value)
+        {
+            return _index.TryRemove(key, out value);
+        }
+
+        public int Count => _index.Count;
+
+        public bool IsEmpty => _index.IsEmpty;
+
+
+        public ModelIndex()
+        {
+            _index = new ConcurrentDictionary<TKey, TModel>();
+        }
+
+        /// <summary>
+        /// Always returns an object. Creates new if needed.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public TModel this[TKey id]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get { return _index.GetOrAdd(id, x => new TModel()); }
+        }
+
+        public IEnumerator<KeyValuePair<TKey, TModel>> GetEnumerator()
+        {
+            return _index.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable)_index).GetEnumerator();
+        }
+    }
 }
