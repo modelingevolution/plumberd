@@ -200,8 +200,15 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                     var context = factory.Create();
                     Guid typeId = new Guid(i.TypeId.Value.Span);
                     var type = _typeRegister[typeId];
-                    if(type == null)
-                        throw new InvalidOperationException("Type is unknown, have you forgotten to discover types with TypeRegister?");
+                    if (type == null)
+                    {
+                        var debugDict = AppDomain.CurrentDomain.GetAssemblies()
+                            .SelectMany(x => x.GetTypes()).ToDictionary(x => x.NameId());
+                        string additionalInfo = $"TypeId={typeId}";
+                        if (debugDict.TryGetValue(typeId, out var unregistered))
+                            additionalInfo = $"Unregistered type: {unregistered.Name}";
+                        throw new InvalidOperationException($"Type is unknown, have you forgotten to discover types with TypeRegister?{additionalInfo}");
+                    }
                     else Serilog.Log.Debug("Found type to deserialize {type}", type);
 
                     var ev = SerializerFacade.Deserialize(type, i.Data.Memory) as IRecord;

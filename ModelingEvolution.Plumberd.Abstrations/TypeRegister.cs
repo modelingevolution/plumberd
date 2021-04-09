@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ProtoBuf;
 
 namespace ModelingEvolution.Plumberd
 {
@@ -20,6 +21,7 @@ namespace ModelingEvolution.Plumberd
 
             return this;
         }
+
         public TypeRegister Index(params Type[] types)
         {
             return Index((IEnumerable<Type>)types);
