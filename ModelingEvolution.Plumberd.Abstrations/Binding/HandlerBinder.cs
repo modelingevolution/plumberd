@@ -179,10 +179,12 @@ namespace ModelingEvolution.Plumberd.Binding
                 IMetadata m, IRecord ev)
             {
                 ProcessingResults result = new ProcessingResults();
-                var invoker = invokers[ev.GetType()];
-                foreach (var i in invoker)
-                    result += await i(processor, m, ev);
-
+                if(invokers.TryGetValue(ev.GetType(), out var invoker))
+                {
+                    foreach (var i in invoker)
+                        result += await i(processor, m, ev);
+                }
+                else Serilog.Log.Warning("Found event {eventType} in a stream that cannot be dispatched.", ev.GetType());
                 return result;
             }
         }
