@@ -404,8 +404,9 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             await foreach (var i in requestStream.ReadAllAsync())
             {
                 var steamId = new Guid(i.SteamId.Value.Span);
-                Guid typeId = new Guid(i.TypeId.Value.Span);
+                if(steamId == Guid.Empty) continue;
                 
+                Guid typeId = new Guid(i.TypeId.Value.Span);
                 var type = _typeRegister[typeId];
                 var cmd = Serializer.Deserialize(type, i.Data.Memory) as ICommand;
 

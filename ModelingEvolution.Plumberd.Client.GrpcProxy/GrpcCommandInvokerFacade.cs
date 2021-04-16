@@ -11,6 +11,7 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ProtoBuf;
+using Serilog;
 
 #pragma warning disable 1998
 
@@ -59,6 +60,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     public class GrpcCommandInvokerFacade : ICommandInvoker, IAsyncDisposable
     {
         private static ulong _counter = 0;
+        private static readonly ILogger Log = Serilog.Log.ForContext<GrpcCommandInvokerFacade>();
         private readonly Channel _channel;
         private readonly ISessionManager _sessionManager;
         
@@ -67,7 +69,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         {
             _channel = channel;
             _sessionManager = sessionManager;
-
+            
             _buffer = new ArrayBufferWriter<byte>(1024*128); // 128 KB
         }
 
