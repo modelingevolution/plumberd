@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
@@ -59,7 +60,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     public class GrpcEventStoreFacade : IEventStore
     {
         private readonly Guid _sessionId = Guid.NewGuid();
-        
+        public event Action ReadingFailed;
         class Subscription : ISubscription
         {
             private readonly Action _cleanUp;
@@ -207,7 +208,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                         string additionalInfo = $"TypeId={typeId}";
                         if (debugDict.TryGetValue(typeId, out var unregistered))
                             additionalInfo = $"Unregistered type: {unregistered.Name}";
-                        throw new InvalidOperationException($"Type is unknown, have you forgotten to discover types with TypeRegister?{additionalInfo}");
+                        throw new InvalidOperationException(
+                            $"Type is unknown, have you forgotten to discover types with TypeRegister?{additionalInfo}");
                     }
                     else Serilog.Log.Debug("Found type to deserialize {type}", type);
 
@@ -216,7 +218,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
                     Serilog.Log.Debug("Deserializing metadata with {propertyCount} properties.", _mSchema?.Count ?? -1);
                     var metadata = new Metadata.Metadata(_mSchema, true);
-                    
+
                     foreach (var m in i.MetadataProps)
                     {
                         Guid propId = new Guid(m.Id.Value.Span);
@@ -229,20 +231,23 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                             {
                                 if (m.Data.Span.Length != 16)
                                 {
-                                    Serilog.Log.Debug("Unexpected number of bytes. Found {actualLength}.", m.Data.Span.Length );
+                                    Serilog.Log.Debug("Unexpected number of bytes. Found {actualLength}.",
+                                        m.Data.Span.Length);
                                     continue;
                                 }
-                                
+
                                 var dt = BitConverter.ToInt64(m.Data.Span.Slice(0, sizeof(Int64)));
                                 var ts = BitConverter.ToInt64(m.Data.Span.Slice(sizeof(Int64), sizeof(Int64)));
-                                metadata[mp] = new DateTimeOffset(new DateTime(dt),new TimeSpan(ts));
+                                metadata[mp] = new DateTimeOffset(new DateTime(dt), new TimeSpan(ts));
                             }
-                            
-                        } else
+
+                        }
+                        else
                         {
                             Serilog.Log.Debug("Could not deserialize metadata property with id: {propertyId}.", propId);
                         }
                     }
+
                     Serilog.Log.Debug("Metadata was successfully deserialized.");
                     context.Record = ev;
                     context.Metadata = metadata;
@@ -252,7 +257,12 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             }
             catch (RpcException e) when (e.Status.StatusCode == StatusCode.Cancelled)
             {
-                Serilog.Log.Information( "Streaming was cancelled from the client!");
+                Serilog.Log.Information("Streaming was cancelled from the client!");
+            }
+            catch (RpcException e) when (e.Status.StatusCode == StatusCode.Internal && e.InnerException is AccessTokenNotAvailableException ex)
+            {
+                Serilog.Log.Information("We need to logout, authorizationTokenIsNotAvailable.");
+                ReadingFailed?.Invoke();
             }
             catch (Exception ex)
             {

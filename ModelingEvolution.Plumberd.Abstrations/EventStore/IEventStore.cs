@@ -52,6 +52,10 @@ namespace ModelingEvolution.Plumberd.EventStore
     [ProtoContract]
     public class ImageProperties : ExtraProperties
     {
+        public ImageProperties()
+        {
+            
+        }
         [ProtoMember(1)]
         public double Width { get; set; }
         [ProtoMember(2)]

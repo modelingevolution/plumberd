@@ -2,12 +2,14 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Grpc.AspNetCore.Server.Internal;
@@ -27,6 +29,36 @@ using MetadataProperty = ModelingEvolution.EventStore.GrpcProxy.MetadataProperty
 
 namespace ModelingEvolution.Plumberd.GrpcProxy
 {
+    public static class SvgSizeParser
+    {
+        private static CultureInfo EN_US = CultureInfo.GetCultureInfo("en-US");
+        public static (double,double) Load(string file)
+        {
+            XDocument doc = XDocument.Load(file);
+            var root = doc.Root;
+            var wAttr = root.Attribute("width");
+            var hAttr = root.Attribute("height");
+            
+            double w=0, h = 0;
+            if (wAttr != null) w = double.Parse(wAttr.Value.Replace("px", ""),EN_US);
+            if (hAttr != null) h = double.Parse(hAttr.Value.Replace("px", ""),EN_US);
+            if (w > 0 && h > 0) 
+                return (w, h); 
+            
+            // fallback.
+            var viewBoxAttr = root.Attribute("viewBox");
+            string[] values = viewBoxAttr.Value.Split(new char[]{' ',','}, StringSplitOptions.RemoveEmptyEntries);
+            if (values.Length == 4)
+            {
+                double viewBoxWidth = double.Parse(values[2], EN_US);
+                double viewBoxHeight = double.Parse(values[3], EN_US);
+
+                if (w == 0) w = viewBoxWidth;
+                if (h == 0) h = viewBoxHeight;
+            }
+            return (w, h);
+        }
+    }
     public readonly struct BlobDescriptor
     {
         public readonly BlobUploadReason BlobUploadReason { get; init; }
@@ -159,22 +191,12 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             else if(ext == ".svg")
             {
                 // let's read view-port.
-                XmlDocument doc = new XmlDocument();
-                doc.Load(fileName);
-                var viewBoxAttr = doc.DocumentElement
-                    .Attributes.OfType<XmlAttribute>()
-                    .FirstOrDefault(x => x.Name == "viewBox");
-
-                if (viewBoxAttr != null)
+                var (width,height) = SvgSizeParser.Load(fileName);
+                props = new ImageProperties()
                 {
-                    string[] values = viewBoxAttr.Value.Split(new char[]{' ',','}, StringSplitOptions.RemoveEmptyEntries);
-                    if(values.Length == 4)
-                        props = new ImageProperties()
-                        {
-                            Width = double.Parse(values[2]),
-                            Height = double.Parse(values[3])
-                        };
-                }
+                    Width = width,
+                    Height = height
+                };
             }
 
             
