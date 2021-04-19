@@ -60,7 +60,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     public class GrpcEventStoreFacade : IEventStore
     {
         private readonly Guid _sessionId = Guid.NewGuid();
-        public event Action ReadingFailed;
+        public static event Func<Task> ReadingFailed;
         class Subscription : ISubscription
         {
             private readonly Action _cleanUp;
@@ -204,10 +204,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                     if (type == null)
                     {
                         var debugDict = AppDomain.CurrentDomain.GetAssemblies()
-                            .SelectMany(x => x.GetTypes()).ToDictionary(x => x.NameId());
+                            .SelectMany(x => x.GetTypes()).ToLookup(x => x.NameId());
                         string additionalInfo = $"TypeId={typeId}";
-                        if (debugDict.TryGetValue(typeId, out var unregistered))
-                            additionalInfo = $"Unregistered type: {unregistered.Name}";
+                        var possibilities = debugDict[typeId].ToArray();
+                        if (possibilities.Any())
+                            additionalInfo = $"Unregistered type: {string.Join("; ",possibilities.Select(x=>x.FullName))}";
                         throw new InvalidOperationException(
                             $"Type is unknown, have you forgotten to discover types with TypeRegister?{additionalInfo}");
                     }
@@ -259,10 +260,15 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             {
                 Serilog.Log.Information("Streaming was cancelled from the client!");
             }
-            catch (RpcException e) when (e.Status.StatusCode == StatusCode.Internal && e.InnerException is AccessTokenNotAvailableException ex)
+            catch (RpcException e) when (e.Status.StatusCode == StatusCode.Internal)
             {
-                Serilog.Log.Information("We need to logout, authorizationTokenIsNotAvailable.");
-                ReadingFailed?.Invoke();
+                Serilog.Log.Information(e, "We need to logout.");
+                await ReadingFailed?.Invoke();
+            }
+            catch (ObjectDisposedException e)
+            {
+                Serilog.Log.Information(e, "We need to logout.");
+                await ReadingFailed?.Invoke();
             }
             catch (Exception ex)
             {
