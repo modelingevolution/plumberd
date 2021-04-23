@@ -172,8 +172,12 @@ namespace ModelingEvolution.Plumberd.EventStore
         }
         private Action<ConnectionSettingsBuilder> _connectionCustomizations;
 
-         
-
+        private bool _isDevelopment;
+        public NativeEventStoreBuilder WithDevelopmentEnv(bool isDev)
+        {
+            _isDevelopment = isDev;
+            return this;
+        }
         public NativeEventStore Build(bool checkConnectivity = true)
         {
             if (!_withoutDefaultEnrichers)
@@ -195,6 +199,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             EventStoreSettings settings = new EventStoreSettings(eventMetadataFactory, 
                 metadataSerializerFactory,
                 _recordSerializer ?? new RecordSerializer(),
+                _isDevelopment,
                 _convention,
                 _logger);
 

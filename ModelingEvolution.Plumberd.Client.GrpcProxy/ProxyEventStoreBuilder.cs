@@ -44,6 +44,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private GrpcChannel _channel;
         private TypeRegister _typeRegister;
         private Uri _channelAddress;
+        private bool _isDevelopment;
 
         public ProxyEventStoreBuilder WithMetadataEnricher<T>(ContextScope scope)
             where T : IMetadataEnricher
@@ -85,7 +86,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
        
 
-
+        public ProxyEventStoreBuilder WithDevelopmentEnv(bool isDev)
+        {
+            _isDevelopment = isDev;
+            return this;
+        }
         public GrpcEventStoreFacade Build(IServiceProvider sp)
         {
             
@@ -108,7 +113,9 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             else channelFactory = sp.GetService<Channel>;
             Func<ISessionManager> sessionManager = sp.GetService<ISessionManager>;
             eventMetadataFactory.LockRegistration();
-            var es = new GrpcEventStoreFacade(channelFactory, eventMetadataFactory, metadataSerializerFactory, sessionManager, _typeRegister);
+            var es = new GrpcEventStoreFacade(channelFactory, 
+                eventMetadataFactory, metadataSerializerFactory, sessionManager, _typeRegister, 
+                this._isDevelopment);
             
             return es;
         }

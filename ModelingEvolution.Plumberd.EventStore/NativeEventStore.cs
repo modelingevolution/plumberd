@@ -197,13 +197,21 @@ namespace ModelingEvolution.Plumberd.EventStore
             if (disableTls)
             {
                 tcpSettings = tcpSettings.DisableTls();
-                Log.Warning("DisableTls");
+                const string msg = "Tls is disabled";
+                if (_settings.IsDevelopment)
+                    Log.Information(msg);
+                else
+                    Log.Warning(msg);
             }
 
             if (ignoreServerCert)
             {
                 tcpSettings = tcpSettings.DisableServerCertificateValidation();
-                Log.Warning("DisableServerCertificateValidation");
+                const string msg = "Server certificate validation is disabled";
+                if(_settings.IsDevelopment)
+                    Log.Information(msg);
+                else
+                    Log.Warning(msg);
             }
 
             connectionBuilder?.Invoke(tcpSettings);

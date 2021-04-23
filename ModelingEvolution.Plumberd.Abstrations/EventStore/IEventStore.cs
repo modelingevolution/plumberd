@@ -129,6 +129,7 @@ namespace ModelingEvolution.Plumberd.EventStore
     }
     public interface IEventStoreSettings
     {
+        bool IsDevelopment { get; }
         IMetadataFactory MetadataFactory { get; }
         IMetadataSerializerFactory MetadataSerializerFactory { get; }
         IRecordSerializer Serializer { get; }

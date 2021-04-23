@@ -83,11 +83,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private readonly IMetadataSchema _mSchema;
         private readonly Dictionary<Guid, MetadataProperty> _mPropIndex;
 
-        public GrpcEventStoreFacade(Func<Channel> channel, 
+        public GrpcEventStoreFacade(Func<Channel> channel,
             IMetadataFactory eventMetadataFactory,
             IMetadataSerializerFactory factory,
             Func<ISessionManager> sessionManager,
-            TypeRegister typeRegister)
+            TypeRegister typeRegister, bool isDevelopment)
         {
             _channel = channel;
             _factory = factory;
@@ -100,7 +100,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             this._mSchema = metadataSerializer.Schema;
             this._mPropIndex = _mSchema.Properties.ToDictionary(x => x.Name.ToGuid());
 
-            Settings = new EventStoreSettings(eventMetadataFactory, factory,null);
+            Settings = new EventStoreSettings(eventMetadataFactory, 
+                factory,null, isDevelopment);
         }
 
 
