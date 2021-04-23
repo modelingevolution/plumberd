@@ -12,7 +12,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         public string ProjectionStreamPrefix { get; }
         public string CommandStreamPrefix { get; }
         public Func<Type, string[]> RecordNamingConvention { get; }
-
+        
         public ILogger Logger { get; }
         
 
