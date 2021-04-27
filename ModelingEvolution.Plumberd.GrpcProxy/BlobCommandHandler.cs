@@ -2,7 +2,7 @@
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
 
-namespace ModelingEvolution.Plumberd.GrpcProxy.Authentication
+namespace ModelingEvolution.Plumberd.GrpcProxy
 {
     [ProcessingUnitConfig(IsEventEmitEnabled = true,
         IsCommandEmitEnabled = false,

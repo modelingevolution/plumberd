@@ -185,7 +185,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 props = new ImageProperties() 
                 { 
                     Width = image.Width, 
-                    Height = image.Width
+                    Height = image.Height
                 };
             } 
             else if(ext == ".svg")
