@@ -15,6 +15,7 @@ using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using ProtoBuf;
+using Serilog;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 using MetadataProperty = ModelingEvolution.Plumberd.Metadata.MetadataProperty;
 
@@ -59,6 +60,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
     public class GrpcEventStoreFacade : IEventStore
     {
+        private static readonly ILogger Log = Serilog.Log.ForContext<GrpcEventStoreFacade>();
         private readonly Guid _sessionId = Guid.NewGuid();
         public static event Func<Task> ReadingFailed;
         class Subscription : ISubscription
@@ -192,90 +194,101 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private async Task Read(AsyncServerStreamingCall<ReadRsp> callContext,
             IProcessingContextFactory factory, EventHandler onEvent)
         {
-            Serilog.Log.Information("Reading started.");
+            Log.Information("Reading started.");
+            IRecord lastEvent = null;
+            IMetadata lastMeta = null;
             try
             {
                 int c = 0;
                 await foreach (var i in callContext.ResponseStream.ReadAllAsync())
                 {
-                    Serilog.Log.Debug($"Reading record {c++}");
-                    var context = factory.Create();
-                    Guid typeId = new Guid(i.TypeId.Value.Span);
-                    var type = _typeRegister[typeId];
-                    if (type == null)
-                    {
-                        var debugDict = AppDomain.CurrentDomain.GetAssemblies()
-                            .SelectMany(x => x.GetTypes()).ToLookup(x => x.NameId());
-                        string additionalInfo = $"TypeId={typeId}";
-                        var possibilities = debugDict[typeId].ToArray();
-                        if (possibilities.Any())
-                            additionalInfo = $"Unregistered type: {string.Join("; ",possibilities.Select(x=>x.FullName))}";
-                        throw new InvalidOperationException(
-                            $"Type is unknown, have you forgotten to discover types with TypeRegister?{additionalInfo}");
-                    }
-                    else Serilog.Log.Debug("Found type to deserialize {type}", type);
-
-                    var ev = SerializerFacade.Deserialize(type, i.Data.Memory) as IRecord;
-                    Serilog.Log.Debug("Event was successfully deserialized: {ev}", ev);
-
-                    Serilog.Log.Debug("Deserializing metadata with {propertyCount} properties.", _mSchema?.Count ?? -1);
-                    var metadata = new Metadata.Metadata(_mSchema, true);
-
-                    foreach (var m in i.MetadataProps)
-                    {
-                        Guid propId = new Guid(m.Id.Value.Span);
-                        if (_mPropIndex.TryGetValue(propId, out var mp))
-                        {
-                            Serilog.Log.Debug("Deserializing metadata property {propertyName}.", mp.Name);
-                            if (mp.Type != typeof(DateTimeOffset))
-                                metadata[mp] = SerializerFacade.Deserialize(mp.Type, m.Data.Memory);
-                            else
-                            {
-                                if (m.Data.Span.Length != 16)
-                                {
-                                    Serilog.Log.Debug("Unexpected number of bytes. Found {actualLength}.",
-                                        m.Data.Span.Length);
-                                    continue;
-                                }
-
-                                var dt = BitConverter.ToInt64(m.Data.Span.Slice(0, sizeof(Int64)));
-                                var ts = BitConverter.ToInt64(m.Data.Span.Slice(sizeof(Int64), sizeof(Int64)));
-                                metadata[mp] = new DateTimeOffset(new DateTime(dt), new TimeSpan(ts));
-                            }
-
-                        }
-                        else
-                        {
-                            Serilog.Log.Debug("Could not deserialize metadata property with id: {propertyId}.", propId);
-                        }
-                    }
-
-                    Serilog.Log.Debug("Metadata was successfully deserialized.");
-                    context.Record = ev;
-                    context.Metadata = metadata;
-
+                    Log.Debug($"Reading record {c++}");
+                    var context = ReadEvent(factory, i, out var ev, out var metadata);
+                    lastEvent = ev;
+                    lastMeta = metadata;
+                    
                     await onEvent(context, metadata, ev);
                 }
             }
             catch (RpcException e) when (e.Status.StatusCode == StatusCode.Cancelled)
             {
-                Serilog.Log.Information("Streaming was cancelled from the client!");
+                Log.Information("Streaming was cancelled from the client!");
             }
             catch (RpcException e) when (e.Status.StatusCode == StatusCode.Internal)
             {
-                Serilog.Log.Information(e, "We need to logout.");
+                Log.Information(e, "We need to logout.");
                 await ReadingFailed?.Invoke();
             }
             catch (ObjectDisposedException e)
             {
-                Serilog.Log.Information(e, "We need to logout.");
+                Log.Information(e, "We need to logout.");
                 await ReadingFailed?.Invoke();
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "Reading failed.");
+                Log.Error(ex, "Reading failed. {lastEvent} {lastMatadata}", lastEvent, lastMeta);
             }
-            Serilog.Log.Debug("Read closed.");
+            Log.Debug("Read closed.");
+        }
+
+        private IProcessingContext ReadEvent(IProcessingContextFactory factory, ReadRsp i, out IRecord ev,
+            out Metadata.Metadata metadata)
+        {
+            
+            var context = factory.Create();
+            Guid typeId = new Guid(i.TypeId.Value.Span);
+            var type = _typeRegister[typeId];
+            if (type == null)
+            {
+                var debugDict = AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(x => x.GetTypes()).ToLookup(x => x.NameId());
+                string additionalInfo = $"TypeId={typeId}";
+                var possibilities = debugDict[typeId].ToArray();
+                if (possibilities.Any())
+                    additionalInfo = $"Unregistered type: {string.Join("; ", possibilities.Select(x => x.FullName))}";
+                throw new InvalidOperationException(
+                    $"Type is unknown, have you forgotten to discover types with TypeRegister?{additionalInfo}");
+            }
+            else Log.Debug("Found type to deserialize {type}", type);
+
+            ev = SerializerFacade.Deserialize(type, i.Data.Memory) as IRecord;
+            Log.Debug("Event was successfully deserialized: {ev}", ev);
+
+            Log.Debug("Deserializing metadata with {propertyCount} properties.", _mSchema?.Count ?? -1);
+            metadata = new Metadata.Metadata(_mSchema, true);
+
+            foreach (var m in i.MetadataProps)
+            {
+                Guid propId = new Guid(m.Id.Value.Span);
+                if (_mPropIndex.TryGetValue(propId, out var mp))
+                {
+                    Log.Debug("Deserializing metadata property {propertyName}.", mp.Name);
+                    if (mp.Type != typeof(DateTimeOffset))
+                        metadata[mp] = SerializerFacade.Deserialize(mp.Type, m.Data.Memory);
+                    else
+                    {
+                        if (m.Data.Span.Length != 16)
+                        {
+                            Log.Debug("Unexpected number of bytes. Found {actualLength}.",
+                                m.Data.Span.Length);
+                            continue;
+                        }
+
+                        var dt = BitConverter.ToInt64(m.Data.Span.Slice(0, sizeof(Int64)));
+                        var ts = BitConverter.ToInt64(m.Data.Span.Slice(sizeof(Int64), sizeof(Int64)));
+                        metadata[mp] = new DateTimeOffset(new DateTime(dt), new TimeSpan(ts));
+                    }
+                }
+                else
+                {
+                    Log.Debug("Could not deserialize metadata property with id: {propertyId}.", propId);
+                }
+            }
+
+            Log.Debug("Metadata was successfully deserialized.");
+            context.Record = ev;
+            context.Metadata = metadata;
+            return context;
         }
     }
 }
