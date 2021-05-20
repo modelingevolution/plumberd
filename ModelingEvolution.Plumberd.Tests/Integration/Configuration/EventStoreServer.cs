@@ -13,7 +13,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
     public class EventStoreServer
     {
         //private ClusterVNode _node;
-        private IHost _host;
+        
 
         public static async Task<EventStoreServer> Start()
         {
