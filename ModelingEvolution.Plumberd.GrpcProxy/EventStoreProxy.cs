@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -153,7 +154,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 {
                     if(chunk.I != i++)
                         throw new InvalidOperationException("Unsupported");
-                    var expectedLocation = chunk.I * blobDescriptor.ChunkSize;
+                    //var expectedLocation = chunk.I * blobDescriptor.ChunkSize;
                     //if (stream.Position != expectedLocation && expectedLocation < MAX_FILE_SIZE)
                     //    stream.Seek(expectedLocation, SeekOrigin.Begin);
 
@@ -215,7 +216,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             await _commandInvoker.Execute(streamId, uploadBlob, userId, sessionId??Guid.Empty);
             
         }
-
+         
         private static BlobDescriptor Get(Grpc.Core.Metadata metadata)
         {
             string fileName = metadata.GetValue("file_name");
@@ -235,9 +236,9 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 table,
                 sha1 == null ? Guid.Empty : new Guid(sha1),
                 new Guid(id),
-                BitConverter.ToInt64(size64),
-                BitConverter.ToInt32(chunkSize32),
-                BitConverter.ToBoolean(forceOverride), 
+                size64.SafeToInt64(-1,"Size"),
+                chunkSize32.SafeToInt32(-1,"ChunkSize"),
+                forceOverride.SafeToBoolean(false, "ForceOverride"), 
                 blobUploadReason);
 
             if (string.IsNullOrWhiteSpace(desc.FileName))
@@ -443,5 +444,65 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             
         }
     }
-
+    public static class SafeBitConverter
+    {
+        private static readonly ILogger Log = Serilog.Log.ForContext(typeof(SafeBitConverter));
+        public static long SafeToInt64(this byte[] data, long defaultValue, string name)
+        {
+            if (data != null && data.Length == 8) return BitConverter.ToInt64(data);
+            
+            StringBuilder msgInvestigation = new StringBuilder();
+            if (data == null)
+                msgInvestigation.Append("Data is null.");
+            else
+            {
+                msgInvestigation.Append($"Data lenght is {data.Length}.");
+                if (data.Length < 8)
+                {
+                    msgInvestigation.Append(BitConverter.ToString(data));
+                    msgInvestigation.AppendLine();
+                }
+            }
+            Log.Warning("Could not convert '{fieldName}' to int64. {investigation}", name, msgInvestigation.ToString());
+            return defaultValue;
+        }
+        public static int SafeToInt32(this byte[] data, int defaultValue, string name)
+        {
+            if (data != null && data.Length == 4) return BitConverter.ToInt32(data);
+            
+            StringBuilder msgInvestigation = new StringBuilder();
+            if (data == null)
+                msgInvestigation.Append("Data is null.");
+            else
+            {
+                msgInvestigation.Append($"Data lenght is {data.Length}.");
+                if (data.Length < 4)
+                {
+                    msgInvestigation.Append(BitConverter.ToString(data));
+                    msgInvestigation.AppendLine();
+                }
+            }
+            Log.Warning("Could not convert '{fieldName}' to int32. {investigation}", name, msgInvestigation.ToString());
+            return defaultValue;
+        }
+        public static bool SafeToBoolean(this byte[] data, bool defaultValue, string name)
+        {
+            if (data != null && data.Length == 1) return BitConverter.ToBoolean(data);
+            
+            StringBuilder msgInvestigation = new StringBuilder();
+            if (data == null)
+                msgInvestigation.Append("Data is null.");
+            else
+            {
+                msgInvestigation.Append($"Data lenght is {data.Length}.");
+                if (data.Length < 4)
+                {
+                    msgInvestigation.Append(BitConverter.ToString(data));
+                    msgInvestigation.AppendLine();
+                }
+            }
+            Log.Warning("Could not convert '{fieldName}' to bit. {investigation}", name, msgInvestigation.ToString());
+            return defaultValue;
+        }
+    }
 }
