@@ -15,6 +15,7 @@ using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
@@ -186,10 +187,17 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 
         private string GetHeaders(ServerCallContext context)
         {
+            // very useful when configuring proxy.
+            
             StringBuilder sb = new StringBuilder();
             foreach (var i in context.RequestHeaders)
             {
-                sb.AppendLine($"{i.Key}:{i.Value} [isBinary={i.IsBinary}]");
+                sb.AppendLine($"metadata: {i.Key}:{i.Value} [isBinary={i.IsBinary}]");
+            }
+
+            foreach (var h in context.GetHttpContext().Request.Headers)
+            {
+                sb.Append($"http: {h.Key}: {string.Join('|', h.Value)}");
             }
 
             return sb.ToString();
