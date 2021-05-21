@@ -192,7 +192,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             StringBuilder sb = new StringBuilder();
             foreach (var i in context.RequestHeaders)
             {
-                sb.AppendLine($"metadata: {i.Key}:{i.Value} [isBinary={i.IsBinary}]");
+                var value = i.IsBinary ? BitConverter.ToString(i.ValueBytes) : i.Value;
+                sb.AppendLine($"metadata: {i.Key}:{value}");
             }
 
             foreach (var h in context.GetHttpContext().Request.Headers)
