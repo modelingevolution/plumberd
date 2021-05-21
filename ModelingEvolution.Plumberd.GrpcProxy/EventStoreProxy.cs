@@ -113,64 +113,88 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         public override async Task<BlobData> WriteBlob(IAsyncStreamReader<BlobChunk> requestStream,
             ServerCallContext context)
         {
-            var userId = await CheckAuthorizationData(context);
-            var blobDescriptor = Get(context.RequestHeaders);
-            var blobDir = _config["BlobDir"];
-            var root = string.IsNullOrWhiteSpace(blobDir) ? Path.Combine(Path.GetTempPath(), "Modellution") : blobDir;
-            if (!Directory.Exists(root))
-                Directory.CreateDirectory(root);
-
-
-            var dir = Path.Combine(root, $"{blobDescriptor.Category.ToLower()}-{blobDescriptor.Id}");
-            int number = 0;
-            if (!Directory.Exists(dir))
+            try
             {
-                Directory.CreateDirectory(dir);
-            }
-            else
-            {
-                var nr = Directory.EnumerateFiles(dir, "*.dat")
-                    .Select(x=>(int?)int.Parse(Path.GetFileNameWithoutExtension(Path.GetFileName(x)))).Max();
+                var userId = await CheckAuthorizationData(context);
+                var blobDescriptor = Get(context.RequestHeaders);
+                var blobDir = _config["BlobDir"];
+                var root = string.IsNullOrWhiteSpace(blobDir)
+                    ? Path.Combine(Path.GetTempPath(), "Modellution")
+                    : blobDir;
+                if (!Directory.Exists(root))
+                    Directory.CreateDirectory(root);
 
-                if (nr.HasValue)
+
+                var dir = Path.Combine(root, $"{blobDescriptor.Category.ToLower()}-{blobDescriptor.Id}");
+                int number = 0;
+                if (!Directory.Exists(dir))
                 {
-                    if (!blobDescriptor.ForceOverride)
-                        number = nr.Value + 1;
-                    else number = nr.Value;
+                    Directory.CreateDirectory(dir);
                 }
-                else number = 0;
-            }
-            var fileName = Path.Combine(dir, $"{number}.dat");
-            var metaFile = Path.Combine(dir, $"{number}.meta");
-            await File.WriteAllTextAsync(metaFile, JsonSerializer.Serialize(blobDescriptor));
-
-            long writtenBytes = 0;
-            var fileMode = blobDescriptor.ForceOverride ? FileMode.Create : FileMode.CreateNew;
-            _logger.Information("Writing blob to: {fileName}", fileName);
-            using (var stream = new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None))
-            {
-                int i = 0;
-                await foreach (var chunk in requestStream.ReadAllAsync())
+                else
                 {
-                    if(chunk.I != i++)
-                        throw new InvalidOperationException("Unsupported");
-                    //var expectedLocation = chunk.I * blobDescriptor.ChunkSize;
-                    //if (stream.Position != expectedLocation && expectedLocation < MAX_FILE_SIZE)
-                    //    stream.Seek(expectedLocation, SeekOrigin.Begin);
+                    var nr = Directory.EnumerateFiles(dir, "*.dat")
+                        .Select(x => (int?) int.Parse(Path.GetFileNameWithoutExtension(Path.GetFileName(x)))).Max();
 
-                    await stream.WriteAsync(chunk.Data.Memory);
-                    writtenBytes += chunk.Data.Memory.Length;
+                    if (nr.HasValue)
+                    {
+                        if (!blobDescriptor.ForceOverride)
+                            number = nr.Value + 1;
+                        else number = nr.Value;
+                    }
+                    else number = 0;
                 }
+
+                var fileName = Path.Combine(dir, $"{number}.dat");
+                var metaFile = Path.Combine(dir, $"{number}.meta");
+                await File.WriteAllTextAsync(metaFile, JsonSerializer.Serialize(blobDescriptor));
+
+                long writtenBytes = 0;
+                var fileMode = blobDescriptor.ForceOverride ? FileMode.Create : FileMode.CreateNew;
+                _logger.Information("Writing blob to: {fileName}", fileName);
+                using (var stream = new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None))
+                {
+                    int i = 0;
+                    await foreach (var chunk in requestStream.ReadAllAsync())
+                    {
+                        if (chunk.I != i++)
+                            throw new InvalidOperationException("Unsupported");
+                        //var expectedLocation = chunk.I * blobDescriptor.ChunkSize;
+                        //if (stream.Position != expectedLocation && expectedLocation < MAX_FILE_SIZE)
+                        //    stream.Seek(expectedLocation, SeekOrigin.Begin);
+
+                        await stream.WriteAsync(chunk.Data.Memory);
+                        writtenBytes += chunk.Data.Memory.Length;
+                    }
+                }
+
+                _logger.Information("Blob {fileName} written.", fileName);
+                await InvokeUploadEvent(context, blobDescriptor, writtenBytes, userId, fileName);
+
+                return new BlobData()
+                {
+                    Url = $"/blob/{blobDescriptor.Category}-{blobDescriptor.Id}",
+                    WrittenBytes = writtenBytes
+                };
             }
-            _logger.Information("Blob {fileName} written.", fileName);
-            await InvokeUploadEvent(context, blobDescriptor, writtenBytes, userId, fileName);
-            
-            return new BlobData()
+            catch (Exception ex)
             {
-                Url = $"/blob/{blobDescriptor.Category}-{blobDescriptor.Id}",
-                WrittenBytes = writtenBytes
-            };
+                Log.Logger.Error(ex, "Could not write blob. {Headers}", GetHeaders(context));
+                throw;
+            }
         }
+
+        private string GetHeaders(ServerCallContext context)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var i in context.RequestHeaders)
+            {
+                sb.AppendLine($"{i.Key}:{i.Value} [isBinary={i.IsBinary}]");
+            }
+
+            return sb.ToString();
+        }
+
         private static string[] bitmapExtensions = new string[] {".png",".jpg",".jpeg",".bmp"};
 
         private async Task InvokeUploadEvent(ServerCallContext context, 
@@ -245,9 +269,9 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 throw new ArgumentException("FileName");
             if (string.IsNullOrWhiteSpace(desc.Category))
                 throw new ArgumentException("TableName");
-            if (desc.ChunkSize <= 0 || desc.ChunkSize > 1024 * 1024)
+            if (desc.ChunkSize < -1 || desc.ChunkSize > 1024 * 1024)
                 throw new ArgumentException("ChunkSize");
-            if (desc.Size <= 0 || desc.Size > MAX_FILE_SIZE) // 64MB
+            if (desc.Size < -1 || desc.Size > MAX_FILE_SIZE) // 64MB
                 throw new ArgumentException("Size");
             if (desc.Id == Guid.Empty)
                 throw new ArgumentException("Id");
