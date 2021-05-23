@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.Metadata;
+using Serilog;
 
 namespace ModelingEvolution.Plumberd.Binding
 {
@@ -165,6 +166,7 @@ namespace ModelingEvolution.Plumberd.Binding
 
         private class DispatcherBuilder
         {
+            private static ILogger Log = Serilog.Log.ForContext<DispatcherBuilder>();
             private readonly Dictionary<Type, List<HandlerDispatcher>> invokers =
                 new Dictionary<Type, List<HandlerDispatcher>>();
 
@@ -184,7 +186,7 @@ namespace ModelingEvolution.Plumberd.Binding
                     foreach (var i in invoker)
                         result += await i(processor, m, ev);
                 }
-                else Serilog.Log.Warning("Found event {eventType} in a stream that cannot be dispatched.", ev.GetType());
+                else Log.Warning("Found event {eventType} in a stream that cannot be dispatched on {processorType}", ev.GetType(), processor?.GetType().Name ?? "-");
                 return result;
             }
         }
