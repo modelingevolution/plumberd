@@ -3,9 +3,11 @@ using System.Buffers;
 using System.IO;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.Core;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd.EventStore;
 using ProtoBuf;
+using Serilog;
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
@@ -35,6 +37,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     }
     public class BlobClient
     {
+        private static ILogger Log = Serilog.Log.ForContext<BlobClient>();
         private readonly Channel _channel;
         private GrpcEventStoreProxy.GrpcEventStoreProxyClient _client;
         private ISessionManager _sessionManager;
@@ -57,7 +60,9 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             m.Add("file_name", fileName);
             m.Add("table_name", category);
             m.Add("id-bin", id.ToByteArray());
-            m.Add("size-bin", BitConverter.GetBytes(data.Length));
+
+            long len = data.Length;
+            m.Add("size-bin", BitConverter.GetBytes(len));
             m.Add("chunk_size-bin", BitConverter.GetBytes(BUFFER_SIZE));
             m.Add("force_override-bin", BitConverter.GetBytes(forceOverride));
             m.Add("sessionid-bin", _sessionManager.Default().ToByteArray());
@@ -68,26 +73,24 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 m.Add("upload_reason-bin", reasonBuffer.WrittenSpan.ToArray());
             }
             // context is disposable but we cannot DISPOSE IT!
+            
             var context = _client.WriteBlob(m);
             byte[] buffer = new byte[BUFFER_SIZE];
             //int read = BUFFER_SIZE;
             long written = 0;
-            
-                for (int i = 0; written < data.Length; i++) // MAX 64MB
-                {
-                    int read = await data.ReadBlock(buffer);
-                    if (read == 0) break;
-                    BlobChunk b = new BlobChunk()
-                    {
-                        Data = ByteString.CopyFrom(buffer, 0, read),
-                        I = i
-                    };
-                    written += read;
-                    await context.RequestStream.WriteAsync(b);
-                }
-            
+            int i = 0;
+            for (; written < len; i++) // MAX 64MB
+            {
+                int read = await data.ReadBlock(buffer);
+                if (read == 0) break;
+                BlobChunk b = new BlobChunk() {Data = ByteString.CopyFrom(buffer, 0, read), I = i};
+                written += read;
+                await context.RequestStream.WriteAsync(b);
+            }
 
-            Console.WriteLine($"Written {written} bytes.");
+            await context.RequestStream.WriteAsync(new BlobChunk() {Data = ByteString.Empty, I=i});
+            await Task.Delay(100);
+            Log.Information("Written {written}/{len} bytes in {i} iterations. [ {completness}% ]", written, len, i, written/len*100);
             await context.RequestStream.CompleteAsync();
         }
 

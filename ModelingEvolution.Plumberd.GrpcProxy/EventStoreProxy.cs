@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Drawing;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,7 +9,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-using System.Xml.Linq;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Grpc.AspNetCore.Server.Internal;
@@ -31,65 +29,6 @@ using MetadataProperty = ModelingEvolution.EventStore.GrpcProxy.MetadataProperty
 
 namespace ModelingEvolution.Plumberd.GrpcProxy
 {
-    public static class SvgSizeParser
-    {
-        private static CultureInfo EN_US = CultureInfo.GetCultureInfo("en-US");
-        public static (double,double) Load(string file)
-        {
-            XDocument doc = XDocument.Load(file);
-            var root = doc.Root;
-            var wAttr = root.Attribute("width");
-            var hAttr = root.Attribute("height");
-            
-            double w=0, h = 0;
-            if (wAttr != null) w = double.Parse(wAttr.Value.Replace("px", ""),EN_US);
-            if (hAttr != null) h = double.Parse(hAttr.Value.Replace("px", ""),EN_US);
-            if (w > 0 && h > 0) 
-                return (w, h); 
-            
-            // fallback.
-            var viewBoxAttr = root.Attribute("viewBox");
-            string[] values = viewBoxAttr.Value.Split(new char[]{' ',','}, StringSplitOptions.RemoveEmptyEntries);
-            if (values.Length == 4)
-            {
-                double viewBoxWidth = double.Parse(values[2], EN_US);
-                double viewBoxHeight = double.Parse(values[3], EN_US);
-
-                if (w == 0) w = viewBoxWidth;
-                if (h == 0) h = viewBoxHeight;
-            }
-            return (w, h);
-        }
-    }
-    public readonly struct BlobDescriptor
-    {
-        public readonly BlobUploadReason BlobUploadReason { get; init; }
-        public readonly string FileName { get; init; }
-        public readonly string Category { get; init; }
-        public readonly Guid Sha1 { get; init; }
-        public readonly Guid Id { get; init; }
-        public readonly long Size { get; init; }
-        public readonly int ChunkSize { get; init; }
-        public readonly bool ForceOverride { get; init; }
-
-        public BlobDescriptor(string fileName,
-            string category,
-            Guid sha1,
-            Guid id,
-            long size,
-            int chunkSize, bool forceOverride, 
-            BlobUploadReason blobUploadReason)
-        {
-            BlobUploadReason = blobUploadReason;
-            FileName = fileName;
-            Category = category;
-            Sha1 = sha1;
-            Id = id;
-            Size = size;
-            ChunkSize = chunkSize;
-            ForceOverride = forceOverride;
-        }
-    }
     public class EventStoreProxy : GrpcEventStoreProxy.GrpcEventStoreProxyBase
     {
         private readonly TypeRegister _typeRegister;
@@ -114,6 +53,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         public override async Task<BlobData> WriteBlob(IAsyncStreamReader<BlobChunk> requestStream,
             ServerCallContext context)
         {
+            long writtenBytes = 0;
+            int i = 0;
             try
             {
                 var userId = await CheckAuthorizationData(context);
@@ -150,12 +91,12 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 var metaFile = Path.Combine(dir, $"{number}.meta");
                 await File.WriteAllTextAsync(metaFile, JsonSerializer.Serialize(blobDescriptor));
 
-                long writtenBytes = 0;
+                
                 var fileMode = blobDescriptor.ForceOverride ? FileMode.Create : FileMode.CreateNew;
-                _logger.Information("Writing blob to: {fileName}", fileName);
+                _logger.Information("Writing blob {blobDescriptor}", blobDescriptor);
                 using (var stream = new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None))
                 {
-                    int i = 0;
+                   
                     await foreach (var chunk in requestStream.ReadAllAsync())
                     {
                         if (chunk.I != i++)
@@ -166,10 +107,12 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 
                         await stream.WriteAsync(chunk.Data.Memory);
                         writtenBytes += chunk.Data.Memory.Length;
+                        
+                        if (blobDescriptor.Size == writtenBytes) break;
                     }
                 }
 
-                _logger.Information("Blob {fileName} written.", fileName);
+                _logger.Information("Blob {fileName} written. Written {writtenBytes} iteration {iteration}. ", fileName, writtenBytes, i);
                 await InvokeUploadEvent(context, blobDescriptor, writtenBytes, userId, fileName);
 
                 return new BlobData()
@@ -180,7 +123,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             }
             catch (Exception ex)
             {
-                Log.Logger.Error(ex, "Could not write blob. {Headers}", GetHeaders(context));
+                Log.Logger.Error(ex, "Could not write blob. {Headers}. Written {writtenBytes} iteration {iteration}.", GetHeaders(context), writtenBytes, i);
                 throw;
             }
         }
@@ -196,10 +139,11 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 sb.AppendLine($"metadata: {i.Key}:{value}");
             }
 
-            foreach (var h in context.GetHttpContext().Request.Headers)
-            {
-                sb.Append($"http: {h.Key}: {string.Join('|', h.Value)}");
-            }
+            // sb.AppendLine("---");
+            // foreach (var h in context.GetHttpContext().Request.Headers)
+            // {
+            //     sb.AppendLine($"http: {h.Key}: {string.Join('|', h.Value)}");
+            // }
 
             return sb.ToString();
         }
@@ -280,7 +224,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 throw new ArgumentException("TableName");
             if (desc.ChunkSize < -1 || desc.ChunkSize > 1024 * 1024)
                 throw new ArgumentException("ChunkSize");
-            if (desc.Size < -1 || desc.Size > MAX_FILE_SIZE) // 64MB
+            if (desc.Size <= -1 || desc.Size > MAX_FILE_SIZE) // 64MB
                 throw new ArgumentException("Size");
             if (desc.Id == Guid.Empty)
                 throw new ArgumentException("Id");
@@ -475,67 +419,6 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 }
             }
             
-        }
-    }
-    public static class SafeBitConverter
-    {
-        private static readonly ILogger Log = Serilog.Log.ForContext(typeof(SafeBitConverter));
-        public static long SafeToInt64(this byte[] data, long defaultValue, string name)
-        {
-            if (data != null && data.Length == 8) return BitConverter.ToInt64(data);
-            
-            StringBuilder msgInvestigation = new StringBuilder();
-            if (data == null)
-                msgInvestigation.Append("Data is null.");
-            else
-            {
-                msgInvestigation.Append($"Data lenght is {data.Length}.");
-                if (data.Length < 8)
-                {
-                    msgInvestigation.Append(BitConverter.ToString(data));
-                    msgInvestigation.AppendLine();
-                }
-            }
-            Log.Warning("Could not convert '{fieldName}' to int64. {investigation}", name, msgInvestigation.ToString());
-            return defaultValue;
-        }
-        public static int SafeToInt32(this byte[] data, int defaultValue, string name)
-        {
-            if (data != null && data.Length == 4) return BitConverter.ToInt32(data);
-            
-            StringBuilder msgInvestigation = new StringBuilder();
-            if (data == null)
-                msgInvestigation.Append("Data is null.");
-            else
-            {
-                msgInvestigation.Append($"Data lenght is {data.Length}.");
-                if (data.Length < 4)
-                {
-                    msgInvestigation.Append(BitConverter.ToString(data));
-                    msgInvestigation.AppendLine();
-                }
-            }
-            Log.Warning("Could not convert '{fieldName}' to int32. {investigation}", name, msgInvestigation.ToString());
-            return defaultValue;
-        }
-        public static bool SafeToBoolean(this byte[] data, bool defaultValue, string name)
-        {
-            if (data != null && data.Length == 1) return BitConverter.ToBoolean(data);
-            
-            StringBuilder msgInvestigation = new StringBuilder();
-            if (data == null)
-                msgInvestigation.Append("Data is null.");
-            else
-            {
-                msgInvestigation.Append($"Data lenght is {data.Length}.");
-                if (data.Length < 4)
-                {
-                    msgInvestigation.Append(BitConverter.ToString(data));
-                    msgInvestigation.AppendLine();
-                }
-            }
-            Log.Warning("Could not convert '{fieldName}' to bit. {investigation}", name, msgInvestigation.ToString());
-            return defaultValue;
         }
     }
 }
