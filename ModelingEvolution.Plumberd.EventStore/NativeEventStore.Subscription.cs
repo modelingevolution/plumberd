@@ -124,10 +124,15 @@ namespace ModelingEvolution.Plumberd.EventStore
             private void OnSubscriptionDropped(EventStorePersistentSubscriptionBase s, SubscriptionDropReason r, Exception e)
             {
                 _log.Warning(e,"Subscription dropped! {ProcessingMode} {ProcessingUnitType} {Reason}", _processingContextFactory.Config.ProcessingMode, _processingContextFactory.Config.Type.Name, r);
-                Task.Run(TrySubscribe);
+                if (r == SubscriptionDropReason.EventHandlerException)
+                {
+                    _log.Error(e, "Exception in event-handler {streamName}. We won't resubscribe. Please reset the server.", _streamName);
+                    return;
+                }
+                Task.Run(() => TrySubscribe(r));
             }
 
-            private async Task TrySubscribe()
+            private async Task TrySubscribe(SubscriptionDropReason reason)
             {
                 while (true)
                     try
