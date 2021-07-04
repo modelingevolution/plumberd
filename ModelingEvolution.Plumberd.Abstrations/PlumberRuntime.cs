@@ -344,6 +344,7 @@ namespace ModelingEvolution.Plumberd
             {
                 throw;
             }
+
             if (!result.IsEmpty)
             {
                 if (context.Config.IsEventEmitEnabled)

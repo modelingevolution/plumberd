@@ -44,13 +44,14 @@ namespace ModelingEvolution.Plumberd.EventStore
             public async Task Append(IRecord x, IMetadata metadata, ulong expectedVersion)
             {
                 var data = CreateEventData(x, metadata);
-                await _connection.AppendToStreamAsync(_streamName, (long)expectedVersion, data);
+                var result = await _connection.AppendToStreamAsync(_streamName, (long)expectedVersion, data);
             }
 
             public async Task Append(IRecord x, IMetadata metadata)
             {
                 var data = CreateEventData(x, metadata);
-                await _connection.AppendToStreamAsync(_streamName, ExpectedVersion.Any, data);
+                var result = await _connection.AppendToStreamAsync(_streamName,  ExpectedVersion.Any, data);
+                
             }
 
             private global::EventStore.ClientAPI.EventData CreateEventData(IRecord x, IMetadata metadata)

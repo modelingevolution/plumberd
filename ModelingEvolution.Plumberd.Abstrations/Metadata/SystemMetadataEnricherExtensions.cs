@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace ModelingEvolution.Plumberd.Metadata
 {
+    
     public static class SystemMetadataEnricherExtensions
     {
+       
         public static ulong StreamPosition(this IMetadata m)
         {
             return (ulong) m[MetadataProperty.StreamPosition];

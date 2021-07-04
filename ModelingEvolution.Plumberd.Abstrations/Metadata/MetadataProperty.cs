@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace ModelingEvolution.Plumberd.Metadata
 {
@@ -7,6 +8,7 @@ namespace ModelingEvolution.Plumberd.Metadata
         public static readonly MetadataProperty StreamId = new MetadataProperty("StreamId", typeof(Guid), -1, null, false);
         public static readonly MetadataProperty Category = new MetadataProperty("Category", typeof(String),-1, null, false);
         public static readonly MetadataProperty StreamPosition = new MetadataProperty("StreamPosition", typeof(ulong), -1, null, false);
+        
         public MetadataProperty(string name, 
             Type type, 
             int order, 

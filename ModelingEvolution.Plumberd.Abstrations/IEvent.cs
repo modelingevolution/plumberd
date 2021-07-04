@@ -1,4 +1,5 @@
 ﻿using System;
+using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd
 {
@@ -11,6 +12,7 @@ namespace ModelingEvolution.Plumberd
         
     }
 
+    
     public interface IStreamAware 
     {
         string StreamCategory { get; }
