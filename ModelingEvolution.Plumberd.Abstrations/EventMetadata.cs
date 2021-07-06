@@ -52,7 +52,7 @@ namespace ModelingEvolution.Plumberd
             {
                 var factory = new CommandInvokerMetadataFactory();
                 
-                DefaultCommandInvoker = new CommandInvoker(DefaultEventStore, Logger, DefaultServiceProvider);
+                DefaultCommandInvoker = new CommandInvoker(DefaultEventStore, Logger);
             }
 
             if (DefaultServiceProvider == null)

@@ -62,13 +62,13 @@ namespace ModelingEvolution.Plumberd
     {
         private readonly IEventStore _eventStore;
         private readonly ILogger _logger;
-        private readonly IServiceProvider _serviceProvider;
+        
 
-        public CommandInvoker(IEventStore eventStore, ILogger logger, IServiceProvider serviceProvider)
+        public CommandInvoker(IEventStore eventStore, ILogger logger)
         {
             _eventStore = eventStore;
             _logger = logger;
-            _serviceProvider = serviceProvider;
+        
         }
      
 

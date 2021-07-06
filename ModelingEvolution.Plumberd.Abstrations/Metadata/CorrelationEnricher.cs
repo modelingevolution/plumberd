@@ -21,7 +21,7 @@ namespace ModelingEvolution.Plumberd.Metadata
                     m[CausationId] = epc.Record.Id;
                     break;
                 case ICommandHandlerContext c:
-                    m[CorrelationId] = c.Record.Id;
+                    m[CorrelationId] = c.Metadata.CorrelationId(); //  c.Record.Id
                     m[CausationId] = c.Record.Id;
                     break;
                 case ICommandInvocationContext c:
