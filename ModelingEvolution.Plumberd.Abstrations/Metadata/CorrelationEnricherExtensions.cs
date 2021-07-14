@@ -8,6 +8,10 @@ namespace ModelingEvolution.Plumberd.Metadata
         {
             return (Guid)ev[ev.Schema.Enricher<CorrelationEnricher>().CorrelationId];
         }
+        public static long Hop(this IMetadata ev)
+        {
+            return (long)ev[ev.Schema.Enricher<CorrelationEnricher>().Hop];
+        }
         public static Guid CausationId(this IMetadata ev)
         {
             return (Guid)ev[ev.Schema.Enricher<CorrelationEnricher>().CausationId];

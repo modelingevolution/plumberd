@@ -130,7 +130,8 @@ namespace ModelingEvolution.Plumberd
         {
             var processingUnitType = controller.GetType();
             var eventConfig = BuildConfiguration(processingUnitType, config, store ?? DefaultEventStore, ProcessingMode.EventHandler);
-
+            HookupLiveProjection(controller, eventConfig);
+            
             var eventBinder = binder ?? new EventHandlerBinder(processingUnitType)
                 .Discover(true,
                     eventConfig != null
@@ -143,6 +144,22 @@ namespace ModelingEvolution.Plumberd
 
             unit.Subscription = await Start(unit);
             return unit;
+        }
+
+        private static void HookupLiveProjection(object controller, IProcessingUnitConfig config)
+        {
+            if (controller is not ILiveProjection lp) return;
+            
+            if (config.OnLive != null)
+            {
+                var tmp = config.OnLive;
+                config.OnLive = () =>
+                {
+                    tmp();
+                    lp.IsLive = true;
+                };
+            }
+            else config.OnLive = () => { lp.IsLive = true; };
         }
 
 
@@ -340,10 +357,7 @@ namespace ModelingEvolution.Plumberd
                 else 
                     await context.EventStore.GetEventStream(recordType, m.StreamId(), context).Append(et);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            
 
             if (!result.IsEmpty)
             {

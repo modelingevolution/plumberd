@@ -106,7 +106,7 @@ namespace ModelingEvolution.Plumberd.Querying
                 _streamName = streamName;
             }
 
-            public async Task<ICollectionResult<TResult>> Execute<TResult>(ICollectionResultQuery<TResult> query)
+            public async Task<ICollectionResult<TResult>> Execute(ICollectionResultQuery<TResult> query)
             {
                 CollectionResult<TResult> results = new CollectionResult<TResult>();
                 var scopedProvider = (results.Scope = _serviceProvider.CreateScope()).ServiceProvider;

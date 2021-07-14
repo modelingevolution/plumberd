@@ -44,10 +44,4 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
     <ProjectReference Include="..\..\protobuf-net\src\protobuf-net\protobuf-net.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Microsoft.Extensions.Hosting.Abstractions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60">
-      <HintPath>..\..\..\..\..\..\..\Program Files\dotnet\shared\Microsoft.AspNetCore.App\6.0.0-preview.3.21201.13\Microsoft.Extensions.Hosting.Abstractions.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

@@ -56,7 +56,9 @@ namespace ModelingEvolution.Plumberd.EventProcessing
         public BindingFlags BindingFlags { get; }
         public TimeSpan ProcessingLag { get; set; }
         public AfterDispatchHandler OnAfterDispatch { get; set; }
+        public Action OnLive { get; set; }
         public ProjectionSchema ProjectionSchema { get; set; }
     }
     public delegate Task AfterDispatchHandler(object processingUnit, IMetadata m, IRecord ev, ProcessingResults result);
+    
 }

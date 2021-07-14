@@ -15,7 +15,7 @@ namespace ModelingEvolution.Plumberd.Querying
         private readonly ObservableCollection<TSrc> _internal;
         private readonly ObservableCollection<TDst> _filtered;
         private Predicate<TDst> _filter;
-        private readonly bool _isReadOnly;
+        
         
 
         public Predicate<TDst> Filter
@@ -131,27 +131,27 @@ namespace ModelingEvolution.Plumberd.Querying
 
         public object SyncRoot => ((ICollection)_filtered).SyncRoot;
 
-        public int Add(object? value)
+        public int Add(object value)
         {
             return ((IList)_filtered).Add(value);
         }
 
-        public bool Contains(object? value)
+        public bool Contains(object value)
         {
             return ((IList)_filtered).Contains(value);
         }
 
-        public int IndexOf(object? value)
+        public int IndexOf(object value)
         {
             return ((IList)_filtered).IndexOf(value);
         }
 
-        public void Insert(int index, object? value)
+        public void Insert(int index, object value)
         {
             ((IList)_filtered).Insert(index, value);
         }
 
-        public void Remove(object? value)
+        public void Remove(object value)
         {
             ((IList)_filtered).Remove(value);
         }
@@ -160,10 +160,10 @@ namespace ModelingEvolution.Plumberd.Querying
 
         bool IList.IsReadOnly
         {
-            get { return _isReadOnly; }
+            get { return false; }
         }
 
-        object? IList.this[int index]
+        object IList.this[int index]
         {
             get { return this[index]; }
             set { this[index] = (TDst)value; }
@@ -220,7 +220,7 @@ namespace ModelingEvolution.Plumberd.Querying
 
         bool ICollection<TDst>.IsReadOnly
         {
-            get { return _isReadOnly; }
+            get { return false; }
         }
 
         public TDst this[int index]
@@ -229,14 +229,14 @@ namespace ModelingEvolution.Plumberd.Querying
             set => _filtered[index] = value;
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public void Move(int oldIndex, int newIndex)
         {
             _filtered.Move(oldIndex, newIndex);
         }
 
-        public event NotifyCollectionChangedEventHandler? CollectionChanged;
+        public event NotifyCollectionChangedEventHandler CollectionChanged;
 
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -249,8 +249,7 @@ namespace ModelingEvolution.Plumberd.Querying
         private readonly ObservableCollection<T> _internal;
         private readonly ObservableCollection<T> _filtered;
         private Predicate<T> _filter;
-        private readonly bool _isReadOnly;
-        private readonly bool _isReadOnly1;
+        
 
         public Predicate<T> Filter
         {
@@ -355,27 +354,27 @@ namespace ModelingEvolution.Plumberd.Querying
 
         public object SyncRoot => ((ICollection)_filtered).SyncRoot;
 
-        public int Add(object? value)
+        public int Add(object value)
         {
             return ((IList)_filtered).Add(value);
         }
 
-        public bool Contains(object? value)
+        public bool Contains(object value)
         {
             return ((IList)_filtered).Contains(value);
         }
 
-        public int IndexOf(object? value)
+        public int IndexOf(object value)
         {
             return ((IList)_filtered).IndexOf(value);
         }
 
-        public void Insert(int index, object? value)
+        public void Insert(int index, object value)
         {
             ((IList)_filtered).Insert(index, value);
         }
 
-        public void Remove(object? value)
+        public void Remove(object value)
         {
             ((IList)_filtered).Remove(value);
         }
@@ -384,10 +383,10 @@ namespace ModelingEvolution.Plumberd.Querying
 
         bool IList.IsReadOnly
         {
-            get { return _isReadOnly1; }
+            get { return false; }
         }
 
-        object? IList.this[int index]
+        object IList.this[int index]
         {
             get { return this[index]; }
             set { this[index] = (T)value; }
@@ -444,7 +443,7 @@ namespace ModelingEvolution.Plumberd.Querying
 
         bool ICollection<T>.IsReadOnly
         {
-            get { return _isReadOnly; }
+            get { return false; }
         }
 
         public T this[int index]
@@ -453,14 +452,14 @@ namespace ModelingEvolution.Plumberd.Querying
             set => _filtered[index] = value;
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public void Move(int oldIndex, int newIndex)
         {
             _filtered.Move(oldIndex, newIndex);
         }
 
-        public event NotifyCollectionChangedEventHandler? CollectionChanged;
+        public event NotifyCollectionChangedEventHandler CollectionChanged;
 
 
         IEnumerator IEnumerable.GetEnumerator()

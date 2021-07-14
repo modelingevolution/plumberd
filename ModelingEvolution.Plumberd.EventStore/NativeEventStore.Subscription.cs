@@ -165,7 +165,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             private long? _streamPosition = null;
             private EventStoreStreamCatchUpSubscription _subscriptionCatchUp;
             private EventStoreSubscription _subscription;
-
+            
             public ContinuesSubscription(NativeEventStore parent,
                 ILogger log,
                 in bool fromBeginning,
@@ -197,6 +197,16 @@ namespace ModelingEvolution.Plumberd.EventStore
                         _streamPosition,
                         CatchUpSubscriptionSettings.Default, 
                         OnEventAppeared, 
+                        liveProcessingStarted: (s) =>
+                        {
+                            var live = _processingContextFactory.Config.OnLive;
+                            if (live != null)
+                            {
+                                live();
+                                _log.Information("{streamName} is live", _streamName);
+                            }
+                            
+                        },
                         subscriptionDropped: OnSubscriptionDropped);
 
                 }
