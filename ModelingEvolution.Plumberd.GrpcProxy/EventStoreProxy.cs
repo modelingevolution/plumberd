@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using System.Xml;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
@@ -196,8 +197,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
          
         private static BlobDescriptor Get(Grpc.Core.Metadata metadata)
         {
-            string fileName = metadata.GetValue("file_name");
-            string table = metadata.GetValue("table_name");
+            string fileName = HttpUtility.HtmlDecode(metadata.GetValue("file_name"));
+            string table = HttpUtility.HtmlDecode(metadata.GetValue("table_name"));
             byte[] sha1 = metadata.GetValueBytes("bin_sha1-bin");
             byte[] id = metadata.GetValueBytes("id-bin");
             byte[] size64 = metadata.GetValueBytes("size-bin");

@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.IO;
 using System.Threading.Tasks;
+using System.Web;
 using Google.Protobuf;
 using Grpc.Core;
 using ModelingEvolution.EventStore.GrpcProxy;
@@ -55,10 +56,10 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             Stream data, BlobUploadReason reason=null)
         {
             _client ??= new GrpcEventStoreProxy.GrpcEventStoreProxyClient(_channel.GrpcChannel);
-
+            
             Grpc.Core.Metadata m = new Grpc.Core.Metadata();
-            m.Add("file_name", fileName);
-            m.Add("table_name", category);
+            m.Add("file_name", HttpUtility.HtmlEncode(fileName));
+            m.Add("table_name", HttpUtility.HtmlEncode(category));
             m.Add("id-bin", id.ToByteArray());
 
             long len = data.Length;
@@ -75,6 +76,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             // context is disposable but we cannot DISPOSE IT!
             
             var context = _client.WriteBlob(m);
+            
             byte[] buffer = new byte[BUFFER_SIZE];
             //int read = BUFFER_SIZE;
             long written = 0;
@@ -86,6 +88,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 BlobChunk b = new BlobChunk() {Data = ByteString.CopyFrom(buffer, 0, read), I = i};
                 written += read;
                 await context.RequestStream.WriteAsync(b);
+                
             }
 
             await context.RequestStream.WriteAsync(new BlobChunk() {Data = ByteString.Empty, I=i});

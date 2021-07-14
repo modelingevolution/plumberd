@@ -199,7 +199,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                         OnEventAppeared, 
                         liveProcessingStarted: (s) =>
                         {
-                            var live = _processingContextFactory.Config.OnLive;
+                            var live = _processingContextFactory?.Config?.OnLive;
                             if (live != null)
                             {
                                 live();
