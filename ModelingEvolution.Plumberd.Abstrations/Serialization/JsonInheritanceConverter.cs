@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ProtoBuf;
 using ProtoBuf.Meta;
 
 
@@ -20,6 +22,11 @@ namespace ModelingEvolution.Plumberd.Serialization
             if (model.IsDefined(type))
             {
                 this._typeIndex = model[type].GetSubtypes().ToDictionary(x => x.DerivedType.Type.Name, x => x.DerivedType.Type);
+                if (this._typeIndex.Count == 0)
+                {
+                    var attrs = typeof(TBaseType).GetCustomAttributes<ProtoIncludeAttribute>();
+                    _typeIndex = attrs.ToDictionary(x => x.KnownType.Name, x => x.KnownType);
+                }
             }
             else this._typeIndex = new Dictionary<string, Type>();
         }

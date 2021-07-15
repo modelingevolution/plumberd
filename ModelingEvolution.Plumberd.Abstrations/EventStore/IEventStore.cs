@@ -45,6 +45,7 @@ namespace ModelingEvolution.Plumberd.EventStore
     
     [ProtoContract]
     [JsonConverter(typeof(JsonInheritanceConverter<BlobUploadReason>))]
+    
     public abstract class BlobUploadReason
     {
 
