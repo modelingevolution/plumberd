@@ -25,6 +25,7 @@ namespace ModelingEvolution.Plumberd.Tests.Models
             yield return new object[] { new Command10(), false };
             yield return new object[] { new Command11(), false };
             yield return new object[] { new Command12(), false };
+            yield return new object[] { new Command13(), false };
         }
 
         IEnumerator IEnumerable.GetEnumerator()

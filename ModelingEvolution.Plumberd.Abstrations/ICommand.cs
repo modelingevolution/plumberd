@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd
 {
@@ -8,21 +9,5 @@ namespace ModelingEvolution.Plumberd
     {
     }
 
-    public sealed record CommandMeta 
-    {
-        public CommandMeta(Guid id)
-        {
-            Id = id;
-            this.Metadata = new Dictionary<string, string>();
-        }
-
-        public CommandMeta With(string key, string value)
-        {
-            Metadata.Add(key, value);
-            return this;
-        }
-        public IDictionary<string, string> Metadata { get; }
-        
-        public Guid Id { get; init; }
-    }
+    
 }

@@ -62,6 +62,7 @@ namespace ModelingEvolution.Plumberd.Binding
             var eventParam = Expression.Parameter(typeof(IEvent), "event");
             var commandParam = Expression.Parameter(typeof(ICommand), "command");
             var idParam = Expression.Parameter(typeof(Guid), "id");
+            
             var baseRef = Expression.Parameter(typeof(object), "root");
             var thisExpression = Expression.Convert(baseRef, _type);
 

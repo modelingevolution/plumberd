@@ -75,16 +75,17 @@ namespace ModelingEvolution.Plumberd.Binding
             ParameterExpression[] paramExpressions)
         {
             var args = m.GetParameters();
-            if (args.Length != 2)
-                throw new NotSupportedException("Only 2 argument methods are supported.");
+            if (args.Length < 2 || args.Length > 3)
+                throw new NotSupportedException("Only 2 or 3 method's arguments are supported.");
 
             Type tArg1 = args[0].ParameterType;
             Type tArg2 = args[1].ParameterType;
+            Type tArg3 = args.Length == 3 ? args[2].ParameterType : null;
             Type tRet = m.ReturnType;
 
-            IInvocationAdapter adapter = CreateInvocationAdapter(rootType, tArg1, tArg2, tRet);
+            IInvocationAdapter adapter = CreateInvocationAdapter(rootType, tArg1, tArg2, tArg3, tRet);
 
-            HandlerParameterAdapter parameterAdapter = FindParameterAdapter(rootType, tArg1, tArg2, tRet);
+            HandlerParameterAdapter parameterAdapter = FindParameterAdapter(rootType, tArg1, tArg2, tArg3, tRet);
             parameterAdapter.Compile(callExpression, paramExpressions);
 
             HandlerResultAdapter resultAdapter = FindResultAdapter(tRet);
@@ -146,7 +147,7 @@ namespace ModelingEvolution.Plumberd.Binding
             throw new NotSupportedException($"Sorry, this return type '{tRet.Name}' is not supported.");
         }
 
-        private HandlerParameterAdapter FindParameterAdapter(Type tArg0, Type tArg1, Type tArg2, Type tRet)
+        private HandlerParameterAdapter FindParameterAdapter(Type tArg0, Type tArg1, Type tArg2, Type tArg3, Type tRet)
         {
             var genericArgs = tRet != typeof(void) ? new[] { tArg0, tRet, tArg2 } : new[] { tArg0, tArg2};
 
@@ -154,11 +155,20 @@ namespace ModelingEvolution.Plumberd.Binding
             if (tRet != typeof(void) && tArg1 == typeof(IMetadata) && typeof(IEvent).IsAssignableFrom(tArg2))
                 genericType = typeof(EventHandlerParameterAdapter<,,>);
             else if (tRet == typeof(void) && tArg1 == typeof(IMetadata) && typeof(IEvent).IsAssignableFrom(tArg2))
-                genericType = typeof(EventHandlerParameterAdapter<,>);
+                genericType = typeof(EventVoidHandlerParameterAdapter<,>);
             else if (tRet != typeof(void) && tArg1 == typeof(Guid) && typeof(ICommand).IsAssignableFrom(tArg2))
-                genericType = typeof(CommandHandlerParameterAdapter<,,>);
-            else if (tRet == typeof(void) && tArg1 == typeof(Guid) && typeof(ICommand).IsAssignableFrom(tArg2))
-                genericType = typeof(CommandHandlerParameterAdapter<,>);
+            {
+                if(tArg3 == null)
+                    genericType = typeof(CommandHandlerParameterAdapter<,,>);
+                else genericType = typeof(CommandHandlerParameterAdapterExt<,,>);
+            }
+            else if (tRet == typeof(void) && typeof(ICommand).IsAssignableFrom(tArg2))
+            {
+                if(tArg3 == null)
+                    genericType = typeof(CommandHandlerVoidParameterAdapter<,>);
+                else
+                    genericType = typeof(CommandHandlerVoidParameterAdapterExt<,>);
+            }
             else throw new NotSupportedException();
 
             var adapter = (HandlerParameterAdapter)Activator.CreateInstance(genericType.MakeGenericType(genericArgs.ToArray()));
@@ -166,12 +176,15 @@ namespace ModelingEvolution.Plumberd.Binding
             return adapter;
         }
 
-        private IInvocationAdapter CreateInvocationAdapter(Type tArg0, Type tArg1, Type tArg2, Type tRet)
+        private IInvocationAdapter CreateInvocationAdapter(Type tArg0, Type tArg1, Type tArg2, Type tArg3, Type tRet)
         {
             //tArg0 = typeof(object);
             if (tRet != typeof(void))
-                return (IInvocationAdapter)Activator.CreateInstance(typeof(InvocationAdapter<,,,>).MakeGenericType(tArg0, tArg1, tArg2, tRet));
-            else return (IInvocationAdapter)Activator.CreateInstance(typeof(InvocationAdapter<,,>).MakeGenericType(tArg0, tArg1, tArg2));
+            {
+                if (tArg3 != null) 
+                    return (IInvocationAdapter) Activator.CreateInstance(typeof(InvocationAdapter<,,,,>).MakeGenericType(tArg0, tArg1, tArg2, tArg3, tRet));
+                return (IInvocationAdapter) Activator.CreateInstance(typeof(InvocationAdapter<,,,>).MakeGenericType(tArg0, tArg1, tArg2, tRet));
+            }
+            else return (IInvocationAdapter)Activator.CreateInstance(typeof(InvocationAdapter<,,>).MakeGenericType(tArg0, tArg1, tArg2));}
         }
     }
-}
