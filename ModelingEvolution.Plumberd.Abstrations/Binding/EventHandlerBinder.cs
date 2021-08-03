@@ -36,6 +36,21 @@ namespace ModelingEvolution.Plumberd.Binding
         }
         
     }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    public class DispatchOrderAttribute : Attribute
+    {
+        /// <summary>
+        /// Default order value is -1; The higher value the later the method will be invoked.
+        /// </summary>
+        /// <param name="order"></param>
+        public DispatchOrderAttribute(int order)
+        {
+            Order = order;
+        }
+
+        public int Order { get; private set; }
+    }
     public partial class EventHandlerBinder : IEventHandlerBinder
     {
         public HandlerDispatcher CreateDispatcher()
@@ -47,6 +62,7 @@ namespace ModelingEvolution.Plumberd.Binding
             var eventParam = Expression.Parameter(typeof(IEvent), "event");
             var commandParam = Expression.Parameter(typeof(ICommand), "command");
             var idParam = Expression.Parameter(typeof(Guid), "id");
+            
             var baseRef = Expression.Parameter(typeof(object), "root");
             var thisExpression = Expression.Convert(baseRef, _type);
 
@@ -57,7 +73,7 @@ namespace ModelingEvolution.Plumberd.Binding
             }
 
             foreach (var (ev, list) in _models)
-            foreach (var (p, m) in list)
+            foreach (var (p, m) in list.OrderByDescending(x=>x.Item1.GetCustomAttribute<DispatchOrderAttribute>()?.Order ?? -1))
             {
                 var propertyExpression = Expression.Property(thisExpression, p);
 

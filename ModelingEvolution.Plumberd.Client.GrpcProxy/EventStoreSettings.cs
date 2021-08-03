@@ -7,6 +7,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
     public class EventStoreSettings : IEventStoreSettings
     {
+        public bool IsDevelopment { get; }
         public IMetadataFactory MetadataFactory { get; }
         public IMetadataSerializerFactory MetadataSerializerFactory { get; }
         public IRecordSerializer Serializer { get; }
@@ -19,7 +20,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
         public EventStoreSettings(IMetadataFactory metadataFactory,
             IMetadataSerializerFactory metadataSerializer,
-            IRecordSerializer serializer,
+            IRecordSerializer serializer, 
+            bool isDevelopment, 
             Func<Type, string[]> eventNamingConvention = null,
             ILogger logger = null,
             string projectionStreamPrefix = "/",
@@ -30,6 +32,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             MetadataFactory = metadataFactory;
             MetadataSerializerFactory = metadataSerializer;
             Serializer = serializer;
+            IsDevelopment = isDevelopment;
 
             Logger = logger;
             ProjectionStreamPrefix = projectionStreamPrefix;

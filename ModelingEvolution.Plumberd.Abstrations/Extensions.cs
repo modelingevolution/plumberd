@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,37 @@ namespace ModelingEvolution.Plumberd
             if (x.CompareTo(y) > 0)
                 return x.Combine(y);
             else return y.Combine(x);
+        }
+        public static (ulong,ulong) Unpack(this Guid g)
+        {
+            byte[] a = g.ToByteArray();
+            return (BitConverter.ToUInt64(a, 0), BitConverter.ToUInt64(a, 8));
+            
+        }
+        public static Guid ToGuid(this ulong a, ulong b = 0)
+        {
+            Span<byte> span = new Span<byte>(new byte[16]);
+            BitConverter.TryWriteBytes(span, a);
+            BitConverter.TryWriteBytes(span.Slice(8), b);
+            return new Guid(span);
+        }
+        public static Guid Combine(this Guid x, int value)
+        {
+            return x.Combine(((ulong)value).ToGuid());
+        }
+        public static Guid Combine(this Guid x, string value)
+        {
+            return x.Combine(value.ToGuid());
+        }
+        public static Guid Combine<TEnum>(this Guid x, TEnum value)
+        where TEnum : Enum
+        {
+            ulong v = Convert.ToUInt64(value);
+            return x.Combine(v.ToGuid());
+        }
+        public static Guid Combine(this Guid x, ulong value)
+        {
+            return x.Combine(value.ToGuid());
         }
         public static Guid Combine(this Guid x, Guid y)
         {
@@ -50,6 +82,11 @@ namespace ModelingEvolution.Plumberd
                 onUpdate(k, v);
                 return v;
             });
+        }
+        public static TValue AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> collection, TKey key, TValue value)
+            where TValue : new()
+        {
+            return collection.AddOrUpdate(key, k => value, (k,p)=> value);
         }
        
         public static async Task ExecuteForAll<T>(this IEnumerable<T> list, Func<T, Task> action)
@@ -197,6 +234,11 @@ namespace ModelingEvolution.Plumberd
                 input.CopyTo(ms);
                 return ms.ToArray();
             }
+        }
+
+        public static string[] ToLines(this string multiline)
+        {
+            return multiline.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
         }
         public static string GetLine(this string multiline, int number)
         {

@@ -4,6 +4,10 @@ using ModelingEvolution.Plumberd.EventStore;
 
 namespace ModelingEvolution.Plumberd.EventProcessing
 {
+    public interface ILiveProjection
+    {
+        public bool IsLive { get; set; }
+    }
     public interface IProcessingUnitConfig : ISubscriptionConfig
     {
         Type Type { get; }
@@ -14,6 +18,8 @@ namespace ModelingEvolution.Plumberd.EventProcessing
         BindingFlags BindingFlags { get; }
         TimeSpan ProcessingLag { get; set; }
         AfterDispatchHandler OnAfterDispatch { get; }
+        Action OnLive { get; set; }
         ProjectionSchema ProjectionSchema { get; }
+        
     }
 }

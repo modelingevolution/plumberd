@@ -4,7 +4,7 @@ using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd.GrpcProxy.Authentication
 {
-    public class UsersModel
+    public class UsersModel : IModel
     {
         private readonly ConcurrentDictionary<Guid, UserInfo> _index;
         private readonly ConcurrentDictionary<string, UserInfo> _indexByEmail;

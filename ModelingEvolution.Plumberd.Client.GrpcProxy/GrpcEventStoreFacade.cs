@@ -9,11 +9,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using ProtoBuf;
+using Serilog;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 using MetadataProperty = ModelingEvolution.Plumberd.Metadata.MetadataProperty;
 
@@ -55,28 +57,43 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             }
         }
     }
+
     public class GrpcEventStoreFacade : IEventStore
     {
+        private static readonly ILogger Log = Serilog.Log.ForContext<GrpcEventStoreFacade>();
+        private readonly Guid _sessionId = Guid.NewGuid();
+        public static event Func<Task> ReadingFailed;
         class Subscription : ISubscription
         {
+            private readonly Action _cleanUp;
+
+            public Subscription(Action cleanUp)
+            {
+                _cleanUp = cleanUp;
+            }
+
             public void Dispose()
             {
+                _cleanUp();
             }
         }
         private readonly TypeRegister _typeRegister;
-        private readonly Func<GrpcChannel> _channel;
+        private readonly Func<Channel> _channel;
         private readonly IMetadataSerializerFactory _factory;
+        private readonly Func<ISessionManager> _sessionManager;
         private readonly ArrayBufferWriter<byte> _buffer;
         private readonly IMetadataSchema _mSchema;
         private readonly Dictionary<Guid, MetadataProperty> _mPropIndex;
 
-        public GrpcEventStoreFacade(Func<GrpcChannel> channel, 
+        public GrpcEventStoreFacade(Func<Channel> channel,
             IMetadataFactory eventMetadataFactory,
-            IMetadataSerializerFactory factory, 
-            TypeRegister typeRegister)
+            IMetadataSerializerFactory factory,
+            Func<ISessionManager> sessionManager,
+            TypeRegister typeRegister, bool isDevelopment)
         {
             _channel = channel;
             _factory = factory;
+            _sessionManager = sessionManager;
             _typeRegister = typeRegister;
 
             _buffer = new ArrayBufferWriter<byte>(1024 * 128); // 128 KB
@@ -85,7 +102,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             this._mSchema = metadataSerializer.Schema;
             this._mPropIndex = _mSchema.Properties.ToDictionary(x => x.Name.ToGuid());
 
-            Settings = new EventStoreSettings(eventMetadataFactory, factory,null);
+            Settings = new EventStoreSettings(eventMetadataFactory, 
+                factory,null, isDevelopment);
         }
 
 
@@ -108,7 +126,9 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             EventHandler onEvent,
             IProcessingContextFactory factory)
         {
-            var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(_channel());
+            var channel = _channel();
+            var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(channel.GrpcChannel);
+            
             var gSchema = new GenericProjectionSchema();
             if (!String.IsNullOrWhiteSpace(schema.ProjectionName))
                 gSchema.Name = schema.ProjectionName;
@@ -125,11 +145,18 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             r.IsPersistent = isPersistent;
             r.GenericSchema = gSchema;
 
-            CancellationToken token = new CancellationToken();
-            var result = client.ReadStream(r, null, null, token);
+            var metadata = new Grpc.Core.Metadata();
+            metadata.Add("SessionId-bin", _sessionManager().GetSessionId(channel.Address).ToByteArray());
+
+            CancellationTokenSource source = new CancellationTokenSource();
+            var result = client.ReadStream(r, metadata, null, source.Token);
 
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
-            return new Subscription();
+            return new Subscription(() =>
+            {
+                //source.Cancel();
+                result.Dispose();
+            });
         }
 
         public async Task<ISubscription> Subscribe(string name, 
@@ -139,7 +166,10 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             IProcessingContextFactory factory,
             params string[] sourceEventTypes)
         {
-            var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(_channel());
+            var channel = _channel();
+            var client = new GrpcEventStoreProxy.GrpcEventStoreProxyClient(channel.GrpcChannel);
+            var metadata = new Grpc.Core.Metadata();
+            metadata.Add("SessionId-bin", _sessionManager().GetSessionId(channel.Address).ToByteArray());
 
             ReadReq r = new ReadReq();
             r.FromBeginning = fromBeginning;
@@ -149,83 +179,116 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 Name = name,
                 EventTypes = { sourceEventTypes }
             };
-
-            CancellationToken token = new CancellationToken();
-            var result = client.ReadStream(r, null, null, token);
-            //await foreach (var i in result.ResponseStream.ReadAllAsync())
-            //{
-            //    Debug.WriteLine(i.Seq);
-            //}
+            CancellationTokenSource source = new CancellationTokenSource();
+           
+            var result = client.ReadStream(r, metadata, null, source.Token);
+            
             Task.Run(() => Read(result, factory, onEvent)).ConfigureAwait(false);
-            return new Subscription();
+            return new Subscription(() =>
+            {
+                //source.Cancel();
+                result.Dispose();
+            });
         }
 
         private async Task Read(AsyncServerStreamingCall<ReadRsp> callContext,
             IProcessingContextFactory factory, EventHandler onEvent)
         {
-            Serilog.Log.Information("Reading started.");
+            Log.Information("Reading started.");
+            IRecord lastEvent = null;
+            IMetadata lastMeta = null;
             try
             {
                 int c = 0;
                 await foreach (var i in callContext.ResponseStream.ReadAllAsync())
                 {
-                    Serilog.Log.Debug($"Reading record {c++}");
-                    var context = factory.Create();
-                    Guid typeId = new Guid(i.TypeId.Value.Span);
-                    var type = _typeRegister[typeId];
-                    if(type == null)
-                        throw new InvalidOperationException("Type is unknown, have you forgotten to discover types with TypeRegister?");
-                    else Serilog.Log.Debug("Found type to deserialize {type}", type);
-
-                    var ev = SerializerFacade.Deserialize(type, i.Data.Memory) as IRecord;
-                    Serilog.Log.Debug("Event was successfully deserialized: {ev}", ev);
-
-                    Serilog.Log.Debug("Deserializing metadata with {propertyCount} properties.", _mSchema?.Count ?? -1);
-                    var metadata = new Metadata.Metadata(_mSchema, true);
+                    Log.Debug($"Reading record {c++}");
+                    var context = ReadEvent(factory, i, out var ev, out var metadata);
+                    lastEvent = ev;
+                    lastMeta = metadata;
                     
-                    foreach (var m in i.MetadataProps)
-                    {
-                        Guid propId = new Guid(m.Id.Value.Span);
-                        if (_mPropIndex.TryGetValue(propId, out var mp))
-                        {
-                            Serilog.Log.Debug("Deserializing metadata property {propertyName}.", mp.Name);
-                            if (mp.Type != typeof(DateTimeOffset))
-                                metadata[mp] = SerializerFacade.Deserialize(mp.Type, m.Data.Memory);
-                            else
-                            {
-                                if (m.Data.Span.Length != 16)
-                                {
-                                    Serilog.Log.Debug("Unexpected number of bytes. Found {actualLength}.", m.Data.Span.Length );
-                                    continue;
-                                }
-                                
-                                var dt = BitConverter.ToInt64(m.Data.Span.Slice(0, sizeof(Int64)));
-                                var ts = BitConverter.ToInt64(m.Data.Span.Slice(sizeof(Int64), sizeof(Int64)));
-                                metadata[mp] = new DateTimeOffset(new DateTime(dt),new TimeSpan(ts));
-                            }
-                            
-                        } else
-                        {
-                            Serilog.Log.Debug("Could not deserialize metadata property with id: {propertyId}.", propId);
-                        }
-                    }
-                    Serilog.Log.Debug("Metadata was successfully deserialized.");
-                    context.Record = ev;
-                    context.Metadata = metadata;
-
                     await onEvent(context, metadata, ev);
                 }
             }
+            catch (RpcException e) when (e.Status.StatusCode == StatusCode.Cancelled)
+            {
+                Log.Information("Streaming was cancelled from the client!");
+            }
+            catch (RpcException e) when (e.Status.StatusCode == StatusCode.Internal)
+            {
+                Log.Information(e, "We need to logout.");
+                await ReadingFailed?.Invoke();
+            }
+            catch (ObjectDisposedException e)
+            {
+                Log.Information(e, "We need to logout.");
+                await ReadingFailed?.Invoke();
+            }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "Reading failed.");
+                Log.Error(ex, "Reading failed. {lastEvent} {lastMatadata}", lastEvent, lastMeta);
             }
-            Serilog.Log.Debug("Read closed.");
+            Log.Debug("Read closed.");
         }
 
-        public async ValueTask DisposeAsync()
+        private IProcessingContext ReadEvent(IProcessingContextFactory factory, ReadRsp i, out IRecord ev,
+            out Metadata.Metadata metadata)
         {
             
+            var context = factory.Create();
+            Guid typeId = new Guid(i.TypeId.Value.Span);
+            var type = _typeRegister[typeId];
+            if (type == null)
+            {
+                var debugDict = AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(x => x.GetTypes()).ToLookup(x => x.NameId());
+                string additionalInfo = $"TypeId={typeId}";
+                var possibilities = debugDict[typeId].ToArray();
+                if (possibilities.Any())
+                    additionalInfo = $"Unregistered type: {string.Join("; ", possibilities.Select(x => x.FullName))}";
+                throw new InvalidOperationException(
+                    $"Type is unknown, have you forgotten to discover types with TypeRegister?{additionalInfo}");
+            }
+            else Log.Debug("Found type to deserialize {type}", type);
+
+            ev = SerializerFacade.Deserialize(type, i.Data.Memory) as IRecord;
+            Log.Debug("Event was successfully deserialized: {ev}", ev);
+
+            Log.Debug("Deserializing metadata with {propertyCount} properties.", _mSchema?.Count ?? -1);
+            metadata = new Metadata.Metadata(_mSchema, true);
+
+            foreach (var m in i.MetadataProps)
+            {
+                Guid propId = new Guid(m.Id.Value.Span);
+                if (_mPropIndex.TryGetValue(propId, out var mp))
+                {
+                    Log.Debug("Deserializing metadata property {propertyName}.", mp.Name);
+                    if (mp.Type != typeof(DateTimeOffset))
+                        metadata[mp] = SerializerFacade.Deserialize(mp.Type, m.Data.Memory);
+                    else
+                    {
+                        if (m.Data.Span.Length != 16)
+                        {
+                            Log.Debug("Unexpected number of bytes. Found {actualLength}.",
+                                m.Data.Span.Length);
+                            continue;
+                        }
+
+                        var dt = BitConverter.ToInt64(m.Data.Span.Slice(0, sizeof(Int64)));
+                        var ts = BitConverter.ToInt64(m.Data.Span.Slice(sizeof(Int64), sizeof(Int64)));
+                        metadata[mp] = new DateTimeOffset(new DateTime(dt), new TimeSpan(ts));
+                    }
+                }
+                else
+                {
+                    Log.Debug("Could not deserialize metadata property with id: {propertyId}.", propId);
+                }
+            }
+
+            Log.Debug("Metadata was successfully deserialized.");
+            context.Record = ev;
+            context.Metadata = metadata;
+            return context;
         }
     }
 }

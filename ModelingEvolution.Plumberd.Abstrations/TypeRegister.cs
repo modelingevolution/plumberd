@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ProtoBuf;
 
 namespace ModelingEvolution.Plumberd
 {
@@ -9,7 +10,7 @@ namespace ModelingEvolution.Plumberd
     {
         private readonly Dictionary<Guid, Type> _index;
 
-        public TypeRegister Index(params Type[] types)
+        public TypeRegister Index(IEnumerable<Type> types)
         {
             foreach (var i in types)
             {
@@ -19,6 +20,11 @@ namespace ModelingEvolution.Plumberd
             }
 
             return this;
+        }
+
+        public TypeRegister Index(params Type[] types)
+        {
+            return Index((IEnumerable<Type>)types);
         }
 
         public override string ToString()

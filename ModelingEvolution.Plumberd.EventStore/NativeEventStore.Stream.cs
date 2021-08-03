@@ -44,20 +44,21 @@ namespace ModelingEvolution.Plumberd.EventStore
             public async Task Append(IRecord x, IMetadata metadata, ulong expectedVersion)
             {
                 var data = CreateEventData(x, metadata);
-                await _connection.AppendToStreamAsync(_streamName, (long)expectedVersion, data);
+                var result = await _connection.AppendToStreamAsync(_streamName, (long)expectedVersion, data);
             }
 
             public async Task Append(IRecord x, IMetadata metadata)
             {
                 var data = CreateEventData(x, metadata);
-                await _connection.AppendToStreamAsync(_streamName, ExpectedVersion.Any, data);
+                var result = await _connection.AppendToStreamAsync(_streamName,  ExpectedVersion.Any, data);
+                
             }
 
             private global::EventStore.ClientAPI.EventData CreateEventData(IRecord x, IMetadata metadata)
             {
                 var metadataBytes = _metadataSerializer.Serialize( metadata);
                 var eventBytes = _recordSerializer.Serialize(x, metadata);
-                var eventType = x is ILink ? "$>" : x.GetType().Name;
+                var eventType = x is ILink ? "$>" : _store.Settings.RecordNamingConvention(x.GetType())[0];  
                 var data = new global::EventStore.ClientAPI.EventData(x.Id, eventType, true,  eventBytes, metadataBytes);
                 return data;
             }

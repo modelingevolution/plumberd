@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -28,6 +29,11 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
             _cache.Set(key, result, cacheEntryOptions);
 
             return result;
+        }
+
+        public Task<IRecord[]> GetEvents(Guid id)
+        {
+            return _next.GetEvents(id);
         }
     }
 }

@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -18,13 +19,17 @@ using EventStore.ClientAPI.SystemData;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using Newtonsoft.Json;
+using ProtoBuf.Meta;
+using ProtoBuf;
 using Serilog.Core;
 using ILogger = Serilog.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
+   
     public partial class NativeEventStore : IEventStore
     {
+        public event Action<NativeEventStore> Connected;
         private readonly ConcurrentBag<ISubscription> _subscriptions;
         private readonly ProjectionConfigurations _projectionConfigurations;
         private bool _connected = false;
@@ -33,7 +38,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private readonly IEventStoreConnection _connection;
         private readonly ProjectionsManager _projectionsManager;
         private readonly UserCredentials _credentials;
-
+        
         private readonly EventStoreSettings _settings;
         internal IEventStoreConnection Connection => _connection;
         public IEventStoreSettings Settings => _settings;
@@ -179,7 +184,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             
             var tcpSettings = ConnectionSettings.Create()
-                .DisableServerCertificateValidation()
+                //.DisableServerCertificateValidation()
                 //.UseDebugLogger()
                 //.EnableVerboseLogging()
                 .KeepReconnecting()
@@ -190,10 +195,24 @@ namespace ModelingEvolution.Plumberd.EventStore
                 .SetDefaultUserCredentials(_credentials);
 
             if (disableTls)
+            {
                 tcpSettings = tcpSettings.DisableTls();
+                const string msg = "Tls is disabled";
+                if (_settings.IsDevelopment)
+                    Log.Information(msg);
+                else
+                    Log.Warning(msg);
+            }
 
             if (ignoreServerCert)
+            {
                 tcpSettings = tcpSettings.DisableServerCertificateValidation();
+                const string msg = "Server certificate validation is disabled";
+                if(_settings.IsDevelopment)
+                    Log.Information(msg);
+                else
+                    Log.Warning(msg);
+            }
 
             connectionBuilder?.Invoke(tcpSettings);
 
@@ -210,9 +229,13 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             if (!_connected)
             {
+                Log.Information("Establishing connection.");
                 await _connection.ConnectAsync();
+                Log.Information("Testing reading.");
                 var slice = await _connection.ReadAllEventsBackwardAsync(Position.End, 1, true, _credentials);
+                Log.Information("Connected.");
                 _connected = true;
+                Connected?.Invoke(this);
             }
         }
         

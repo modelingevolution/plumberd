@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 
+
 namespace ModelingEvolution.Plumberd.BlobStore
 {
+    
     public class BlobStore : IBlobStore
     {
         class FileBlob : IBlob
@@ -40,10 +42,10 @@ namespace ModelingEvolution.Plumberd.BlobStore
             }
             public IEnumerable<IBlob> GetBlobs()
             {
-                var DirData = Path.Combine(_blobDir, _streamName);
-                if (Directory.Exists(DirData))
+                var dirData = Path.Combine(_blobDir, _streamName);
+                if (Directory.Exists(dirData))
                 {
-                    foreach (var i in Directory.EnumerateFiles(DirData))
+                    foreach (var i in Directory.EnumerateFiles(dirData))
                     {
                         if (!i.EndsWith(".json", StringComparison.InvariantCultureIgnoreCase))
                         {
@@ -89,11 +91,18 @@ namespace ModelingEvolution.Plumberd.BlobStore
         public BlobStore(string blobDir)
         {
             _blobDir = blobDir;
+            //_hostEnvironment = hostEnvironment;
         }
         public IBlobPartition GetPartition(string category, Guid id)
         {
             return new Partition(_blobDir, category, id);
         }
+
+        public string GetUrl(string category, Guid id)
+        {
+            return $"/Blob/{category}/{id}";
+        }
+
 
         public IEnumerable<IBlobPartition> GetPartitions()
         {

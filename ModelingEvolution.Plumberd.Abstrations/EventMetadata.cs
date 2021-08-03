@@ -82,7 +82,7 @@ namespace ModelingEvolution.Plumberd
         }
     }
 
-    internal class EventHandlerContext : IEventHandlerContext
+    public class EventHandlerContext : IEventHandlerContext
     {
         private readonly ProcessingContextFactory _parent;
         private readonly bool _dispose;
@@ -130,11 +130,12 @@ namespace ModelingEvolution.Plumberd
         public Guid Id { get;  }
         public ICommand Command { get;  }
         public Guid UserId { get; }
-
-        public CommandInvocationContext(Guid id, ICommand command, Guid userId)
+        public Guid ClientSessionId { get; }
+        public CommandInvocationContext(Guid id, ICommand command, Guid userId, Guid sessionId)
         {
             Id = id;
             Command = command;
+            ClientSessionId = sessionId;
             UserId = userId;
         }
 
@@ -147,6 +148,7 @@ namespace ModelingEvolution.Plumberd
         Guid Id { get; }
         ICommand Command { get; }
         Guid UserId { get; }
+        Guid ClientSessionId { get; }
     }
 
     public interface ICommandHandlerContext : IProcessingContext
@@ -155,6 +157,7 @@ namespace ModelingEvolution.Plumberd
         //public ICommand Command { get; } // It's used in enrichers.
     }
 
+    
     public interface IProcessingContext : IContext
     {
         Type ProcessingUnitType { get; }

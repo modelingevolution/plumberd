@@ -14,22 +14,17 @@ namespace ModelingEvolution.Plumberd.EventStore
         private string _projectionName;
         private bool _streamNameIsDynamic;
         private Func<string> _whenStatement;
+        private string _propertyName;
+        private string _category;
         private IEventStoreSettings _settings;
+
         public ProjectionSchemaBuilder FromEventTypes(IEnumerable<string> types)
         {
-            StringBuilder query = new StringBuilder();
-
-            query.Append("fromStreams([");
-            query.Append(string.Join(',', types.Select(i => $"'$et-{i}'")));
-            query.Append("])");
-            _fromStreams = query.ToString();
+            FromStreams(types.Select(type => $"$et-{type}"));
             _whenStatement = WhenFromEvents;
             return this;
         }
-
-        private string _propertyName;
-        private string _category;
-
+        
         public ProjectionSchemaBuilder(IEventStoreSettings settings = null)
         {
             _settings = settings;
@@ -55,6 +50,17 @@ namespace ModelingEvolution.Plumberd.EventStore
             _category = ComputeOutputCategory(outputCategory);
             _projectionName = $"{outputCategory}By{_propertyName}";
             _whenStatement = WhenPartitionByMetadata;
+            _streamNameIsDynamic = true;
+            return this;
+        }
+        public ProjectionSchemaBuilder PartitionByStreamId(string outputCategory)
+        {
+            if (string.IsNullOrWhiteSpace(outputCategory))
+                throw new ArgumentNullException(nameof(outputCategory));
+
+            _category = ComputeOutputCategory(outputCategory);
+            _projectionName ??= _projectionName ?? $"{outputCategory}By{_propertyName}";
+            _whenStatement = WhenPartitionByStreamId;
             _streamNameIsDynamic = true;
             return this;
         }
@@ -94,6 +100,20 @@ namespace ModelingEvolution.Plumberd.EventStore
             
             return query.ToString();
         }
+        private string WhenPartitionByStreamId()
+        {
+            StringBuilder query = new StringBuilder();
+
+            query.AppendLine(".when( { \r\n    $any : function(s,e) { ");
+            query.AppendLine("var m = JSON.parse(e.metadataRaw);");
+            query.AppendLine($"var streamName = '{_category}-'+m.{_propertyName};");
+            query.AppendLine($"linkTo(streamName, e); }}");
+            query.Append("});");
+
+            _streamNameIsDynamic = true;
+
+            return query.ToString();
+        }
         private string WhenPartitionByMetadata()
         {
             StringBuilder query = new StringBuilder();
@@ -126,12 +146,20 @@ namespace ModelingEvolution.Plumberd.EventStore
             var eventTypes = b.Types().SelectMany(x => _settings.RecordNamingConvention(x));
             return FromEventTypes(eventTypes);
         }
+        public ProjectionSchemaBuilder FromCategories(params string[] streams)
+        {
+            return FromStreams(streams.Select(x => $"$ce-{x}"));
+        }
         public ProjectionSchemaBuilder FromStreams(params string[] streams)
+        {
+            return FromStreams(streams.AsEnumerable());
+        }
+        public ProjectionSchemaBuilder FromStreams(IEnumerable<string> streams)
         {
             StringBuilder query = new StringBuilder();
 
             query.Append("fromStreams([");
-            query.Append(string.Join(',', streams));
+            query.Append(string.Join(',', streams.Select(x => $"'{x}'")));
             query.Append("])");
             _fromStreams = query.ToString();
             return this;
@@ -139,6 +167,11 @@ namespace ModelingEvolution.Plumberd.EventStore
         public ProjectionSchemaBuilder ForHandler(Type handerType)
         {
             _projectionName = handerType.Name;
+            return this;
+        }
+        public ProjectionSchemaBuilder ForView(string viewName)
+        {
+            _projectionName = viewName;
             return this;
         }
         public ProjectionSchema Build()

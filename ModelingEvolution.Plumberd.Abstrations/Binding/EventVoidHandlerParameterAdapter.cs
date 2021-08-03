@@ -2,7 +2,7 @@
 
 namespace ModelingEvolution.Plumberd.Binding
 {
-    public class EventHandlerParameterAdapter<TUnit, TEvent> : HandlerParameterAdapter<TUnit, IMetadata, TEvent>
+    public class EventVoidHandlerParameterAdapter<TUnit, TEvent> : VoidHandlerParameterAdapter<TUnit, IMetadata, TEvent>
         where TEvent : IEvent
     {
         public override void Invoke(object unit, IMetadata m, IRecord r)

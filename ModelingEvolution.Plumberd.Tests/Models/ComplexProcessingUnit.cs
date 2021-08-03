@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.Metadata;
+using Shouldly;
 using Xunit.Abstractions;
 #pragma warning disable 1998
 
@@ -16,6 +17,8 @@ namespace ModelingEvolution.Plumberd.Tests.Models
         {
             _log.WriteLine("CommandHandler | Task When(Guid, Command2)");
         }
+
+       
         public void When(Guid id, Command1 cmd)
         {
             _log.WriteLine("CommandHandler | void When(Guid, Command1)");
@@ -65,6 +68,14 @@ namespace ModelingEvolution.Plumberd.Tests.Models
         {
             _log.WriteLine("CommandHandler | Task<(Guid,Event1)> When(Guid, Command11)");
             return (id,new Event1());
+        }
+        public (Guid,Event1) When(Guid id, Command13 cmd, IMetadata m)
+        {
+            _log.WriteLine("CommandHandler | (Guid,Event1) When(Guid, Command13, IMetadata)");
+            m.ShouldNotBeNull();
+            cmd.ShouldNotBeNull();
+            id.ShouldNotBe(Guid.Empty);
+            return (id, new Event1());
         }
         public (Guid,Event1) When(Guid id, Command12 cmd)
         {

@@ -130,7 +130,8 @@ namespace ModelingEvolution.Plumberd
         {
             var processingUnitType = controller.GetType();
             var eventConfig = BuildConfiguration(processingUnitType, config, store ?? DefaultEventStore, ProcessingMode.EventHandler);
-
+            HookupLiveProjection(controller, eventConfig);
+            
             var eventBinder = binder ?? new EventHandlerBinder(processingUnitType)
                 .Discover(true,
                     eventConfig != null
@@ -140,9 +141,25 @@ namespace ModelingEvolution.Plumberd
             var unit = (ProcessingContextFactory)Subscribe((t) => controller, 
                 processingUnitType, false,
                 eventConfig, eventBinder, invoker, store, context,ProcessingMode.EventHandler);
-            
-            await Start(unit);
+
+            unit.Subscription = await Start(unit);
             return unit;
+        }
+
+        private static void HookupLiveProjection(object controller, IProcessingUnitConfig config)
+        {
+            if (controller is not ILiveProjection lp) return;
+            
+            if (config.OnLive != null)
+            {
+                var tmp = config.OnLive;
+                config.OnLive = () =>
+                {
+                    tmp();
+                    lp.IsLive = true;
+                };
+            }
+            else config.OnLive = () => { lp.IsLive = true; };
         }
 
 
@@ -297,7 +314,7 @@ namespace ModelingEvolution.Plumberd
                 .ExecuteForAll(Start);
         }
 
-        private async Task Start(ProcessingContextFactory u)
+        private async Task<ISubscription> Start(ProcessingContextFactory u)
         {
             var types = u.Binder
                 .Types()
@@ -312,10 +329,10 @@ namespace ModelingEvolution.Plumberd
 
 
             if (u.Config.ProjectionSchema != null)
-                await u.EventStore.Subscribe(u.Config.ProjectionSchema, u.Config.SubscribesFromBeginning,
+                return await u.EventStore.Subscribe(u.Config.ProjectionSchema, u.Config.SubscribesFromBeginning,
                     u.Config.IsPersistent, loop, u);
             else
-                await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
+                return await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
                     u.Config.IsPersistent, loop, u, types);
         }
 
@@ -323,20 +340,40 @@ namespace ModelingEvolution.Plumberd
         {
             if (context.Config.ProcessingLag > TimeSpan.Zero)
                 await Task.Delay(context.Config.ProcessingLag);
-            var result = await context.Dispatcher(context.ProcessingUnit, m, e);
+            ProcessingResults result = new ProcessingResults();
+            try
+            {
+                result = await context.Dispatcher(context.ProcessingUnit, m, e);
+            }
+            catch (ProcessingException ex)
+            {
+                // we need to write the response.
+                var recordType = e.GetType();
+                var exceptionType = ex.Payload.GetType();
+                var et = ex.Payload;
+
+                if (e is ICommand)
+                    await context.EventStore.GetCommandStream(recordType, m.StreamId(), context).Append(et); 
+                else 
+                    await context.EventStore.GetEventStream(recordType, m.StreamId(), context).Append(et);
+            }
+            
+
             if (!result.IsEmpty)
             {
                 if (context.Config.IsEventEmitEnabled)
                     foreach (var (nm, nev) in result.Events)
                     {
-                        if (nev is LinkEvent le)
+                        if (nev is IStreamAware le) 
                         {
-                            await context.EventStore.GetStream(le.DestinationCategory, nm, context)
+                            await context.EventStore.GetStream(le.StreamCategory, nm, context)
                                 .Append(nev, context);
                         }
-                        else 
-                            await context.EventStore.GetEventStream(nev.GetType(), nm, context)
+                        else
+                        {
+                           await context.EventStore.GetEventStream(nev.GetType(), nm, context)
                                 .Append(nev,context);
+                        }
                     }
 
                 if (context.Config.IsCommandEmitEnabled)

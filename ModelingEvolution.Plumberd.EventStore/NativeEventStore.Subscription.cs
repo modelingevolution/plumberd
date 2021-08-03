@@ -124,10 +124,15 @@ namespace ModelingEvolution.Plumberd.EventStore
             private void OnSubscriptionDropped(EventStorePersistentSubscriptionBase s, SubscriptionDropReason r, Exception e)
             {
                 _log.Warning(e,"Subscription dropped! {ProcessingMode} {ProcessingUnitType} {Reason}", _processingContextFactory.Config.ProcessingMode, _processingContextFactory.Config.Type.Name, r);
-                Task.Run(TrySubscribe);
+                if (r == SubscriptionDropReason.EventHandlerException)
+                {
+                    _log.Error(e, "Exception in event-handler {streamName}. We won't resubscribe. Please reset the server.", _streamName);
+                    return;
+                }
+                Task.Run(() => TrySubscribe(r));
             }
 
-            private async Task TrySubscribe()
+            private async Task TrySubscribe(SubscriptionDropReason reason)
             {
                 while (true)
                     try
@@ -160,7 +165,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             private long? _streamPosition = null;
             private EventStoreStreamCatchUpSubscription _subscriptionCatchUp;
             private EventStoreSubscription _subscription;
-
+            
             public ContinuesSubscription(NativeEventStore parent,
                 ILogger log,
                 in bool fromBeginning,
@@ -192,6 +197,16 @@ namespace ModelingEvolution.Plumberd.EventStore
                         _streamPosition,
                         CatchUpSubscriptionSettings.Default, 
                         OnEventAppeared, 
+                        liveProcessingStarted: (s) =>
+                        {
+                            var live = _processingContextFactory?.Config?.OnLive;
+                            if (live != null)
+                            {
+                                live();
+                                _log.Information("{streamName} is live", _streamName);
+                            }
+                            
+                        },
                         subscriptionDropped: OnSubscriptionDropped);
 
                 }
@@ -258,14 +273,17 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             private void OnSubscriptionDropped(EventStoreCatchUpSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
             {
+                _log.Information("Subscription dropped {reason} {exception}", subscriptionDropReason, arg3?.Message ?? "NoException");
                 eventStoreCatchUpSubscription.Stop();
-                Task.Run(TrySubscribe);
+                if(subscriptionDropReason != SubscriptionDropReason.UserInitiated)
+                    Task.Run(TrySubscribe);
             }
             private void OnSubscriptionDropped(EventStoreSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
             {
-                _log.Information("Subscription dropped {reason} {exception}", subscriptionDropReason, arg3.Message);
+                _log.Information("Subscription dropped {reason} {exception}", subscriptionDropReason, arg3?.Message ?? "NoException");
                 eventStoreCatchUpSubscription.Dispose();
-                Task.Run(TrySubscribe);
+                if (subscriptionDropReason != SubscriptionDropReason.UserInitiated)
+                    Task.Run(TrySubscribe);
             }
 
             public void Dispose()

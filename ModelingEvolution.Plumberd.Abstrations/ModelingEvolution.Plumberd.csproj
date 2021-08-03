@@ -41,6 +41,7 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
 
   <ItemGroup>
     <ProjectReference Include="..\..\protobuf-net\src\protobuf-net.Core\protobuf-net.Core.csproj" />
+    <ProjectReference Include="..\..\protobuf-net\src\protobuf-net\protobuf-net.csproj" />
   </ItemGroup>
 
 </Project>

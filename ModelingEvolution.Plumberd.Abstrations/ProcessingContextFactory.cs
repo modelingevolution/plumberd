@@ -30,6 +30,8 @@ namespace ModelingEvolution.Plumberd
         public IEventStore EventStore => _store;
         public ICommandInvoker CommandInvoker => _commandInvoker;
         public ProcessingMode ProcessingMode => _processingMode;
+        public ISubscription Subscription { get; set; }
+
         public ProcessingContextFactory(Func<Type,object> factory,
             Type type,
             bool isScopedFactory,
@@ -73,7 +75,11 @@ namespace ModelingEvolution.Plumberd
             return null;
         }
 
-        
+
+        public void Dispose()
+        {
+            Subscription?.Dispose();
+        }
     }
     public enum ProcessingMode
     {

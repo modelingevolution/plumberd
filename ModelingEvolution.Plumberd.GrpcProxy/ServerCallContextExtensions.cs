@@ -7,6 +7,14 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 {
     public static class ServerCallContextExtensions
     {
+        public static Guid? SessionId(this ServerCallContext context)
+        {
+            
+            var sessionEntry = context.RequestHeaders.Get("sessionid-bin");
+            if (sessionEntry != null && sessionEntry.IsBinary)
+                return new Guid(sessionEntry.ValueBytes);
+            return null;
+        }
         public static Guid? UserId(this ServerCallContext context)
         {
             var httpContext = context.GetHttpContext();

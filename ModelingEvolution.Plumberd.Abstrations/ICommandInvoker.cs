@@ -10,6 +10,7 @@ namespace ModelingEvolution.Plumberd
     public interface ICommandInvoker
     {
         Task Execute(Guid id, ICommand c, IContext context = null);
+        Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId);
     }
 
     public interface ICommandInvokerMetadataFactory
@@ -55,15 +56,19 @@ namespace ModelingEvolution.Plumberd
             return m;
         }
     }
+
     
     public class CommandInvoker : ICommandInvoker
     {
         private readonly IEventStore _eventStore;
-        private ILogger _logger;
+        private readonly ILogger _logger;
+        
+
         public CommandInvoker(IEventStore eventStore, ILogger logger)
         {
             _eventStore = eventStore;
             _logger = logger;
+        
         }
      
 
@@ -74,13 +79,30 @@ namespace ModelingEvolution.Plumberd
             if (context == null)
             {
                 // this is brand new invocation.
-                context = new CommandInvocationContext(id,c, Guid.Empty);
+                context = new CommandInvocationContext(id,c, Guid.Empty, Guid.Empty);
             }
             Type commandType = c.GetType();
             _logger.Information("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);
-            string name = commandType.GetCustomAttribute<StreamAttribute>()?.Category ?? commandType.Namespace.LastSegment('.');
+            
+            string name = GetStreamName(commandType,c);
+            
             var stream = _eventStore.GetStream($"{_eventStore.Settings.CommandStreamPrefix}{name}", id, context);
             await stream.Append(c, context);
+        }
+
+        private string GetStreamName(Type commandType, ICommand c)
+        {
+            if (c is IStreamAware sa)
+                return sa.StreamCategory;
+            
+            var streamAttr = commandType.GetCustomAttribute<StreamAttribute>();
+            return streamAttr != null ? streamAttr.Category : commandType.Namespace.LastSegment('.');
+            
+        }
+
+        public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId)
+        {
+            return Execute(id, c, new CommandInvocationContext(id, c, userId, sessionId));
         }
     }
 }

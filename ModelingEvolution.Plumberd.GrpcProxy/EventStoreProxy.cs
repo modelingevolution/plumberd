@@ -1,14 +1,22 @@
 ﻿using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
+using System.Xml;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd;
@@ -29,29 +37,221 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         private readonly IEventStore _eventStore;
         private readonly ILogger _logger;
         private readonly UsersModel _userModel;
-
+        private readonly IConfiguration _config;
         public EventStoreProxy(TypeRegister typeRegister, 
             ICommandInvoker commandInvoker, 
-            IEventStore eventStore, ILogger logger, UsersModel userModel)
+            IEventStore eventStore, ILogger logger, 
+            UsersModel userModel, 
+            IConfiguration config)
         {
             _typeRegister = typeRegister;
             _commandInvoker = commandInvoker;
             _eventStore = eventStore;
             _logger = logger;
             _userModel = userModel;
+            _config = config;
+        }
+        public override async Task<BlobData> WriteBlob(IAsyncStreamReader<BlobChunk> requestStream,
+            ServerCallContext context)
+        {
+            long writtenBytes = 0;
+            int i = 0;
+            try
+            {
+                var userId = await CheckAuthorizationData(context);
+                var blobDescriptor = Get(context.RequestHeaders);
+                var blobDir = _config["BlobDir"];
+                var root = string.IsNullOrWhiteSpace(blobDir)
+                    ? Path.Combine(Path.GetTempPath(), "Modellution")
+                    : blobDir;
+                if (!Directory.Exists(root))
+                    Directory.CreateDirectory(root);
+
+
+                var dir = Path.Combine(root, $"{blobDescriptor.Category.ToLower()}-{blobDescriptor.Id}");
+                int number = 0;
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                else
+                {
+                    var nr = Directory.EnumerateFiles(dir, "*.dat")
+                        .Select(x => (int?) int.Parse(Path.GetFileNameWithoutExtension(Path.GetFileName(x)))).Max();
+
+                    if (nr.HasValue)
+                    {
+                        if (!blobDescriptor.ForceOverride)
+                            number = nr.Value + 1;
+                        else number = nr.Value;
+                    }
+                    else number = 0;
+                }
+
+                var fileName = Path.Combine(dir, $"{number}.dat");
+                var metaFile = Path.Combine(dir, $"{number}.meta");
+                await File.WriteAllTextAsync(metaFile, JsonSerializer.Serialize(blobDescriptor));
+
+                
+                var fileMode = blobDescriptor.ForceOverride ? FileMode.Create : FileMode.CreateNew;
+                _logger.Information("Writing blob {blobDescriptor}", blobDescriptor);
+                using (var stream = new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None))
+                {
+                   
+                    await foreach (var chunk in requestStream.ReadAllAsync())
+                    {
+                        if (chunk.I != i++)
+                            throw new InvalidOperationException("Unsupported");
+                        //var expectedLocation = chunk.I * blobDescriptor.ChunkSize;
+                        //if (stream.Position != expectedLocation && expectedLocation < MAX_FILE_SIZE)
+                        //    stream.Seek(expectedLocation, SeekOrigin.Begin);
+
+                        await stream.WriteAsync(chunk.Data.Memory);
+                        writtenBytes += chunk.Data.Memory.Length;
+                        
+                        if (blobDescriptor.Size == writtenBytes) break;
+                    }
+                }
+
+                _logger.Information("Blob {fileName} written. Written {writtenBytes} iteration {iteration}. ", fileName, writtenBytes, i);
+                await InvokeUploadEvent(context, blobDescriptor, writtenBytes, userId, fileName);
+
+                return new BlobData()
+                {
+                    Url = $"/blob/{blobDescriptor.Category}-{blobDescriptor.Id}",
+                    WrittenBytes = writtenBytes
+                };
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Error(ex, "Could not write blob. {Headers}. Written {writtenBytes} iteration {iteration}.", GetHeaders(context), writtenBytes, i);
+                throw;
+            }
         }
 
-        public async override Task ReadStream(ReadReq request, IServerStreamWriter<ReadRsp> responseStream, ServerCallContext context)
+        private string GetHeaders(ServerCallContext context)
+        {
+            // very useful when configuring proxy.
+            
+            StringBuilder sb = new StringBuilder();
+            foreach (var i in context.RequestHeaders)
+            {
+                var value = i.IsBinary ? BitConverter.ToString(i.ValueBytes) : i.Value;
+                sb.AppendLine($"metadata: {i.Key}:{value}");
+            }
+
+            // sb.AppendLine("---");
+            // foreach (var h in context.GetHttpContext().Request.Headers)
+            // {
+            //     sb.AppendLine($"http: {h.Key}: {string.Join('|', h.Value)}");
+            // }
+
+            return sb.ToString();
+        }
+
+        private static string[] bitmapExtensions = new string[] {".png",".jpg",".jpeg",".bmp"};
+
+        private async Task InvokeUploadEvent(ServerCallContext context, 
+            BlobDescriptor blobDescriptor, 
+            long writtenBytes,
+            Guid userId, string fileName)
+        {
+            ExtraProperties props = null;
+            var ext = Path.GetExtension(blobDescriptor.FileName).ToLowerInvariant();
+            if (bitmapExtensions.Contains(ext))
+            {
+                using var image = Image.FromFile(fileName);
+                props = new ImageProperties() 
+                { 
+                    Width = image.Width, 
+                    Height = image.Height
+                };
+            } 
+            else if(ext == ".svg")
+            {
+                // let's read view-port.
+                var (width,height) = SvgSizeParser.Load(fileName);
+                props = new ImageProperties()
+                {
+                    Width = width,
+                    Height = height
+                };
+            }
+
+            
+            var uploadBlob = new UploadBlob()
+            {
+                Name = blobDescriptor.FileName,
+                StreamCategory = blobDescriptor.Category,
+                Size = writtenBytes,
+                Reason = blobDescriptor.BlobUploadReason,
+                Properties = props
+            };
+
+            var streamId = blobDescriptor.Id;
+            var sessionId = context.SessionId();
+            
+            await _commandInvoker.Execute(streamId, uploadBlob, userId, sessionId??Guid.Empty);
+            
+        }
+         
+        private static BlobDescriptor Get(Grpc.Core.Metadata metadata)
+        {
+            string fileName = HttpUtility.HtmlDecode(metadata.GetValue("file_name"));
+            string table = HttpUtility.HtmlDecode(metadata.GetValue("table_name"));
+            byte[] sha1 = metadata.GetValueBytes("bin_sha1-bin");
+            byte[] id = metadata.GetValueBytes("id-bin");
+            byte[] size64 = metadata.GetValueBytes("size-bin");
+            byte[] chunkSize32 = metadata.GetValueBytes("chunk_size-bin");
+            byte[] forceOverride = metadata.GetValueBytes("force_override-bin");
+            byte[] reason = metadata.GetValueBytes("upload_reason-bin");
+            BlobUploadReason blobUploadReason = null;
+            if (reason != null)
+            {
+                blobUploadReason = Serializer.Deserialize<BlobUploadReason>(reason.AsSpan());
+            }
+            var desc = new BlobDescriptor(fileName,
+                table,
+                sha1 == null ? Guid.Empty : new Guid(sha1),
+                new Guid(id),
+                size64.SafeToInt64(-1,"Size"),
+                chunkSize32.SafeToInt32(-1,"ChunkSize"),
+                forceOverride.SafeToBoolean(false, "ForceOverride"), 
+                blobUploadReason);
+
+            if (string.IsNullOrWhiteSpace(desc.FileName))
+                throw new ArgumentException("FileName");
+            if (string.IsNullOrWhiteSpace(desc.Category))
+                throw new ArgumentException("TableName");
+            if (desc.ChunkSize < -1 || desc.ChunkSize > 1024 * 1024)
+                throw new ArgumentException("ChunkSize");
+            if (desc.Size <= -1 || desc.Size > MAX_FILE_SIZE) // 64MB
+                throw new ArgumentException("Size");
+            if (desc.Id == Guid.Empty)
+                throw new ArgumentException("Id");
+
+            return desc;
+        }
+
+        private const long MAX_FILE_SIZE = 1024 * 1024 * 64;
+        public async override Task ReadStream(ReadReq request, 
+            IServerStreamWriter<ReadRsp> responseStream, 
+            ServerCallContext context)
         {
             IDisposable resources = null;
             _logger.Information("GrpcProxy -> Reading started.");
-            SemaphoreSlim subExit = new SemaphoreSlim(0);
+            using SemaphoreSlim subExit = new SemaphoreSlim(0);
+            context.CancellationToken.Register(() =>
+            {
+                _logger.Information("GrpcProxy -> Releasing connection.");
+                subExit.Release(1);
+            });
             try
             {
                 await CheckAuthorizationData(context);
 
                 ArrayBufferWriter<byte> buffer = new ArrayBufferWriter<byte>(128 * 1024);
-
+                
                 if (request.SchemaCase == ReadReq.SchemaOneofCase.GenericSchema)
                 {
                     EventHandler handler = async (c, m, e) =>
@@ -84,6 +284,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         handler, f);
                     
                     await subExit.WaitAsync();
+                    
                 }
                 else if (request.SchemaCase == ReadReq.SchemaOneofCase.EventTypeSchema)
                 {
@@ -112,15 +313,17 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         handler, f, request.EventTypeSchema.EventTypes.ToArray());
 
                     await subExit.WaitAsync();
+                    
                 }
             }
             finally
             {
                 resources?.Dispose();
+                _logger.Information("GrpcProxy -> Reading finished, resources released.");
             }
         }
 
-        private async Task CheckAuthorizationData(ServerCallContext context)
+        private async Task<Guid> CheckAuthorizationData(ServerCallContext context)
         {
             var uid = context.UserId();
             if (uid.HasValue)
@@ -129,6 +332,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 var streamId = uid.Value;
                 var email = context.UserEmail();
                 var name = context.UserName();
+                var sessionId = context.SessionId();
                 var u = _userModel.FindByUserId(streamId);
                 if (u == null || u.Name != name || u.Email != email)
                 {
@@ -137,13 +341,19 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         Email = email,
                         Name = name
                     };
-                    using (CommandInvocationContext cc = new CommandInvocationContext(streamId, cmd, streamId))
+                    using (CommandInvocationContext cc = new CommandInvocationContext(streamId, cmd, streamId, sessionId ?? Guid.Empty))
                     {
                         await _commandInvoker.Execute(streamId, cmd, cc);
                     }
                 }
+
+                return streamId;
             }
-            else Debug.WriteLine("No UserId!");
+            else
+            {
+                Debug.WriteLine("No UserId!");
+                return Guid.Empty;
+            }
         }
 
         private async Task Transfer(IProcessingContext context,
@@ -191,14 +401,18 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         {
             await CheckAuthorizationData(context);
 
+            Guid sessionId = context.SessionId() ?? Guid.Empty;
             await foreach (var i in requestStream.ReadAllAsync())
             {
                 var steamId = new Guid(i.SteamId.Value.Span);
+                if(steamId == Guid.Empty) continue;
+                
                 Guid typeId = new Guid(i.TypeId.Value.Span);
                 var type = _typeRegister[typeId];
                 var cmd = Serializer.Deserialize(type, i.Data.Memory) as ICommand;
 
-                using (CommandInvocationContext cc = new CommandInvocationContext(steamId, cmd, context.UserId() ?? Guid.Empty))
+                using (CommandInvocationContext cc = new CommandInvocationContext(steamId, 
+                    cmd, context.UserId() ?? Guid.Empty, sessionId))
                 {
                     await _commandInvoker.Execute(steamId, cmd, cc);
 
@@ -208,5 +422,4 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             
         }
     }
-
 }

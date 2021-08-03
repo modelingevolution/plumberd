@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using Microsoft.Extensions.Configuration;
 using ModelingEvolution.Plumberd.Metadata;
@@ -82,6 +84,12 @@ namespace ModelingEvolution.Plumberd.EventStore
             TProjectionConfig config = new TProjectionConfig();
             return WithProjectionsConfig(config);
         }
+        private bool _logWrittenEventsToLog = false;
+        public NativeEventStoreBuilder WithWrittenEventsToLog(bool isEnabled = true)
+        {
+            _logWrittenEventsToLog = isEnabled;
+            return this;
+        }
         public NativeEventStoreBuilder WithProjectionsConfig(IProjectionConfig config)
         {
             _projectionConfigs.Add(config);
@@ -123,6 +131,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             return WithMetadataEnricher<CorrelationEnricher>(ContextScope.All)
                     .WithMetadataEnricher<UserIdEnricher>(ContextScope.All)
+                    .WithMetadataEnricher<SessionEnricher>(ContextScope.All)
                     .WithMetadataEnricher(() => new RecordTypeEnricher(TypeNamePersistenceConvention.AssemblyQualifiedName), ContextScope.All)
                     .WithMetadataEnricher(() => new ProcessingUnitEnricher(TypeNamePersistenceConvention.Name), ContextScope.Event | ContextScope.Command)
                     .WithMetadataEnricher<CreateTimeEnricher>(ContextScope.All);
@@ -163,8 +172,12 @@ namespace ModelingEvolution.Plumberd.EventStore
         }
         private Action<ConnectionSettingsBuilder> _connectionCustomizations;
 
-         
-
+        private bool _isDevelopment;
+        public NativeEventStoreBuilder WithDevelopmentEnv(bool isDev)
+        {
+            _isDevelopment = isDev;
+            return this;
+        }
         public NativeEventStore Build(bool checkConnectivity = true)
         {
             if (!_withoutDefaultEnrichers)
@@ -186,6 +199,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             EventStoreSettings settings = new EventStoreSettings(eventMetadataFactory, 
                 metadataSerializerFactory,
                 _recordSerializer ?? new RecordSerializer(),
+                _isDevelopment,
                 _convention,
                 _logger);
 
@@ -199,12 +213,54 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _disableTls,
                 _connectionCustomizations,
                 _projectionConfigs);
-            
+            if (_logWrittenEventsToLog)
+                es.Connected += WireLog;
             // Temporary
             if(checkConnectivity)
-                es.CheckConnectivity().GetAwaiter().GetResult();
+                Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
             
             return es;
+        }
+
+        private void WireLog(NativeEventStore es)
+        {
+            if(this._logger != null)
+                es.Connection.SubscribeToAllAsync(false, onLog);
+        }
+        private Task onLog(EventStoreSubscription s, ResolvedEvent e)
+        {
+            if (!e.Event.EventStreamId.StartsWith("$"))
+            {
+                bool isProjection = e.Event.EventStreamId.StartsWith("/");
+                bool isCommand = e.Event.EventStreamId.StartsWith(">") || e.Event.EventStreamId.StartsWith("/>");
+                bool isFact = !isProjection && !isCommand;
+                string subject = isFact ? "Fact" : (isCommand ? "Command" : "View");
+                int index = e.Event.EventStreamId.IndexOf('-');
+                string category = e.Event.EventStreamId.Remove(index);
+                Guid id = Guid.Parse(e.Event.EventStreamId.Substring(index + 1));
+                if (e.Event.EventType != "$>")
+                {
+                    // it's not a link
+                    string data = Encoding.UTF8.GetString(e.Event.Data);                    
+                    this._logger.Information("{subject} {eventType} written in {category}\t{id} with data:{eventData}",
+                        subject,
+                        e.Event.EventType,
+                        category, 
+                        id,
+                        data);
+                } else 
+                {
+                    // it's a link
+                    string data = Encoding.UTF8.GetString(e.Event.Data);
+                    this._logger.Information("Link for {subject} written in {category}\t{id} with data:{linkData}",
+                        subject,
+                        category,
+                        id,
+                        data);
+                }
+            }
+
+            return Task.CompletedTask;
         }
 
         public void WithLogger(ILogger logger)

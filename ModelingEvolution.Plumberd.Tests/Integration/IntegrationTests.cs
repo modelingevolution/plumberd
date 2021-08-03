@@ -29,6 +29,21 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
         }
 
         [Fact]
+        public async Task InvokeCommand_HandleCommand_WithException()
+        {
+            Guid id = Guid.NewGuid();
+            var c = new CommandRaisingException();
+
+            var plumber = await CreatePlumber();
+            plumber.RegisterController(new CommandHandlerWithExceptions());
+            await plumber.StartAsync();
+
+            await plumber.DefaultCommandInvoker.Execute(id, c);
+
+            await Task.Delay(200000);
+        }
+
+        [Fact]
         public async Task InvokeCommand_HandleCommand_CheckCommandStream()
         {
             Guid id = Guid.NewGuid();
@@ -50,6 +65,8 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 cmd.Id.ShouldBe(c.Id);
                 cmd.Name.ShouldBe(c.Name);
             }
+
+
         }
        
 
