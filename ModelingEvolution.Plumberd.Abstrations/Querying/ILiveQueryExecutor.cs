@@ -22,6 +22,6 @@ namespace ModelingEvolution.Plumberd.Querying
 
         Task<IObservableCollectionResult<TViewModel, TModelItem>> Execute<TViewModel, TModelItem, TProjection, TModel>(
             ICollectionResultQuery<TModelItem> query, string streamName,
-            Func<TModel, ObservableCollection<TModelItem>> accesor, Func<TModelItem, TViewModel> converter) where TViewModel : IViewFor<TModelItem>;
+            Func<TModel, ObservableCollection<TModelItem>> accesor, Func<TModelItem, TViewModel> converter) where TViewModel : IViewFor<TModelItem>, IEquatable<TViewModel>;
     }
 }

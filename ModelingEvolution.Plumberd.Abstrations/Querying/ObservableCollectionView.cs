@@ -9,24 +9,24 @@ using System.Linq;
 namespace ModelingEvolution.Plumberd.Querying
 {
     public class ObservableCollectionView<TDst,TSrc> : INotifyCollectionChanged, INotifyPropertyChanged, IList<TDst>, IList, IReadOnlyList<TDst>
-    where TDst:IViewFor<TSrc>
+    where TDst:IViewFor<TSrc>,IEquatable<TDst>
     {
         private readonly Func<TSrc, TDst> _convertItem;
         private readonly ObservableCollection<TSrc> _internal;
         private readonly ObservableCollection<TDst> _filtered;
         private Predicate<TDst> _filter;
-        
-        
+        private static readonly Predicate<TDst> _trueFilter = x => true;
+
 
         public Predicate<TDst> Filter
         {
-            get { return _filter; }
+            get { return _filter == _trueFilter ? null : _filter; }
             set
             {
                 if (value != null)
                     _filter = value;
                 else
-                    _filter = x => true;
+                    _filter = _trueFilter;
 
                 Merge();
             }
@@ -88,7 +88,7 @@ namespace ModelingEvolution.Plumberd.Querying
             _internal.CollectionChanged += (s, e) => SourceCollectionChanged(e);
             _filtered.CollectionChanged += (s, e) => ViewCollectionChanged(e);
             ((INotifyPropertyChanged)_filtered).PropertyChanged += (s, e) => ViewPropertyChanged(e);
-            _filter = x => true;
+            _filter = _trueFilter;
         }
 
         private void ViewPropertyChanged(PropertyChangedEventArgs propertyChangedEventArgs)
@@ -101,6 +101,7 @@ namespace ModelingEvolution.Plumberd.Querying
             CollectionChanged?.Invoke(this, args);
         }
 
+        public bool IsFiltered => Filter != null;
         private void SourceCollectionChanged(NotifyCollectionChangedEventArgs args)
         {
             if (args.Action == NotifyCollectionChangedAction.Add)
@@ -109,7 +110,25 @@ namespace ModelingEvolution.Plumberd.Querying
                     .Select(_convertItem)
                     .Where(x => _filter(x))
                     .ToArray();
-                _filtered.AddRange(toAdd);
+                if (!IsFiltered)
+                {
+                    // we care about the order
+                    if (args.NewStartingIndex == _filtered.Count)
+                    {
+                        // we're adding at the end
+                        _filtered.AddRange(toAdd);
+                    }
+                    else
+                    {
+                        // it's in the middle
+                        foreach (var i in toAdd.Reverse())
+                        {
+                            _filtered.Insert(args.NewStartingIndex, i);
+                        }
+                    }
+                } 
+                else
+                    _filtered.AddRange(toAdd);
             }
             else if (args.Action == NotifyCollectionChangedAction.Remove)
             {

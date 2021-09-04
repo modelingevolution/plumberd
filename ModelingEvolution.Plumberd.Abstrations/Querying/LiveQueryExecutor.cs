@@ -182,7 +182,7 @@ namespace ModelingEvolution.Plumberd.Querying
             }
         }
 
-        class CollectionResultQueryExecutor<TViewModel, TModelItem, TProjection, TModel> where TViewModel : IViewFor<TModelItem>
+        class CollectionResultQueryExecutor<TViewModel, TModelItem, TProjection, TModel> where TViewModel : IViewFor<TModelItem>, IEquatable<TViewModel>
         {
             private readonly IServiceProvider _serviceProvider;
             private readonly IPlumberRuntime _plumber;
@@ -268,7 +268,7 @@ namespace ModelingEvolution.Plumberd.Querying
             ICollectionResultQuery<TModelItem> query, string streamName,
             Func<TModel, ObservableCollection<TModelItem>> accesor,
             Func<TModelItem, TViewModel> converter)
-        where TViewModel:IViewFor<TModelItem>
+        where TViewModel:IViewFor<TModelItem>, IEquatable<TViewModel>
         {
             var executor = new CollectionResultQueryExecutor<TViewModel, TModelItem, TProjection, TModel>(_serviceProvider, _plumber, streamName);
             return executor.Execute(query, accesor, converter);

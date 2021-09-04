@@ -31,7 +31,7 @@ namespace ModelingEvolution.Plumberd.Querying
 
     public class
         ObservableCollectionResult<TViewModel, TModelItem> : IObservableCollectionResult<TViewModel, TModelItem>
-        where TViewModel : IViewFor<TModelItem>
+        where TViewModel : IViewFor<TModelItem>, IEquatable<TViewModel>
     {
         public ObservableCollection<TModelItem> SourceItems { get; }
         public ObservableCollectionView<TViewModel, TModelItem> View { get; }
