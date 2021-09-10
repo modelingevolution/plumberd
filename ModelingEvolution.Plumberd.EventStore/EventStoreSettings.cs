@@ -1,7 +1,7 @@
 ﻿using System;
 using ModelingEvolution.Plumberd.Serialization;
-using Serilog;
-
+using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 namespace ModelingEvolution.Plumberd.EventStore
 {
     public class EventStoreSettings : IEventStoreSettings
@@ -26,7 +26,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             string commandStreamPrefix = ">")
         {
             RecordNamingConvention = eventNamingConvention ?? new EventTypeNameConverter().Convert;
-            Logger = logger ?? Log.Logger ?? Serilog.Core.Logger.None;
+            Logger = logger ?? throw new ArgumentNullException("logger");
             MetadataFactory = metadataFactory;
             MetadataSerializerFactory = metadataSerializer;
             Serializer = serializer;

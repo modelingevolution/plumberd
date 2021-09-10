@@ -8,19 +8,36 @@ using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
-using Serilog;
+using Microsoft.Extensions.Logging;
+using Modellution.Logging;
 
 namespace ModelingEvolution.Plumberd
 {
-    
+    class NullLogger : ILogger, IDisposable
+    {
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return false;
+        }
+
+        public IDisposable BeginScope<TState>(TState state)
+        {
+            return this;
+        }
+
+        public void Dispose()
+        {
+        }
+    }
 
     public class PlumberBuilder
     {
-        public PlumberBuilder()
-        {
-            Logger = Serilog.Core.Logger.None;
-        }
-        public ILogger Logger { get; private set; }
+        private static readonly ILogger Logger = LogFactory.GetLogger<PlumberBuilder>();
         public IServiceProvider DefaultServiceProvider { get; private set; }
         private ICommandInvoker DefaultCommandInvoker { get;  set; }
         private IEventStore DefaultEventStore { get;  set; }
@@ -41,11 +58,7 @@ namespace ModelingEvolution.Plumberd
             return this;
         }
 
-        public PlumberBuilder WithLogger(ILogger logger)
-        {
-            Logger = logger;
-            return this;
-        }
+        
         public IPlumberRuntime Build()
         {
             if (DefaultCommandInvoker == null)

@@ -15,7 +15,7 @@ using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using ProtoBuf;
-using Serilog;
+using Microsoft.Extensions.Logging;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 using MetadataProperty = ModelingEvolution.Plumberd.Metadata.MetadataProperty;
 
@@ -60,7 +60,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
     public class GrpcEventStoreFacade : IEventStore
     {
-        private static readonly ILogger Log = Serilog.Log.ForContext<GrpcEventStoreFacade>();
+        private static readonly ILogger Log = Modellution.Logging.LogFactory.GetLogger<GrpcEventStoreFacade>();
         private readonly Guid _sessionId = Guid.NewGuid();
         public static event Func<Task> ReadingFailed;
         class Subscription : ISubscription
@@ -194,7 +194,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private async Task Read(AsyncServerStreamingCall<ReadRsp> callContext,
             IProcessingContextFactory factory, EventHandler onEvent)
         {
-            Log.Information("Reading started.");
+            Log.LogInformation("Reading started.");
             IRecord lastEvent = null;
             IMetadata lastMeta = null;
             try
@@ -202,7 +202,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 int c = 0;
                 await foreach (var i in callContext.ResponseStream.ReadAllAsync())
                 {
-                    Log.Debug($"Reading record {c++}");
+                    Log.LogDebug($"Reading record {c++}");
                     var context = ReadEvent(factory, i, out var ev, out var metadata);
                     lastEvent = ev;
                     lastMeta = metadata;
@@ -212,23 +212,23 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             }
             catch (RpcException e) when (e.Status.StatusCode == StatusCode.Cancelled)
             {
-                Log.Information("Streaming was cancelled from the client!");
+                Log.LogInformation("Streaming was cancelled from the client!");
             }
             catch (RpcException e) when (e.Status.StatusCode == StatusCode.Internal)
             {
-                Log.Information(e, "We need to logout.");
+                Log.LogInformation(e, "We need to logout.");
                 await ReadingFailed?.Invoke();
             }
             catch (ObjectDisposedException e)
             {
-                Log.Information(e, "We need to logout.");
+                Log.LogInformation(e, "We need to logout.");
                 await ReadingFailed?.Invoke();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Reading failed. {lastEvent} {lastMatadata}", lastEvent, lastMeta);
+                Log.LogError(ex, "Reading failed. {lastEvent} {lastMatadata}", lastEvent, lastMeta);
             }
-            Log.Debug("Read closed.");
+            Log.LogDebug("Read closed.");
         }
 
         private IProcessingContext ReadEvent(IProcessingContextFactory factory, ReadRsp i, out IRecord ev,
@@ -249,12 +249,12 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 throw new InvalidOperationException(
                     $"Type is unknown, have you forgotten to discover types with TypeRegister?{additionalInfo}");
             }
-            else Log.Debug("Found type to deserialize {type}", type);
+            else Log.LogDebug("Found type to deserialize {type}", type);
 
             ev = SerializerFacade.Deserialize(type, i.Data.Memory) as IRecord;
-            Log.Debug("Event was successfully deserialized: {ev}", ev);
+            Log.LogDebug("Event was successfully deserialized: {ev}", ev);
 
-            Log.Debug("Deserializing metadata with {propertyCount} properties.", _mSchema?.Count ?? -1);
+            Log.LogDebug("Deserializing metadata with {propertyCount} properties.", _mSchema?.Count ?? -1);
             metadata = new Metadata.Metadata(_mSchema, true);
 
             foreach (var m in i.MetadataProps)
@@ -262,14 +262,14 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 Guid propId = new Guid(m.Id.Value.Span);
                 if (_mPropIndex.TryGetValue(propId, out var mp))
                 {
-                    Log.Debug("Deserializing metadata property {propertyName}.", mp.Name);
+                    Log.LogDebug("Deserializing metadata property {propertyName}.", mp.Name);
                     if (mp.Type != typeof(DateTimeOffset))
                         metadata[mp] = SerializerFacade.Deserialize(mp.Type, m.Data.Memory);
                     else
                     {
                         if (m.Data.Span.Length != 16)
                         {
-                            Log.Debug("Unexpected number of bytes. Found {actualLength}.",
+                            Log.LogDebug("Unexpected number of bytes. Found {actualLength}.",
                                 m.Data.Span.Length);
                             continue;
                         }
@@ -281,11 +281,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 }
                 else
                 {
-                    Log.Debug("Could not deserialize metadata property with id: {propertyId}.", propId);
+                    Log.LogDebug("Could not deserialize metadata property with id: {propertyId}.", propId);
                 }
             }
 
-            Log.Debug("Metadata was successfully deserialized.");
+            Log.LogDebug("Metadata was successfully deserialized.");
             context.Record = ev;
             context.Metadata = metadata;
             return context;

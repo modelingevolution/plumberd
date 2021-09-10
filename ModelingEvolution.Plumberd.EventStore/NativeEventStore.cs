@@ -16,13 +16,14 @@ using EventStore.ClientAPI;
 using EventStore.ClientAPI.Common.Log;
 using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using Newtonsoft.Json;
 using ProtoBuf.Meta;
 using ProtoBuf;
-using Serilog.Core;
-using ILogger = Serilog.ILogger;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
+
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
@@ -56,7 +57,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         }
         public async Task LoadEventFromFile(string file)
         {
-            Log.Information("Loading events from file: {fileName}", file);
+            Log.LogInformation("Loading events from file: {fileName}", file);
             long n = 0;
             byte[] buffer = new byte[16 * 1024]; // 16KB
             Task writeTask = null;
@@ -99,13 +100,13 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                 if (writeTask != null)
                     await writeTask;
-                Log.Information("Loaded {count} events from file: {fileName}",n, file);
+                Log.LogInformation("Loaded {count} events from file: {fileName}",n, file);
             }
 
         }
         public async Task WriteEventsToFile(string file)
         {
-            Log.Information("Writing events to file {fileName}", file);
+            Log.LogInformation("Writing events to file {fileName}", file);
             long n = 0;
             Stopwatch s = new Stopwatch();
             s.Start();
@@ -147,7 +148,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 }
             }
             s.Stop();
-            Log.Information("Writing {count} done in: {duration}",n, s.Elapsed);
+            Log.LogInformation("Writing {count} done in: {duration}",n, s.Elapsed);
             
         }
         public NativeEventStore(IEventStoreConnection connection, 
@@ -199,9 +200,9 @@ namespace ModelingEvolution.Plumberd.EventStore
                 tcpSettings = tcpSettings.DisableTls();
                 const string msg = "Tls is disabled";
                 if (_settings.IsDevelopment)
-                    Log.Information(msg);
+                    Log.LogInformation(msg);
                 else
-                    Log.Warning(msg);
+                    Log.LogWarning(msg);
             }
 
             if (ignoreServerCert)
@@ -209,9 +210,9 @@ namespace ModelingEvolution.Plumberd.EventStore
                 tcpSettings = tcpSettings.DisableServerCertificateValidation();
                 const string msg = "Server certificate validation is disabled";
                 if(_settings.IsDevelopment)
-                    Log.Information(msg);
+                    Log.LogInformation(msg);
                 else
-                    Log.Warning(msg);
+                    Log.LogWarning(msg);
             }
 
             connectionBuilder?.Invoke(tcpSettings);
@@ -229,11 +230,11 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             if (!_connected)
             {
-                Log.Information("Establishing connection.");
+                Log.LogInformation("Establishing connection.");
                 await _connection.ConnectAsync();
-                Log.Information("Testing reading.");
+                Log.LogInformation("Testing reading.");
                 var slice = await _connection.ReadAllEventsBackwardAsync(Position.End, 1, true, _credentials);
-                Log.Information("Connected.");
+                Log.LogInformation("Connected.");
                 _connected = true;
                 Connected?.Invoke(this);
             }
@@ -302,7 +303,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             var currentQuery = await _projectionsManager.GetQueryAsync(projectionName, _credentials);
             if (query != currentQuery || !config.EmitEnabled)
             {
-                Log.Information("Updating continues projection definition and config: {projectionName}", projectionName);
+                Log.LogInformation("Updating continues projection definition and config: {projectionName}", projectionName);
                 await _projectionsManager.UpdateQueryAsync(projectionName, query, true, _credentials);
             }
             

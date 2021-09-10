@@ -1,7 +1,8 @@
 ﻿using System;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Serialization;
-using Serilog;
+using Microsoft.Extensions.Logging;
+using Modellution.Logging;
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
@@ -28,7 +29,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             string commandStreamPrefix = ">")
         {
             RecordNamingConvention = eventNamingConvention ?? new EventTypeNameConverter().Convert;
-            Logger = logger ?? Log.Logger ?? Serilog.Core.Logger.None;
+            Logger = logger ?? LogFactory.GetLogger<EventStoreSettings>();
             MetadataFactory = metadataFactory;
             MetadataSerializerFactory = metadataSerializer;
             Serializer = serializer;

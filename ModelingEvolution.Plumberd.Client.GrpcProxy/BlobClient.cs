@@ -8,7 +8,7 @@ using Grpc.Core;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd.EventStore;
 using ProtoBuf;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
@@ -38,7 +38,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     }
     public class BlobClient
     {
-        private static ILogger Log = Serilog.Log.ForContext<BlobClient>();
+        private static readonly ILogger Log = Modellution.Logging.LogFactory.GetLogger<BlobClient>();
         private readonly Channel _channel;
         private GrpcEventStoreProxy.GrpcEventStoreProxyClient _client;
         private ISessionManager _sessionManager;
@@ -93,7 +93,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
             await context.RequestStream.WriteAsync(new BlobChunk() {Data = ByteString.Empty, I=i});
             await Task.Delay(100);
-            Log.Information("Written {written}/{len} bytes in {i} iterations. [ {completness}% ]", written, len, i, written/len*100);
+            Log.LogInformation("Written {written}/{len} bytes in {i} iterations. [ {completness}% ]", written, len, i, written/len*100);
             await context.RequestStream.CompleteAsync();
         }
 

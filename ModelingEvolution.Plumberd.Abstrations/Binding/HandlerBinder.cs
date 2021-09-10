@@ -4,9 +4,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.Metadata;
-using Serilog;
+using Microsoft.Extensions.Logging;
+using Modellution.Logging;
 
 namespace ModelingEvolution.Plumberd.Binding
 {
@@ -166,7 +168,7 @@ namespace ModelingEvolution.Plumberd.Binding
 
         private class DispatcherBuilder
         {
-            private static ILogger Log = Serilog.Log.ForContext<DispatcherBuilder>();
+            private static readonly ILogger Log = LogFactory.GetLogger<DispatcherBuilder>();
             private readonly Dictionary<Type, List<HandlerDispatcher>> invokers =
                 new Dictionary<Type, List<HandlerDispatcher>>();
 
@@ -186,7 +188,7 @@ namespace ModelingEvolution.Plumberd.Binding
                     foreach (var i in invoker)
                         result += await i(processor, m, ev);
                 }
-                else Log.Warning("Found event {eventType} in a stream that cannot be dispatched on {processorType}", ev.GetType(), processor?.GetType().Name ?? "-");
+                else Log.LogWarning("Found event {eventType} in a stream that cannot be dispatched on {processorType}", ev.GetType(), processor?.GetType().Name ?? "-");
                 return result;
             }
         }

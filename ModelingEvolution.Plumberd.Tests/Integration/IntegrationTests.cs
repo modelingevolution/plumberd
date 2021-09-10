@@ -9,8 +9,8 @@ using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
 using ModelingEvolution.Plumberd.Tests.Models;
-using Serilog;
-using Serilog.Events;
+using Microsoft.Extensions.Logging;
+using Modellution.Logging;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
@@ -231,17 +231,12 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
         
         private async Task<IPlumberRuntime> CreatePlumber()
         {
-            var logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .WriteTo.TestOutput(_testOutputHelper, LogEventLevel.Verbose)
-                .CreateLogger();
-            Log.Logger = logger;
+            
 
             this.server = await EventStoreServer.Start();
             await Task.Delay(2000);
 
             PlumberBuilder b = new PlumberBuilder()
-                .WithLogger(logger)
                 .WithDefaultEventStore(x => x.InSecure());
 
             var plumber = b.Build();

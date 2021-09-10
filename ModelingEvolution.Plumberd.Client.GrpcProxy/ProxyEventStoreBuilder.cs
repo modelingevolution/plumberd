@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
+using Modellution.Logging;
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
@@ -12,8 +14,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private IMetadataSerializerFactory _metadataSerializer;
         private IRecordSerializer _recordSerializer;
         private IMetadataFactory _metadataFactory;
-        
-        private Serilog.ILogger _logger;
+
+        private static readonly ILogger _logger = LogFactory.GetLogger<ProxyEventStoreBuilder>();
         
         public bool _withoutDefaultEnrichers;
 
@@ -120,9 +122,6 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             return es;
         }
 
-        public void WithLogger(Serilog.ILogger logger)
-        {
-            this._logger = logger;
-        }
+       
     }
 }

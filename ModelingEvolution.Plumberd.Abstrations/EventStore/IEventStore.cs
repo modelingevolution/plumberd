@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using ProtoBuf;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {

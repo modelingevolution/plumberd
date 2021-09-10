@@ -13,7 +13,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             NativeEventStoreBuilder b = new NativeEventStoreBuilder();
             b = configureEventStore(b);
-            b.WithLogger(builder.Logger);
+            
             return builder.WithDefaultEventStore(b.Build(checkConnectivity));
         }
     }

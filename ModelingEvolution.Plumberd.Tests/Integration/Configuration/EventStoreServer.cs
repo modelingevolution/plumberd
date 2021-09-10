@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Hosting;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
 {

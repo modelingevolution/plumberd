@@ -6,9 +6,11 @@ using System.Text;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
-using ILogger = Serilog.ILogger;
+using Modellution.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
@@ -22,7 +24,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private Func<Type, string[]> _convention;
         private Uri _tcpUrl;
         private Uri _httpUrl;
-        private ILogger _logger;
+        private static readonly ILogger _logger = LogFactory.GetLogger<NativeEventStoreBuilder>();
         private string _userName;
         private string _password;
         private bool _ignoreCert;
@@ -53,8 +55,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                 if (bool.Parse(isInsecure))
                     this.InSecure();
             }
-            Serilog.Log.Information("EventStore TcpUrl: {tcpUrl}", _tcpUrl);
-            Serilog.Log.Information("EventStore HttpUrl: {httpUrl}", _httpUrl);
+            _logger.LogInformation("EventStore TcpUrl: {tcpUrl}", _tcpUrl);
+            _logger.LogInformation("EventStore HttpUrl: {httpUrl}", _httpUrl);
             return this;
         }
         private void SetIfNotEmpty(ref string dst, string src)
@@ -224,8 +226,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
         private void WireLog(NativeEventStore es)
         {
-            if(this._logger != null)
-                es.Connection.SubscribeToAllAsync(false, onLog);
+            es.Connection.SubscribeToAllAsync(false, onLog);
         }
         private Task onLog(EventStoreSubscription s, ResolvedEvent e)
         {
@@ -242,7 +243,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 {
                     // it's not a link
                     string data = Encoding.UTF8.GetString(e.Event.Data);                    
-                    this._logger.Information("{subject} {eventType} written in {category}\t{id} with data:{eventData}",
+                    _logger.LogInformation("{subject} {eventType} written in {category}\t{id} with data:{eventData}",
                         subject,
                         e.Event.EventType,
                         category, 
@@ -252,7 +253,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 {
                     // it's a link
                     string data = Encoding.UTF8.GetString(e.Event.Data);
-                    this._logger.Information("Link for {subject} written in {category}\t{id} with data:{linkData}",
+                    _logger.LogInformation("Link for {subject} written in {category}\t{id} with data:{linkData}",
                         subject,
                         category,
                         id,
@@ -263,9 +264,6 @@ namespace ModelingEvolution.Plumberd.EventStore
             return Task.CompletedTask;
         }
 
-        public void WithLogger(ILogger logger)
-        {
-            this._logger = logger;
-        }
+        
     }
 }

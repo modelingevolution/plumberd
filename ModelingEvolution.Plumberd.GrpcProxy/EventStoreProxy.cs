@@ -24,7 +24,7 @@ using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.GrpcProxy.Authentication;
 using ModelingEvolution.Plumberd.Metadata;
 using ProtoBuf;
-using Serilog;
+using Microsoft.Extensions.Logging;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 using MetadataProperty = ModelingEvolution.EventStore.GrpcProxy.MetadataProperty;
 
@@ -40,7 +40,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
         private readonly IConfiguration _config;
         public EventStoreProxy(TypeRegister typeRegister, 
             ICommandInvoker commandInvoker, 
-            IEventStore eventStore, ILogger logger, 
+            IEventStore eventStore, ILogger<EventStoreProxy> logger, 
             UsersModel userModel, 
             IConfiguration config)
         {
@@ -94,7 +94,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 
                 
                 var fileMode = blobDescriptor.ForceOverride ? FileMode.Create : FileMode.CreateNew;
-                _logger.Information("Writing blob {blobDescriptor}", blobDescriptor);
+                _logger.LogInformation("Writing blob {blobDescriptor}", blobDescriptor);
                 using (var stream = new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None))
                 {
                    
@@ -113,7 +113,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     }
                 }
 
-                _logger.Information("Blob {fileName} written. Written {writtenBytes} iteration {iteration}. ", fileName, writtenBytes, i);
+                _logger.LogInformation("Blob {fileName} written. Written {writtenBytes} iteration {iteration}. ", fileName, writtenBytes, i);
                 await InvokeUploadEvent(context, blobDescriptor, writtenBytes, userId, fileName);
 
                 return new BlobData()
@@ -124,7 +124,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             }
             catch (Exception ex)
             {
-                Log.Logger.Error(ex, "Could not write blob. {Headers}. Written {writtenBytes} iteration {iteration}.", GetHeaders(context), writtenBytes, i);
+                this._logger.LogError(ex, "Could not write blob. {Headers}. Written {writtenBytes} iteration {iteration}.", GetHeaders(context), writtenBytes, i);
                 throw;
             }
         }
@@ -239,11 +239,11 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             ServerCallContext context)
         {
             IDisposable resources = null;
-            _logger.Information("GrpcProxy -> Reading started.");
+            _logger.LogInformation("GrpcProxy -> Reading started.");
             using SemaphoreSlim subExit = new SemaphoreSlim(0);
             context.CancellationToken.Register(() =>
             {
-                _logger.Information("GrpcProxy -> Releasing connection.");
+                _logger.LogInformation("GrpcProxy -> Releasing connection.");
                 subExit.Release(1);
             });
             try
@@ -262,7 +262,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         }
                         catch (InvalidOperationException ex)
                         {
-                            _logger.Warning(ex, "Reading ended.");
+                            _logger.LogWarning(ex, "Reading ended.");
                             subExit.Release(1);
                         }
                     };
@@ -272,7 +272,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         Script = request.GenericSchema.Script,
                         StreamName = request.GenericSchema.StreamName
                     };
-                    _logger.Information("GrpcProxy -> Subscribing -> Generic({projectionName},{script},{steamName})",
+                    _logger.LogInformation("GrpcProxy -> Subscribing -> Generic({projectionName},{script},{steamName})",
                         schema.ProjectionName,
                         schema.Script,
                         schema.StreamName);
@@ -298,12 +298,12 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         }
                         catch (InvalidOperationException ex)
                         {
-                            _logger.Warning(ex, "Reading ended.");
+                            _logger.LogWarning(ex, "Reading ended.");
                             subExit.Release(1);
                         }
                     };
 
-                    _logger.Information("GrpcProxy -> Subscribing -> EventType({name,eventTypes})",
+                    _logger.LogInformation("GrpcProxy -> Subscribing -> EventType({name,eventTypes})",
                         request.EventTypeSchema.Name,
                         string.Join(", ", request.EventTypeSchema.EventTypes));
 
@@ -319,7 +319,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             finally
             {
                 resources?.Dispose();
-                _logger.Information("GrpcProxy -> Reading finished, resources released.");
+                _logger.LogInformation("GrpcProxy -> Reading finished, resources released.");
             }
         }
 
@@ -393,7 +393,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 };
                 rsp.MetadataProps.Add(metadataProperty);
             }
-            _logger.Information("GrpcProxy -> Subscription.WriteResponse({recordType})", ev.GetType().Name);
+            _logger.LogInformation("GrpcProxy -> Subscription.WriteResponse({recordType})", ev.GetType().Name);
             await responseStream.WriteAsync(rsp);
         }
 

@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
@@ -13,7 +13,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private readonly UserCredentials _userCredentials;
         private readonly IEventStoreSettings _settings;
         private readonly List<IProjectionConfig> _configs;
-
+        private static ILogger Log = Modellution.Logging.LogFactory.GetLogger<ProjectionConfigurations>();
         public ProjectionConfigurations(ProjectionsManager projectionManager, 
             UserCredentials userCredentials, 
             IEventStoreSettings settings)
@@ -66,7 +66,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                 if (query != currentQuery || !config.EmitEnabled)
                 {
-                    Log.Information("Updating continues projection definition and config: {projectionName}",
+                    Log.LogInformation("Updating continues projection definition and config: {projectionName}",
                         projectionName);
                     await _projectionManager.UpdateQueryAsync(projectionName, query, true, _userCredentials);
                 }

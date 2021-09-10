@@ -7,7 +7,6 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         public static PlumberBuilder WithProxyEventStore(this PlumberBuilder builder, Action<ProxyEventStoreBuilder> proxyConfig, IServiceProvider sp)
         {
             ProxyEventStoreBuilder b = new ProxyEventStoreBuilder();
-            b.WithLogger(builder.Logger);
             proxyConfig(b);
             return builder.WithDefaultEventStore(b.Build(sp));
         }

@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace ModelingEvolution.Plumberd
 {
@@ -82,7 +82,7 @@ namespace ModelingEvolution.Plumberd
                 context = new CommandInvocationContext(id,c, Guid.Empty, Guid.Empty);
             }
             Type commandType = c.GetType();
-            _logger.Information("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);
+            _logger.LogInformation("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);
             
             string name = GetStreamName(commandType,c);
             
