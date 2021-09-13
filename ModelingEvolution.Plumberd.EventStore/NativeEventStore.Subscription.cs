@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using FxResources.Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging;
+using Modellution.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore
@@ -21,7 +22,9 @@ namespace ModelingEvolution.Plumberd.EventStore
         private class PersistentSubscription : INativeSubscription
         {
             private readonly NativeEventStore _parent;
-            private readonly  Microsoft.Extensions.Logging.ILogger _log;
+
+            private static readonly Microsoft.Extensions.Logging.ILogger _log =
+                LogFactory.GetLogger<PersistentSubscription>();
             private readonly bool _fromBeginning;
             private readonly EventHandler _onEvent;
             private readonly string _streamName;
@@ -31,14 +34,13 @@ namespace ModelingEvolution.Plumberd.EventStore
             private EventStorePersistentSubscriptionBase _subscription;
 
             public PersistentSubscription(NativeEventStore parent, 
-                Microsoft.Extensions.Logging.ILogger log, 
+                
                 in bool fromBeginning, 
                 EventHandler onEvent, 
                 string streamName, 
                 IProcessingContextFactory processingContextFactory)
             {
                 _parent = parent;
-                _log = log;
                 this._fromBeginning = fromBeginning;
                 this._onEvent = onEvent;
                 this._streamName = streamName;
@@ -158,7 +160,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private class ContinuesSubscription : INativeSubscription
         {
             private readonly NativeEventStore _parent;
-            private readonly ILogger _log;
+            private readonly static ILogger _log = LogFactory.GetLogger<ContinuesSubscription>();
             private readonly bool _fromBeginning;
             private readonly EventHandler _onEvent;
             private readonly string _streamName;
@@ -169,7 +171,6 @@ namespace ModelingEvolution.Plumberd.EventStore
             private EventStoreSubscription _subscription;
             
             public ContinuesSubscription(NativeEventStore parent,
-                ILogger log,
                 in bool fromBeginning,
                 EventHandler onEvent,
                 string streamName,
@@ -178,7 +179,6 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                 _parent = parent;
                 _connection = _parent._connection;
-                _log = log;
                 _fromBeginning = fromBeginning;
                 _onEvent = onEvent;
                 _streamName = streamName;

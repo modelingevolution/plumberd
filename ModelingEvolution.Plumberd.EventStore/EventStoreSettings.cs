@@ -14,25 +14,24 @@ namespace ModelingEvolution.Plumberd.EventStore
         public string CommandStreamPrefix { get; }
         public Func<Type, string[]> RecordNamingConvention { get; }
         
-        public ILogger Logger { get; }
+        
         
 
         public EventStoreSettings(IMetadataFactory metadataFactory, 
             IMetadataSerializerFactory metadataSerializer, 
             IRecordSerializer serializer, bool isDevelopment, 
-            Func<Type, string[]> eventNamingConvention = null, 
-            ILogger logger = null, 
+            Func<Type, string[]> eventNamingConvention = null,
             string projectionStreamPrefix = "/", 
             string commandStreamPrefix = ">")
         {
             RecordNamingConvention = eventNamingConvention ?? new EventTypeNameConverter().Convert;
-            Logger = logger ?? throw new ArgumentNullException("logger");
+            
             MetadataFactory = metadataFactory;
             MetadataSerializerFactory = metadataSerializer;
             Serializer = serializer;
             IsDevelopment = isDevelopment;
 
-            Logger = logger;
+            
             ProjectionStreamPrefix = projectionStreamPrefix;
             CommandStreamPrefix = commandStreamPrefix;
         }

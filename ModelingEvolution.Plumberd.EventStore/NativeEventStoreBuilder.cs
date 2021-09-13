@@ -202,8 +202,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 metadataSerializerFactory,
                 _recordSerializer ?? new RecordSerializer(),
                 _isDevelopment,
-                _convention,
-                _logger);
+                _convention);
 
 
             var es = new NativeEventStore(settings, 

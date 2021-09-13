@@ -137,7 +137,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         string ProjectionStreamPrefix { get; }
         string CommandStreamPrefix { get; }
         Func<Type,string[]> RecordNamingConvention { get; }
-        ILogger Logger { get; }
+        
     }
     public class ProjectionSchema
     {

@@ -19,6 +19,7 @@ using EventStore.ClientAPI.SystemData;
 using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
+using Modellution.Logging;
 using Newtonsoft.Json;
 using ProtoBuf.Meta;
 using ProtoBuf;
@@ -34,7 +35,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private readonly ConcurrentBag<ISubscription> _subscriptions;
         private readonly ProjectionConfigurations _projectionConfigurations;
         private bool _connected = false;
-        private ILogger Log => _settings.Logger;
+        private static readonly ILogger Log = LogFactory.GetLogger<NativeEventStore>();
 
         private readonly IEventStoreConnection _connection;
         private readonly ProjectionsManager _projectionsManager;
@@ -316,7 +317,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             string streamName, 
             IProcessingContextFactory processingContextFactory)
         {
-            ContinuesSubscription s = new ContinuesSubscription(this, Log, fromBeginning, onEvent, streamName, processingContextFactory);
+            ContinuesSubscription s = new ContinuesSubscription(this,  fromBeginning, onEvent, streamName, processingContextFactory);
             await s.Subscribe();
             _subscriptions.Add(s);
             return s;
@@ -328,7 +329,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             string streamName, 
             IProcessingContextFactory processingContextFactory)
         {
-            PersistentSubscription s = new PersistentSubscription(this, Log, fromBeginning, onEvent, streamName, processingContextFactory);
+            PersistentSubscription s = new PersistentSubscription(this,  fromBeginning, onEvent, streamName, processingContextFactory);
             await s.Subscribe();
             _subscriptions.Add(s);
             return s;
