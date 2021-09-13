@@ -16,7 +16,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         public string CommandStreamPrefix { get; }
         public Func<Type, string[]> RecordNamingConvention { get; }
 
-        public ILogger Logger { get; }
+        public static readonly ILogger Logger = LogFactory.GetLogger<EventStoreSettings>();
 
 
         public EventStoreSettings(IMetadataFactory metadataFactory,
@@ -24,18 +24,15 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             IRecordSerializer serializer, 
             bool isDevelopment, 
             Func<Type, string[]> eventNamingConvention = null,
-            ILogger logger = null,
             string projectionStreamPrefix = "/",
             string commandStreamPrefix = ">")
         {
             RecordNamingConvention = eventNamingConvention ?? new EventTypeNameConverter().Convert;
-            Logger = logger ?? LogFactory.GetLogger<EventStoreSettings>();
             MetadataFactory = metadataFactory;
             MetadataSerializerFactory = metadataSerializer;
             Serializer = serializer;
             IsDevelopment = isDevelopment;
 
-            Logger = logger;
             ProjectionStreamPrefix = projectionStreamPrefix;
             CommandStreamPrefix = commandStreamPrefix;
         }
