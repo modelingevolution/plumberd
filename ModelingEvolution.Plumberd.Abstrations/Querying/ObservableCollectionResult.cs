@@ -34,7 +34,7 @@ namespace ModelingEvolution.Plumberd.Querying
         where TViewModel : IViewFor<TModelItem>, IEquatable<TViewModel>
     {
         public ObservableCollection<TModelItem> SourceItems { get; }
-        public ObservableCollectionView<TViewModel, TModelItem> View { get; }
+        public IObservableCollectionView<TViewModel, TModelItem> View { get; }
         internal IServiceScope Scope { get; set; }
         public object Model { get; internal set; }
         public IProcessingUnit ProcessingUnit { get; internal set; }
@@ -44,7 +44,7 @@ namespace ModelingEvolution.Plumberd.Querying
             ObservableCollection<TModelItem> source)
         {
             SourceItems = source;
-            View = new ObservableCollectionView<TViewModel, TModelItem>(convertItem, source);
+            View = new ObservableCollectionView<TViewModel, TModelItem, ObservableCollection<TModelItem>>(convertItem, source);
         }
     }
 }

@@ -6,13 +6,20 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 
+
 namespace ModelingEvolution.Plumberd.Querying
 {
-    public class ObservableCollectionView<TDst,TSrc> : INotifyCollectionChanged, INotifyPropertyChanged, IList<TDst>, IList, IReadOnlyList<TDst>
+    public interface IObservableCollectionView<TDst, TSrc> : INotifyCollectionChanged, INotifyPropertyChanged, IList<TDst>, IList, IReadOnlyList<TDst>
+        where TDst : IViewFor<TSrc>, IEquatable<TDst>
+    {
+
+    }
+    public class ObservableCollectionView<TDst,TSrc, TSrcCollection> : IObservableCollectionView<TDst,TSrc>
+    where TSrcCollection : class, IList<TSrc>, INotifyCollectionChanged
     where TDst:IViewFor<TSrc>,IEquatable<TDst>
     {
         private readonly Func<TSrc, TDst> _convertItem;
-        private readonly ObservableCollection<TSrc> _internal;
+        private readonly TSrcCollection _internal;
         private readonly ObservableCollection<TDst> _filtered;
         private Predicate<TDst> _filter;
         private static readonly Predicate<TDst> _trueFilter = x => true;
@@ -75,13 +82,13 @@ namespace ModelingEvolution.Plumberd.Querying
 
         }
 
-        public ObservableCollection<TSrc> Source => _internal;
+        
 
         
-        public ObservableCollectionView(Func<TSrc,TDst> convertItem, ObservableCollection<TSrc> src = null)
+        public ObservableCollectionView(Func<TSrc,TDst> convertItem, TSrcCollection src)
         {
             _convertItem = convertItem;
-            _internal = src ?? new ObservableCollection<TSrc>();
+            _internal = src;
             _filtered = new ObservableCollection<TDst>();
             _filtered.AddRange(_internal.Select(_convertItem));
 
