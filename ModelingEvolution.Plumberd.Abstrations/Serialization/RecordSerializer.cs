@@ -1,18 +1,21 @@
 ﻿using System;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd.Serialization
 {
     public sealed class RecordSerializer : IRecordSerializer
     {
-        private JsonSerializerOptions _options;
+        private readonly JsonSerializerOptions _options;
         public RecordSerializer()
         {
             _options = new JsonSerializerOptions();
             _options.Converters.Add(new JsonTimeSpanConverter());
-            
+            _options.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals | JsonNumberHandling.AllowReadingFromString;
+
+
         }
         //private static readonly JsonSerializerSettings JSON_SETTINGS = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All };
         public byte[] Serialize(IRecord ev, IMetadata m)
