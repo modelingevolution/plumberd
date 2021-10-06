@@ -36,7 +36,6 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Modellution\Modellution.Logging\Modellution.Logging.csproj" />
     <ProjectReference Include="..\..\protobuf-net\src\protobuf-net.Core\protobuf-net.Core.csproj" />
     <ProjectReference Include="..\..\protobuf-net\src\protobuf-net\protobuf-net.csproj" />
   </ItemGroup>
