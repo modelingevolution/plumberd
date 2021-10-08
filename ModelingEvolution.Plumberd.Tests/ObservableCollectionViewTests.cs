@@ -66,7 +66,7 @@ namespace ModelingEvolution.Plumberd.Tests
         public void Add()
         {
             ObservableCollection<Item> src = new ObservableCollection<Item>();
-            ObservableCollectionView<ItemVm, Item, ObservableCollection<Item>> vm = new ObservableCollectionView<ItemVm, Item, ObservableCollection<Item>>(x => new ItemVm(){Source = x}, src);
+            ObservableCollectionView<ItemVm, Item> vm = new ObservableCollectionView<ItemVm, Item>(x => new ItemVm(){Source = x}, src);
             
             src.Add(new Item(1));
             src.Add(new Item(2));
@@ -75,10 +75,20 @@ namespace ModelingEvolution.Plumberd.Tests
             vm[1].Source.Id.Should().Be(2);
         }
         [Fact]
+        public void Replace()
+        {
+            ObservableCollection<Item> src = new ObservableCollection<Item>() { new Item(1), new Item(2) };
+            ObservableCollectionView<ItemVm, Item> vm = new ObservableCollectionView<ItemVm, Item>(x => new ItemVm() { Source = x }, src);
+
+            src[0] = new Item(3);
+            
+            vm[0].Source.Id.Should().Be(3);
+        }
+        [Fact]
         public void Insert()
         {
             ObservableCollection<Item> src = new ObservableCollection<Item>();
-            ObservableCollectionView<ItemVm, Item, ObservableCollection<Item>> vm = new ObservableCollectionView<ItemVm, Item, ObservableCollection<Item>>(x => new ItemVm(){Source = x}, src);
+            ObservableCollectionView<ItemVm, Item> vm = new ObservableCollectionView<ItemVm, Item>(x => new ItemVm(){Source = x}, src);
             
             src.Add(new Item(1));
             src.Add(new Item(3));
@@ -93,7 +103,7 @@ namespace ModelingEvolution.Plumberd.Tests
         public void Delete()
         {
             ObservableCollection<Item> src = new ObservableCollection<Item>();
-            ObservableCollectionView<ItemVm, Item, ObservableCollection<Item>> vm = new ObservableCollectionView<ItemVm, Item, ObservableCollection<Item>>(x => new ItemVm(){Source = x}, src);
+            ObservableCollectionView<ItemVm, Item> vm = new ObservableCollectionView<ItemVm, Item>(x => new ItemVm(){Source = x}, src);
             
             src.Add(new Item(1));
             src.Add(new Item(2));

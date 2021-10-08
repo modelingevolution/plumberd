@@ -258,6 +258,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     {
                         try
                         {
+                            //Console.WriteLine("-> " + e.GetType().Name);
                             await Transfer(c, m, e, responseStream, context, buffer);
                         }
                         catch (InvalidOperationException ex)

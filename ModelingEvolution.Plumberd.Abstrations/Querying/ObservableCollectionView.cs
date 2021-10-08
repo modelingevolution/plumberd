@@ -14,12 +14,12 @@ namespace ModelingEvolution.Plumberd.Querying
     {
 
     }
-    public class ObservableCollectionView<TDst,TSrc, TSrcCollection> : IObservableCollectionView<TDst,TSrc>
-    where TSrcCollection : class, IList<TSrc>, INotifyCollectionChanged
+    public class ObservableCollectionView<TDst,TSrc> : IObservableCollectionView<TDst,TSrc>
+
     where TDst:IViewFor<TSrc>,IEquatable<TDst>
     {
         private readonly Func<TSrc, TDst> _convertItem;
-        private readonly TSrcCollection _internal;
+        private readonly IList<TSrc> _internal;
         private readonly ObservableCollection<TDst> _filtered;
         private Predicate<TDst> _filter;
         private static readonly Predicate<TDst> _trueFilter = x => true;
@@ -85,14 +85,17 @@ namespace ModelingEvolution.Plumberd.Querying
         
 
         
-        public ObservableCollectionView(Func<TSrc,TDst> convertItem, TSrcCollection src)
+        public ObservableCollectionView(Func<TSrc,TDst> convertItem, IList<TSrc> src)
         {
             _convertItem = convertItem;
             _internal = src;
             _filtered = new ObservableCollection<TDst>();
             _filtered.AddRange(_internal.Select(_convertItem));
 
-            _internal.CollectionChanged += (s, e) => SourceCollectionChanged(e);
+            var srcCollectionChanges = src as INotifyCollectionChanged;
+            if (srcCollectionChanges == null)
+                throw new ArgumentException("src must implement INotifyCollectionChanged");
+            srcCollectionChanges.CollectionChanged += (s, e) => SourceCollectionChanged(e);
             _filtered.CollectionChanged += (s, e) => ViewCollectionChanged(e);
             ((INotifyPropertyChanged)_filtered).PropertyChanged += (s, e) => ViewPropertyChanged(e);
             _filter = _trueFilter;
@@ -145,6 +148,16 @@ namespace ModelingEvolution.Plumberd.Querying
                 {
                     _filtered.Remove(i);
                 }
+            } else if (args.Action == NotifyCollectionChangedAction.Replace)
+            {
+                if (!IsFiltered)
+                {
+                    for (int i = 0; i < args.NewItems.Count; i++)
+                    {
+                        _filtered[i + args.OldStartingIndex] = _convertItem((TSrc)args.NewItems[i]);
+                    }
+                }
+                else throw new NotSupportedException();
             }
         }
 
