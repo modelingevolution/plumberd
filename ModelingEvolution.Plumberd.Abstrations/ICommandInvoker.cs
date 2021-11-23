@@ -39,14 +39,15 @@ namespace ModelingEvolution.Plumberd
 
         public void LockSchema()
         {
-            _schema.RegisterSystem(MetadataProperty.Category);
-            _schema.RegisterSystem(MetadataProperty.StreamId);
+            _schema.RegisterSystem(MetadataProperty.Category());
+            _schema.RegisterSystem(MetadataProperty.StreamId());
         }
         public virtual IMetadata CreateMetadata(Guid id, ICommand c, string streamName, IContext context)
         {
             Metadata.Metadata m = new Metadata.Metadata(_schema,false);
-            m[MetadataProperty.Category] = streamName;
-            m[MetadataProperty.StreamId] = id;
+            m[m.Schema[MetadataProperty.CategoryName]] = streamName;
+            m[m.Schema[MetadataProperty.StreamIdName]] = id;
+            
             foreach (var i in _schema.WriteProperties)
             {
                 if(context == null)

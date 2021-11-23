@@ -8,17 +8,17 @@ namespace ModelingEvolution.Plumberd.Metadata
 {
     public sealed class MetadataSchema : IMetadataSchema
     {
-        private static IMetadataSchema _system;
-        public static IMetadataSchema System
+        private IMetadataSchema _system;
+        public IMetadataSchema System
         {
             get
             {
                 if (_system == null)
                 {
                     _system = new MetadataSchema();
-                    _system.RegisterSystem(MetadataProperty.Category);
-                    _system.RegisterSystem(MetadataProperty.StreamId);
-                    _system.RegisterSystem(MetadataProperty.StreamPosition);
+                    _system.RegisterSystem(MetadataProperty.Category());
+                    _system.RegisterSystem(MetadataProperty.StreamId());
+                    _system.RegisterSystem(MetadataProperty.StreamPosition());
                 }
 
                 return _system;

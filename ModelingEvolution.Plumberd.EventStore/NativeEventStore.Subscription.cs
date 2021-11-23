@@ -174,7 +174,6 @@ namespace ModelingEvolution.Plumberd.EventStore
                 in bool fromBeginning,
                 EventHandler onEvent,
                 string streamName,
-
                 IProcessingContextFactory processingContextFactory)
             {
                 _parent = parent;

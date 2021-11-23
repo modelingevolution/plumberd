@@ -5,10 +5,14 @@ namespace ModelingEvolution.Plumberd.Metadata
 {
     public sealed class MetadataProperty
     {
-        public static readonly MetadataProperty StreamId = new MetadataProperty("StreamId", typeof(Guid), -1, null, false);
-        public static readonly MetadataProperty Category = new MetadataProperty("Category", typeof(String),-1, null, false);
-        public static readonly MetadataProperty StreamPosition = new MetadataProperty("StreamPosition", typeof(ulong), -1, null, false);
-        
+        public const string CategoryName = "Category";
+        public const string StreamPositionName = "StreamPosition";
+        public const string StreamIdName = "StreamId";
+        public static MetadataProperty StreamId() => new MetadataProperty(StreamIdName, typeof(Guid), -1, null, false);
+        public static MetadataProperty Category() => new MetadataProperty(CategoryName, typeof(String),-1, null, false);
+        public static MetadataProperty StreamPosition() => new MetadataProperty(StreamPositionName, typeof(ulong), -1, null, false);
+        private int _order;
+
         public MetadataProperty(string name, 
             Type type, 
             int order, 
@@ -17,7 +21,7 @@ namespace ModelingEvolution.Plumberd.Metadata
         {
             Name = name;
             Type = type;
-            Order = order;
+            _order = order;
             Enricher = enricher;
             IsPersistable = isPersistable;
         }
@@ -25,6 +29,16 @@ namespace ModelingEvolution.Plumberd.Metadata
         public string Name { get;  }
         public Type Type { get; }
         public IMetadataEnricher Enricher { get; }
-        public int Order { get; internal set; }
+
+        public int Order
+        {
+            get => _order;
+            internal set
+            {
+                if (_order == -1)
+                    _order = value;
+                else throw new ArgumentException();
+            }
+        }
     }
 }

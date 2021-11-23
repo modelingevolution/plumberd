@@ -79,18 +79,18 @@ namespace ModelingEvolution.Plumberd.EventStore
                 } while (!slice.IsEndOfStream);
             }
 
-            private (IMetadata, IRecord) ReadEvent(ResolvedEvent i)
+            private (IMetadata, IRecord) ReadEvent(ResolvedEvent r)
             {
-                var m = _metadataSerializer.Deserialize(i.Event.Metadata);
+                var m = _metadataSerializer.Deserialize(r.Event.Metadata);
 
-                var streamId = i.Event.EventStreamId;
+                var streamId = r.Event.EventStreamId;
                 var splitIndex = streamId.IndexOf('-');
 
-                m[MetadataProperty.Category] = streamId.Remove(splitIndex);
-                m[MetadataProperty.StreamId] = Guid.Parse(streamId.Substring(splitIndex + 1));
-                m[MetadataProperty.StreamPosition] = (ulong) i.Event.EventNumber;
+                m[m.Schema[MetadataProperty.CategoryName]] = streamId.Remove(splitIndex);
+                m[m.Schema[MetadataProperty.StreamIdName]] = Guid.Parse(streamId.Substring(splitIndex + 1));
+                m[m.Schema[MetadataProperty.StreamPositionName]] = (ulong)r.Event.EventNumber;
 
-                var ev = _recordSerializer.Deserialize(i.Event.Data, m);
+                var ev = _recordSerializer.Deserialize(r.Event.Data, m);
                 return (m, ev);
             }
 

@@ -41,7 +41,7 @@ namespace ModelingEvolution.Plumberd.CommandHandling
 
             public override async Task Execute(Guid id, TCommand c)
             {
-                using (var context = _contextFactory.Create(this.GetType(), id, c))
+                using (var context = _contextFactory.Create(this.GetType(),  c))
                 {
                     await _repository.ExecuteAndSave<TStateTransitionUnit>(id, c, context);
                 }

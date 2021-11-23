@@ -21,11 +21,11 @@ namespace ModelingEvolution.Plumberd.Tests
             _testOutputHelper = testOutputHelper;
             controller = new ComplexProcessingUnit(_testOutputHelper);
             IMetadataSchema s = new MetadataSchema();
-            s.RegisterSystem(MetadataProperty.Category);
-            s.RegisterSystem(MetadataProperty.StreamId);
+            s.RegisterSystem(MetadataProperty.Category());
+            s.RegisterSystem(MetadataProperty.StreamId());
 
             m = new Metadata.Metadata(s, true);
-            m[MetadataProperty.StreamId] = Guid.NewGuid();
+            m[m.Schema[MetadataProperty.StreamIdName]] = Guid.NewGuid();
         }
 
         

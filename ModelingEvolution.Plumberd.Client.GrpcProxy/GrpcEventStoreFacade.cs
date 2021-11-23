@@ -110,10 +110,13 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
        
 
         public IEventStoreSettings Settings { get; }
-        public IStream GetStream(string category, Guid id, IContext context = null)
+        public IStream GetStream(string category, Guid id, IContext context = null, IMetadataSerializer serializer = null,
+            IRecordSerializer recordSerializer = null)
         {
             throw new NotImplementedException();
         }
+
+      
 
         public Task Init()
         {

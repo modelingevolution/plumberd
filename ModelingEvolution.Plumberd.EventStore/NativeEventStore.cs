@@ -336,13 +336,14 @@ namespace ModelingEvolution.Plumberd.EventStore
         }
 
         
-        public IStream GetStream(string category, Guid id, IContext context)
+        public IStream GetStream(string category, Guid id, IContext context, 
+            IMetadataSerializer serializer = null, IRecordSerializer recordSerializer = null)
         {
             context ??= StaticProcessingContext.Context;
 
-            return new Stream(this, category, id, _connection, 
-                _settings.MetadataSerializerFactory.Get(context),
-                _settings.Serializer);
+            return new Stream(this, category, id, _connection,
+                serializer ?? _settings.MetadataSerializerFactory.Get(context),
+                recordSerializer ?? _settings.Serializer);
         }
 
         
@@ -359,10 +360,10 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             var streamId = r.Event.EventStreamId;
             var splitIndex = streamId.IndexOf('-');
-
-            m[MetadataProperty.Category] = streamId.Remove(splitIndex);
-            m[MetadataProperty.StreamId] = Guid.Parse(streamId.Substring(splitIndex + 1));
-            m[MetadataProperty.StreamPosition] = (ulong)r.Event.EventNumber;
+            
+            m[m.Schema[MetadataProperty.CategoryName]] = streamId.Remove(splitIndex);
+            m[m.Schema[MetadataProperty.StreamIdName]] = Guid.Parse(streamId.Substring(splitIndex + 1));
+            m[m.Schema[MetadataProperty.StreamPositionName]] = (ulong)r.Event.EventNumber;
             return (m, e);
         }
 

@@ -10,7 +10,6 @@ namespace ModelingEvolution.Plumberd
     public interface ICommandProcessingContextFactory
     {
         ICommandHandlerContext Create<TCommand>(object processingUnit,
-            Guid id,
             TCommand cmd)
             where TCommand : ICommand;
     }
@@ -38,11 +37,11 @@ namespace ModelingEvolution.Plumberd
             ProcessingUnit = processingUnit;
             ProcessingUnitType = processingUnit.GetType();
         }
-        public CommandHandlerContext(object processingUnit, ICommand command, Guid id)
+        public CommandHandlerContext(object processingUnit, ICommand command/*, IMetadata id*/)
         {
             Record = command;
-            Metadata = new Metadata.Metadata(MetadataSchema.System,true);
-            Metadata[MetadataProperty.StreamId] = id;
+            //Metadata = id;
+            //Metadata[MetadataProperty.StreamId] = id;
             ProcessingUnit = processingUnit;
             ProcessingUnitType = processingUnit.GetType();
         }
@@ -59,10 +58,10 @@ namespace ModelingEvolution.Plumberd
     }
     public class CommandProcessingContextFactory : ICommandProcessingContextFactory
     {
-        public ICommandHandlerContext Create<TCommand>(object processingUnit, Guid id, TCommand cmd)
+        public ICommandHandlerContext Create<TCommand>(object processingUnit, TCommand cmd)
             where TCommand : ICommand
         {
-            return new CommandHandlerContext(processingUnit, cmd, id);
+            return new CommandHandlerContext(processingUnit, cmd);
         }
     }
 }
