@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>ModelingEvolution.Plumberd.EventStore</AssemblyName>
@@ -22,7 +22,11 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
 This package is the implementation of EventStory from EventStore.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="GrpcEventStore.Subscription.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="EventStore.Client" Version="21.2.0" />
+    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="21.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0-rc.1.21451.13" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0-rc.1.21451.13" />
   </ItemGroup>
@@ -38,5 +42,6 @@ This package is the implementation of EventStory from EventStore.</Description>
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+    <None Include="GrpcEventStore.Subscription.cs" />
   </ItemGroup>
 </Project>

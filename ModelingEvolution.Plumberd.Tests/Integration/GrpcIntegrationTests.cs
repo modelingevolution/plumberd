@@ -31,7 +31,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             _testOutputHelper = testOutputHelper;
         }
         [Fact]
-        public async Task InvokeRead()
+         public async Task InvokeRead()
         {
             Guid id = Guid.NewGuid();
             var c = new SimpleCommand();

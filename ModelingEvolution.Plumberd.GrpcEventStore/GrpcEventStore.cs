@@ -33,6 +33,16 @@ namespace ModelingEvolution.Plumberd.GrpcEventStore
             {
                 throw new NotImplementedException();
             }
+
+            public IAsyncEnumerable<IRecord> ReadEvents()
+            {
+                throw new NotImplementedException();
+            }
+
+            IAsyncEnumerable<(IMetadata, IRecord)> IStream.Read()
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private EventStoreClient _client;
@@ -54,6 +64,21 @@ namespace ModelingEvolution.Plumberd.GrpcEventStore
             params string[] sourceEventTypes)
         {
             
+        }
+
+        public Task Init()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ISubscription> Subscribe(ProjectionSchema schema, bool fromBeginning, bool isPersistent, EventHandler onEvent, IProcessingContextFactory factory)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ISubscription> Subscribe(string name, bool fromBeginning, bool isPersistent, EventHandler onEvent, IProcessingContextFactory factory, params string[] types)
+        {
+            throw new NotImplementedException();
         }
     }
 }
