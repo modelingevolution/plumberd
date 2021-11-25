@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EventStore.Client;
+using Microsoft.VisualBasic.CompilerServices;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using Newtonsoft.Json;
@@ -30,14 +31,14 @@ namespace ModelingEvolution.Plumberd.EventStore
             public GrpcStream(GrpcEventStore store,
                 string category,
                 Guid id,
-                string connectionSettings,
+                EventStoreClient connection,
                 IMetadataSerializer metadataSerializer,
                 IRecordSerializer recordSerializer)
             {
                 _store = store;
                 _category = category;
                 _id = id;
-                _connection = new EventStoreClient(EventStoreClientSettings.Create(connectionSettings));
+                _connection = connection;
                 _metadataSerializer = metadataSerializer;
                 _recordSerializer = recordSerializer;
                 _streamName = $"{_category}-{id}";  
@@ -46,12 +47,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             public async Task Append(IRecord x, IMetadata metadata, ulong expectedVersion)
             {
                 var data = CreateGrpcEventData(x, metadata);
-                var result = await _connection.AppendToStreamAsync(_streamName, StreamRevision.FromInt64((Int64)expectedVersion), new [] {data});
+                await _connection.AppendToStreamAsync(_streamName, StreamRevision.FromInt64((Int64)expectedVersion), new [] {data});
             }
 
             public async Task Append(IRecord x, IMetadata metadata)
             {
-               // var data = CreateEventData(x, metadata);
                var data = CreateGrpcEventData(x, metadata);
                await _connection.AppendToStreamAsync(_streamName, StreamState.Any, new[] {data});
 
@@ -60,25 +60,24 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                 var metadataBytes = _metadataSerializer.Serialize(metadata);
                 var eventBytes = _recordSerializer.Serialize(x, metadata);
-                var eventType = x is ILink ? "$>" : _store.Settings.RecordNamingConvention(x.GetType())[0];
+                var eventType = x is ILink ? "$>" : _store._settings.CommandStreamPrefix; //Todo check corectness
                 var data = new global::EventStore.Client.EventData(Uuid.FromGuid(x.Id), eventType, eventBytes, metadataBytes);
                 return data;
             }
 
-            public async IAsyncEnumerable<(IMetadata, IRecord)> Read() ///check
+            public async IAsyncEnumerable<(IMetadata, IRecord)> Read() 
             {
                 EventStoreClient.ReadStreamResult slice = null;
                 ulong start = StreamPosition.Start;
-                do
-                {
-                    slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, 100);
-                    foreach (var i in slice.ToEnumerable())
+  
+                    slice =  _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, int.MaxValue ); //TODO check max count
+                    await foreach (var i in slice)
                     {
                         var d = ReadEvent(i);
 
                         yield return d;
                     }
-                } while (!await slice.MoveNextAsync());
+                    
             }
 
             private (IMetadata, IRecord) ReadEvent(ResolvedEvent i)
@@ -101,23 +100,18 @@ namespace ModelingEvolution.Plumberd.EventStore
                
                 ulong start = StreamPosition.Start.ToUInt64();
                 EventStoreClient.ReadStreamResult slice = null;
-                do
-                {
-                    slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, start, 100,null,true,null);
-                    foreach (var i in slice.ToEnumerable())
+                
+                    slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, start, int.MaxValue);
+                    await foreach (var i in slice)
                     {
                         var d = ReadEvent(i);
 
                         yield return d.Item2;
                     }
-
-                    if (slice.ToEnumerable().ToArray().Length ==0 )
-                        break;
-                    start += 100; ///check the max ammount of items
-
-                } while (!await slice.MoveNextAsync());
             }
         }
+
+        
     }
 
 

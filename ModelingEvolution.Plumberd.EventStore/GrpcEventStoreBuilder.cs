@@ -204,30 +204,31 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _recordSerializer ?? new RecordSerializer(),
                 _isDevelopment,
                 _convention);
+            throw new NotImplementedException();
 
-
-            var es = new GrpcEventStore(settings,
-                _tcpUrl,
-                _httpUrl,
-                _userName,
-                _password,
-                _ignoreCert,
-                _disableTls,
-                _connectionCustomizations,
-                _projectionConfigs);
-            if (_logWrittenEventsToLog)
-                es.CheckConnectivity += WireLog;
+            //var es = new GrpcEventStore(settings,
+            //    _tcpUrl,
+            //    _httpUrl,
+            //    _userName,
+            //    _password,
+            //    _ignoreCert,
+            //    _disableTls,
+            //    _connectionCustomizations,
+            //    _projectionConfigs);
+            //if (_logWrittenEventsToLog)
+            //    es.CheckConnectivity += WireLog;
             // Temporary
-            if (checkConnectivity)
-                Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
+            //if (checkConnectivity)
+            //    Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
 
-            return es;
+            //return es;
         }
 
         private void WireLog(NativeEventStore es)
         {
-            es.Connection.SubscribeToAllAsync(false, onLog);
-            
+            throw new NotImplementedException();
+            //  es.Connection.SubscribeToAllAsync(false,);
+
 
         }
         private Task onLog(StreamSubscription s, ResolvedEvent e)

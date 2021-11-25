@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30626.31
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31717.71
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelingEvolution.Plumberd", "ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj", "{1D05A9D3-F8A4-4C21-800A-4F502403F699}"
 EndProject
@@ -15,8 +15,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelingEvolution.Plumberd.GrpcEventStore", "ModelingEvolution.Plumberd.GrpcEventStore\ModelingEvolution.Plumberd.GrpcEventStore.csproj", "{686A18ED-14BE-4947-BD5B-180D9E10503E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,10 +34,6 @@ Global
 		{38035D80-E2FF-4683-80A8-64BFD310B9D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{38035D80-E2FF-4683-80A8-64BFD310B9D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{38035D80-E2FF-4683-80A8-64BFD310B9D5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{686A18ED-14BE-4947-BD5B-180D9E10503E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{686A18ED-14BE-4947-BD5B-180D9E10503E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{686A18ED-14BE-4947-BD5B-180D9E10503E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{686A18ED-14BE-4947-BD5B-180D9E10503E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

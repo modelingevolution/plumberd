@@ -1,31 +1,28 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client;
 using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Metadata;
-using ModelingEvolution.Plumberd.Serialization;
 using Modellution.Logging;
-using Newtonsoft.Json;
-using ProtoBuf.Meta;
-using ProtoBuf;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
+using Position = EventStore.Client.Position;
+using ResolvedEvent = EventStore.Client.ResolvedEvent;
+using StreamPosition = EventStore.Client.StreamPosition;
 
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
-
+    
     public partial class GrpcEventStore : IEventStore
     {
         public event Action<NativeEventStore> Connected;
@@ -35,14 +32,14 @@ namespace ModelingEvolution.Plumberd.EventStore
         private static readonly ILogger Log = LogFactory.GetLogger<NativeEventStore>();
 
         private readonly EventStoreClient _connection;
-        private readonly Proje _projectionsManager;
+        private readonly EventStoreProjectionManagementClient management;
         private readonly UserCredentials _credentials;
-
+        private readonly EventStorePersistentSubscriptionsClient _subscriptionsClient;
         private readonly EventStoreSettings _settings;
-        internal IEventStoreConnection Connection => _connection;
         public IEventStoreSettings Settings => _settings;
         private HttpClientHandler IgnoreServerCertificateHandler()
         {
+            
             return new HttpClientHandler()
             {
                 ServerCertificateCustomValidationCallback = (r, cer, c, e) => true
@@ -90,8 +87,9 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                         if (writeTask != null)
                             await writeTask;
-                        var d = new global::EventStore.ClientAPI.EventData(g, eventType, true, metadata, data);
-                        writeTask = _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, d);
+                        var eventData =
+                            new global::EventStore.Client.EventData(Uuid.FromGuid(g), eventType, data, metadata);
+                        writeTask = _connection.AppendToStreamAsync(streamName,StreamRevision.None,new [] {eventData});
                         n += 1;
                     }
                 }
@@ -114,16 +112,14 @@ namespace ModelingEvolution.Plumberd.EventStore
                 await using (var fs = new DeflateStream(fileStream, CompressionMode.Compress))
                 await using (BinaryWriter sw = new BinaryWriter(fs))
                 {
-                    Position p = Position.Start;
-                    AllEventsSlice slice = null;
-                    do
-                    {
-                        slice = await _connection.ReadAllEventsForwardAsync(p, 1000, false);
-                        foreach (var e in slice.Events)
-                        {
-                            if (!e.Event.EventStreamId.StartsWith("$") && e.Event.EventType != "$>")
-                            {
-                                e.Event.EventId.TryWriteBytes(guidBuffer);
+
+                    var slice = _connection.ReadAllAsync(Direction.Forwards, Position.Start, int.MaxValue, null,
+                        false);
+                       await  foreach (var e in slice)
+                       {
+                           if (!e.Event.EventStreamId.StartsWith("$") && e.Event.EventType != "$>")
+                           {
+                               e.Event.EventId.ToGuid().TryWriteBytes(guidBuffer);
                                 var streamIdName = Encoding.UTF8.GetBytes(e.Event.EventStreamId);
                                 var eventType = Encoding.UTF8.GetBytes(e.Event.EventType);
 
@@ -135,106 +131,102 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                                 sw.Write(streamIdName);
                                 sw.Write(eventType);
-                                sw.Write(e.Event.Metadata);
-                                sw.Write(e.Event.Data);
+                                sw.Write(e.Event.Metadata.Span);
+                                sw.Write(e.Event.Data.Span);
                                 n += 1;
                             }
                         }
 
-                        p = slice.NextPosition;
-                    } while (!slice.IsEndOfStream);
+                  
                 }
             }
             s.Stop();
             Log.LogInformation("Writing {count} done in: {duration}", n, s.Elapsed);
 
         }
-        public NativeEventStore(IEventStoreConnection connection,
-            ProjectionsManager projectionsManager,
+        public GrpcEventStore(
             UserCredentials credentials,
-            EventStoreSettings settings)
+            EventStoreClientSettings settings)
 
         {
-            _settings = settings;
             _subscriptions = new ConcurrentBag<ISubscription>();
-            _projectionsManager = projectionsManager;
-            _connection = connection;
-            _connection.ConnectAsync().Wait();
+            EventStoreClient cl =
+                _connection = new EventStoreClient(settings);
             _credentials = credentials;
-            _projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
+            //_projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
         }
-        public NativeEventStore(EventStoreSettings settings,
+        public GrpcEventStore(EventStoreSettings settings,
             Uri tcpUrl = null,
             Uri httpProjectionUrl = null,
             string userName = "admin",
             string password = "changeit",
             bool ignoreServerCert = false,
             bool disableTls = false,
-            Action<ConnectionSettingsBuilder> connectionBuilder = null,
             IEnumerable<IProjectionConfig> configurations = null)
         {
             _settings = settings;
             _subscriptions = new ConcurrentBag<ISubscription>();
             _credentials = new UserCredentials(userName, password);
 
+            
+            //httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
+            //tcpUrl = tcpUrl == null ? new Uri("tcp://127.0.0.1:1113") : tcpUrl;
 
-            httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
-            tcpUrl = tcpUrl == null ? new Uri("tcp://127.0.0.1:1113") : tcpUrl;
 
+            //var tcpSettings = ConnectionSettings.Create()
+            //    //.DisableServerCertificateValidation()
+            //    //.UseDebugLogger()
+            //    //.EnableVerboseLogging()
+            //    .KeepReconnecting()
+            //    .KeepRetrying()
+            //    .LimitReconnectionsTo(1000)
+            //    .LimitRetriesForOperationTo(100)
+            //    .WithConnectionTimeoutOf(TimeSpan.FromSeconds(5))
+            //    .SetDefaultUserCredentials(_credentials);
 
-            var tcpSettings = ConnectionSettings.Create()
-                //.DisableServerCertificateValidation()
-                //.UseDebugLogger()
-                //.EnableVerboseLogging()
-                .KeepReconnecting()
-                .KeepRetrying()
-                .LimitReconnectionsTo(1000)
-                .LimitRetriesForOperationTo(100)
-                .WithConnectionTimeoutOf(TimeSpan.FromSeconds(5))
-                .SetDefaultUserCredentials(_credentials);
+            //if (disableTls)
+            //{
+            //    tcpSettings = tcpSettings.DisableTls();
+            //    const string msg = "Tls is disabled";
+            //    if (_settings.IsDevelopment)
+            //        Log.LogInformation(msg);
+            //    else
+            //        Log.LogWarning(msg);
+            //}
 
-            if (disableTls)
-            {
-                tcpSettings = tcpSettings.DisableTls();
-                const string msg = "Tls is disabled";
-                if (_settings.IsDevelopment)
-                    Log.LogInformation(msg);
-                else
-                    Log.LogWarning(msg);
-            }
+            //if (ignoreServerCert)
+            //{
+            //    tcpSettings = tcpSettings.DisableServerCertificateValidation();
+            //    const string msg = "Server certificate validation is disabled";
+            //    if (_settings.IsDevelopment)
+            //        Log.LogInformation(msg);
+            //    else
+            //        Log.LogWarning(msg);
+            //}
 
-            if (ignoreServerCert)
-            {
-                tcpSettings = tcpSettings.DisableServerCertificateValidation();
-                const string msg = "Server certificate validation is disabled";
-                if (_settings.IsDevelopment)
-                    Log.LogInformation(msg);
-                else
-                    Log.LogWarning(msg);
-            }
+            //connectionBuilder?.Invoke(tcpSettings);
+            
+            //_projectionsManager = new ProjectionsManager(new ConsoleLogger(), new DnsEndPoint(httpProjectionUrl.Host, httpProjectionUrl.Port), TimeSpan.FromSeconds(10),
+            //    ignoreServerCert ? IgnoreServerCertificateHandler() : null, httpProjectionUrl.Scheme);
 
-            connectionBuilder?.Invoke(tcpSettings);
-
-            _projectionsManager = new ProjectionsManager(new ConsoleLogger(), new DnsEndPoint(httpProjectionUrl.Host, httpProjectionUrl.Port), TimeSpan.FromSeconds(10),
-                ignoreServerCert ? IgnoreServerCertificateHandler() : null, httpProjectionUrl.Scheme);
-            _connection = EventStoreConnection.Create(tcpSettings.Build(), tcpUrl);
-            _projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
-            if (configurations != null)
-                _projectionConfigurations.Register(configurations);
+            var set = EventStoreClientSettings.Create(tcpUrl.OriginalString);
+            _connection = new EventStoreClient(set);
+            //_projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
+            //if (configurations != null)
+            //    _projectionConfigurations.Register(configurations);
         }
 
 
-        public async Task CheckConnectivity()
+        public void CheckConnectivity()
         {
             if (!_connected)
             {
-                Log.LogInformation("Establishing connection.");
-                await _connection.ConnectAsync();
-                Log.LogInformation("Testing reading.");
-                var slice = await _connection.ReadAllEventsBackwardAsync(Position.End, 1, true, _credentials);
+                var result = _connection.ReadAllAsync(Direction.Backwards, Position.End, 1,
+                    null, false, _credentials);
+              if(!result.GetAsyncEnumerator().Current.Equals(null))
                 Log.LogInformation("Connected.");
                 _connected = true;
-                Connected?.Invoke(this);
+             
             }
         }
 
@@ -245,7 +237,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             IProcessingContextFactory factory,
             params string[] types)
         {
-            await CheckConnectivity();
+            CheckConnectivity();
             Array.Sort(types);
 
             Guid key = String.Concat(types).ToGuid();
@@ -280,8 +272,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             EventHandler onEvent,
             IProcessingContextFactory factory)
         {
-
-            await CheckConnectivity();
+            CheckConnectivity();
 
             if (!schema.IsDirect)
                 await _projectionConfigurations.UpdateProjectionSchema(schema);
@@ -291,45 +282,31 @@ namespace ModelingEvolution.Plumberd.EventStore
             else
                 return await Subscribe(fromBeginning, onEvent, schema.StreamName, factory);
         }
-        private async Task UpdateDefaultTrackingProjectionIfNeeded(string projectionName,
-            string streamName,
-            IEnumerable<string> types)
-        {
-            var query = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingLinksToStream(streamName).Script();
-            var config = await _projectionsManager.GetConfigAsync(projectionName, _credentials);
-
-            var currentQuery = await _projectionsManager.GetQueryAsync(projectionName, _credentials);
-            if (query != currentQuery || !config.EmitEnabled)
-            {
-                Log.LogInformation("Updating continues projection definition and config: {projectionName}", projectionName);
-                await _projectionsManager.UpdateQueryAsync(projectionName, query, true, _credentials);
-            }
-
-        }
+        
 
 
-        //check
+
         private async Task<ISubscription> Subscribe(bool fromBeginning,
             EventHandler onEvent,
             string streamName,
             IProcessingContextFactory processingContextFactory)
         {
-            ContinuesSubscription s = new ContinuesSubscription(this, fromBeginning, onEvent, streamName, processingContextFactory);
+            GrpcContinuesSubscription s = new GrpcContinuesSubscription(this, fromBeginning, onEvent, streamName, processingContextFactory);
             await s.Subscribe();
             _subscriptions.Add(s);
             return s;
         }
 
-        //check
+
         private async Task<ISubscription> SubscribePersistently(bool fromBeginning,
             EventHandler onEvent,
             string streamName,
-            IProcessingContextFactory processingContextFactory)
+            IProcessingContextFactory processingContextFactory) //TODO swap to async
         {
-            PersistentSubscription s = new PersistentSubscription(this, fromBeginning, onEvent, streamName, processingContextFactory);
-            await s.Subscribe();
-            _subscriptions.Add(s);
-            return s;
+            var q = new GrpcPersistentSubscription(this, fromBeginning, onEvent, streamName, processingContextFactory);
+            await q.Subscribe();
+            _subscriptions.Add(q);
+            return q ;
         }
 
 
@@ -363,16 +340,13 @@ namespace ModelingEvolution.Plumberd.EventStore
             return (m, e);
         }
 
-        public IEnumerable<IStream> GetStreams()
+        public async IAsyncEnumerable<IStream> GetStreams()
         {
-            StreamEventsSlice pack = null;
-
-            do
-            {
-                pack = _connection.ReadStreamEventsForwardAsync("$streams", pack?.NextEventNumber ?? 0, 1000, false).GetAwaiter().GetResult();
-                foreach (var s in pack.Events)
+            var pack =  _connection.ReadStreamAsync(Direction.Forwards, "$streams", StreamPosition.Start, int.MaxValue);
+                await foreach (var s in pack)
                 {
-                    string streamName = Encoding.UTF8.GetString(s.Event.Data);
+                    
+                    string streamName = Encoding.UTF8.GetString(s.Event.Data.Span);
 
                     int atIndex = streamName.IndexOf('@');
                     int dashIndex = streamName.IndexOf('-', atIndex);
@@ -382,7 +356,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                     yield return GetStream(category, id, null);
                 }
-            } while (!pack.IsEndOfStream);
+         
         }
     }
 }

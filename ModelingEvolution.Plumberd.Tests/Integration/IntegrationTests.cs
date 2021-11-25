@@ -18,6 +18,11 @@ using EventData = EventStore.ClientAPI.EventData;
 
 namespace ModelingEvolution.Plumberd.Tests.Integration
 {
+    public enum CommunicationProtocol
+    {
+        Tcp,
+        Grpc
+    };
     public class IntegrationTests
     {
         private readonly ITestOutputHelper _testOutputHelper;
@@ -28,8 +33,10 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             _testOutputHelper = testOutputHelper;
         }
 
-        [Fact]
-        public async Task InvokeCommand_HandleCommand_WithException()
+        [Theory]
+        [InlineData(CommunicationProtocol.Tcp)]
+        [InlineData(CommunicationProtocol.Grpc)]
+        public async Task InvokeCommand_HandleCommand_WithException(CommunicationProtocol protocol)
         {
             Guid id = Guid.NewGuid();
             var c = new CommandRaisingException();
@@ -89,7 +96,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
         {
 
             var plumber = await CreatePlumber();
-            var nStore = (NativeEventStore)plumber.DefaultEventStore;
+            var nStore =(EventStore.NativeEventStore) plumber.DefaultEventStore;
             var connection = nStore.Connection;
 
             var events = await connection.ReadStreamEventsForwardAsync($"{category}-{id}", StreamPosition.Start, 10, true);
@@ -111,7 +118,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
         {
             var plumber = await CreatePlumber();
 
-            var nStore = (NativeEventStore) plumber.DefaultEventStore;
+            var nStore =  (ModelingEvolution.Plumberd.EventStore.NativeEventStore)plumber.DefaultEventStore;
             var connection = nStore.Connection;
            
             var ev = new EventData(eId, "Foo", true, bytes, bytes);
@@ -183,7 +190,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 await Task.Delay(100);
             } while (projection.Count == 0 && sw.Elapsed < TimeSpan.FromSeconds(10));
 
-            var nStore = (NativeEventStore)plumber.DefaultEventStore;
+            var nStore = plumber.DefaultEventStore;
             await Task.Delay(200);
             var eventHandlerContext = NSubstitute.Substitute.For<IEventHandlerContext>();
             var data = await nStore.GetStream("/FooLink", projection.StreamId, eventHandlerContext).Read().ToArrayAsync();

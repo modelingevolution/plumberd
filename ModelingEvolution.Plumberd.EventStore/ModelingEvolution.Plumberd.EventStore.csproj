@@ -22,13 +22,13 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
 This package is the implementation of EventStory from EventStore.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="GrpcEventStore.Subscription.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="EventStore.Client" Version="21.2.0" />
+    <PackageReference Include="EventStore.Client" Version="21.2.1" />
+    <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="21.2.0" />
+    <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="21.2.0" />
     <PackageReference Include="EventStore.Client.Grpc.Streams" Version="21.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0-rc.1.21451.13" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0-rc.1.21451.13" />
+    <PackageReference Include="LiquidProjections" Version="3.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
@@ -42,6 +42,5 @@ This package is the implementation of EventStory from EventStore.</Description>
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="GrpcEventStore.Subscription.cs" />
   </ItemGroup>
 </Project>
