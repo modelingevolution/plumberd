@@ -53,31 +53,22 @@ namespace ModelingEvolution.Plumberd.EventStore
             await UpdateProjectionSchemaInner(schema, projections);
         }
 
-        private Task UpdateProjectionSchemaInner(ProjectionSchema schema, List<ProjectionDetails> projections)
+        private async Task UpdateProjectionSchemaInner(ProjectionSchema schema, List<ProjectionDetails> projections)
         {
-            throw new NotImplementedException();
-            //    var projectionName = schema.ProjectionName;
-            //    // we make projection only when we need to.
-            //    if (!projections.Exists(x => x.Name == projectionName))
-            //    {
-            //        var query = schema.Script;
-            //        await _projectionManager.CreateContinuousAsync(projectionName, query, false, _userCredentials);
-            //    }
-            //    else
-            //    {
-            //        var query = schema.Script;
-            //        var config = await _projectionManager(projectionName, _userCredentials);
-
-            //        var currentQuery = await _projectionManager.(projectionName, _userCredentials);
-
-            //        if (query != currentQuery || !config.EmitEnabled)
-            //        {
-            //            Log.LogInformation("Updating continues projection definition and config: {projectionName}",
-            //                projectionName);
-            //            await _projectionManager.UpdateQueryAsync(projectionName, query, true, _userCredentials);
-            //        }
-            //    }
-            //}
+            var projectionName = schema.ProjectionName;
+            // we make projection only when we need to.
+            if (!projections.Exists(x => x.Name == projectionName))
+            {
+                var set = new EventStoreClientSettings();
+                
+                var n = new EventStoreProjectionManagementClient(set);
+                var query = schema.Script;
+                await _projectionManager.CreateContinuousAsync(projectionName, query, false, _userCredentials);
+            }
+            else
+            {
+                var query = schema.Script;
+            }
         }
     }
-}
+    }

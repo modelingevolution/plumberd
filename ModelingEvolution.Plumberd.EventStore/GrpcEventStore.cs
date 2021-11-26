@@ -31,10 +31,11 @@ namespace ModelingEvolution.Plumberd.EventStore
         private bool _connected = false;
         private static readonly ILogger Log = LogFactory.GetLogger<NativeEventStore>();
 
-        private readonly EventStoreClient _connection;
+        EventStoreClient _connection;
+        internal EventStoreClient Connection => _connection; 
         private readonly EventStoreProjectionManagementClient management;
         private readonly UserCredentials _credentials;
-        private readonly EventStorePersistentSubscriptionsClient _subscriptionsClient;
+        EventStorePersistentSubscriptionsClient _subscriptionsClient;
         private readonly EventStoreSettings _settings;
         public IEventStoreSettings Settings => _settings;
         private HttpClientHandler IgnoreServerCertificateHandler()

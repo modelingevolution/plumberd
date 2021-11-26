@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client;
 using Microsoft.Extensions.Configuration;
@@ -204,33 +205,62 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _recordSerializer ?? new RecordSerializer(),
                 _isDevelopment,
                 _convention);
-            throw new NotImplementedException();
-
-            //var es = new GrpcEventStore(settings,
-            //    _tcpUrl,
-            //    _httpUrl,
-            //    _userName,
-            //    _password,
-            //    _ignoreCert,
-            //    _disableTls,
-            //    _connectionCustomizations,
-            //    _projectionConfigs);
+            return null;
+            //var es = new GrpcEventStore(new UserCredentials(_userName, _password), settings);
             //if (_logWrittenEventsToLog)
             //    es.CheckConnectivity += WireLog;
-            // Temporary
+
             //if (checkConnectivity)
             //    Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
 
             //return es;
         }
 
-        private void WireLog(NativeEventStore es)
+        void WireLog(GrpcEventStore es)
         {
-            throw new NotImplementedException();
-            //  es.Connection.SubscribeToAllAsync(false,);
+
+            es.Connection.SubscribeToAllAsync(onLog,false);
 
 
         }
+
+        private Task onLog(StreamSubscription s, ResolvedEvent e, CancellationToken arg3)
+        {
+            if (!e.Event.EventStreamId.StartsWith("$"))
+            {
+                bool isProjection = e.Event.EventStreamId.StartsWith("/");
+                bool isCommand = e.Event.EventStreamId.StartsWith(">") || e.Event.EventStreamId.StartsWith("/>");
+                bool isFact = !isProjection && !isCommand;
+                string subject = isFact ? "Fact" : (isCommand ? "Command" : "View");
+                int index = e.Event.EventStreamId.IndexOf('-');
+                string category = e.Event.EventStreamId.Remove(index);
+                Guid id = Guid.Parse(e.Event.EventStreamId.Substring(index + 1));
+                if (e.Event.EventType != "$>")
+                {
+                    // it's not a link
+                    string data = Encoding.UTF8.GetString(e.Event.Data.ToArray());
+                    _logger.LogInformation("{subject} {eventType} written in {category}\t{id} with data:{eventData}",
+                        subject,
+                        e.Event.EventType,
+                        category,
+                        id,
+                        data);
+                }
+                else
+                {
+                    // it's a link
+                    string data = Encoding.UTF8.GetString(e.Event.Data.ToArray());
+                    _logger.LogInformation("Link for {subject} written in {category}\t{id} with data:{linkData}",
+                        subject,
+                        category,
+                        id,
+                        data);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
         private Task onLog(StreamSubscription s, ResolvedEvent e)
         {
             if (!e.Event.EventStreamId.StartsWith("$"))
