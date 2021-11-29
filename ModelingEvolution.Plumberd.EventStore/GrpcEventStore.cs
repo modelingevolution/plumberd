@@ -31,7 +31,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private bool _connected = false;
         private static readonly ILogger Log = LogFactory.GetLogger<NativeEventStore>();
 
-        EventStoreClient _connection;
+        private readonly EventStoreClient _connection;
         internal EventStoreClient Connection => _connection; 
         private readonly EventStoreProjectionManagementClient management;
         private readonly UserCredentials _credentials;
@@ -169,9 +169,9 @@ namespace ModelingEvolution.Plumberd.EventStore
             _subscriptions = new ConcurrentBag<ISubscription>();
             _credentials = new UserCredentials(userName, password);
 
-            
+
             //httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
-            //tcpUrl = tcpUrl == null ? new Uri("tcp://127.0.0.1:1113") : tcpUrl;
+            tcpUrl = tcpUrl == null ? new Uri("esdb+discover://127.0.0.1:2113?tls=false&keepAliveTimeout=10000&keepAliveInterval=10000") : tcpUrl;
 
 
             //var tcpSettings = ConnectionSettings.Create()
@@ -184,7 +184,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             //    .LimitRetriesForOperationTo(100)
             //    .WithConnectionTimeoutOf(TimeSpan.FromSeconds(5))
             //    .SetDefaultUserCredentials(_credentials);
-
+            
             //if (disableTls)
             //{
             //    tcpSettings = tcpSettings.DisableTls();
@@ -206,7 +206,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             //}
 
             //connectionBuilder?.Invoke(tcpSettings);
-            
+
             //_projectionsManager = new ProjectionsManager(new ConsoleLogger(), new DnsEndPoint(httpProjectionUrl.Host, httpProjectionUrl.Port), TimeSpan.FromSeconds(10),
             //    ignoreServerCert ? IgnoreServerCertificateHandler() : null, httpProjectionUrl.Scheme);
 

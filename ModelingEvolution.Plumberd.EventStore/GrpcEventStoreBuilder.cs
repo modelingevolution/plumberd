@@ -182,7 +182,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             _isDevelopment = isDev;
             return this;
         }
-        public NativeEventStore Build(bool checkConnectivity = true)
+        public GrpcEventStore Build(bool checkConnectivity = true)
         {
             if (!_withoutDefaultEnrichers)
                 WithDefaultEnrichers();
@@ -205,7 +205,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _recordSerializer ?? new RecordSerializer(),
                 _isDevelopment,
                 _convention);
-            return null;
+            return new GrpcEventStore(settings);
             //var es = new GrpcEventStore(new UserCredentials(_userName, _password), settings);
             //if (_logWrittenEventsToLog)
             //    es.CheckConnectivity += WireLog;

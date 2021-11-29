@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net.Mime;
 using System.Text;
 using System.Threading.Tasks;
+using EventStore.Client;
 using EventStore.ClientAPI;
 using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.EventStore;
@@ -15,6 +19,7 @@ using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 using EventData = EventStore.ClientAPI.EventData;
+using StreamPosition = EventStore.ClientAPI.StreamPosition;
 
 namespace ModelingEvolution.Plumberd.Tests.Integration
 {
@@ -73,58 +78,98 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 cmd.Name.ShouldBe(c.Name);
             }
 
-
         }
-       
 
-        [Fact]
-        public async Task SaveEvent_LoadEvent()
+
+        [Theory]
+        [InlineData(CommunicationProtocol.Grpc)]
+        [InlineData(CommunicationProtocol.Tcp)]
+        public async Task SaveEvent_LoadEvent( CommunicationProtocol protocol)
         {
             string category = "Foo";
             Guid id = Guid.NewGuid();
             Guid eId = Guid.NewGuid();
             var bytes = Encoding.UTF8.GetBytes("{ }");
 
-            await SaveEvents(id, eId, bytes, category);
+            await SaveEvents(id, eId, bytes, category,protocol);
 
             await server.StartInDocker();
 
-            await LoadAndAssert(id, eId, bytes, category);
+            await LoadAndAssert(id, eId, bytes, category, protocol);
         }
-
-        private async Task LoadAndAssert(Guid id, Guid eId, byte[] bytes, string category)
+        
+        private async Task LoadAndAssert(Guid id, Guid eId, byte[] bytes, string category, CommunicationProtocol protocol)
         {
 
             var plumber = await CreatePlumber();
-            var nStore =(EventStore.NativeEventStore) plumber.DefaultEventStore;
-            var connection = nStore.Connection;
+            if (protocol == CommunicationProtocol.Tcp)
+            {
+                var nStore = (EventStore.NativeEventStore) plumber.DefaultEventStore;
+                var connection = nStore.Connection;
 
-            var events = await connection.ReadStreamEventsForwardAsync($"{category}-{id}", StreamPosition.Start, 10, true);
-            events.Events.Length.ShouldBe(0);
+                var events =
+                    await connection.ReadStreamEventsForwardAsync($"{category}-{id}", StreamPosition.Start, 10, true);
+                events.Events.Length.ShouldBe(0);
 
-            await nStore.LoadEventFromFile("test.bak");
+                await nStore.LoadEventFromFile("test.bak");
 
-            events = await connection.ReadStreamEventsForwardAsync($"{category}-{id}", StreamPosition.Start, 10, true);
-            events.Events.Length.ShouldBe(1);
-            var r = events.Events[0].Event;
-            r.EventId.ShouldBe(eId);
-            r.Data.ShouldBe(bytes);
-            r.Metadata.ShouldBe(bytes);
-            r.EventStreamId.ShouldBe($"{category}-{id}");
-            r.EventType.ShouldBe("Foo");
+                events = await connection.ReadStreamEventsForwardAsync($"{category}-{id}", StreamPosition.Start, 10,
+                    true);
+                events.Events.Length.ShouldBe(1);
+                var r = events.Events[0].Event;
+                r.EventId.ShouldBe(eId);
+                r.Data.ShouldBe(bytes);
+                r.Metadata.ShouldBe(bytes);
+                r.EventStreamId.ShouldBe($"{category}-{id}");
+                r.EventType.ShouldBe("Foo");
+            }
+            else
+            {
+                //TODO ask about DefaultEventStore (if forget - it was making up Native by default)
+                var nStore = new GrpcEventStoreBuilder().Build(false);
+                var connection = nStore.Connection;
+
+                var events =
+                     connection.ReadStreamAsync(Direction.Forwards, $"{category}-{id}", StreamPosition.Start, maxCount: 10);
+                  events.GetAsyncEnumerator().Current.Event.ShouldBe(null);
+                await nStore.LoadEventFromFile("test.bak");
+
+                events =  connection.ReadStreamAsync(Direction.Forwards,$"{category}-{id}", StreamPosition.Start, 10);
+                var d = await events.GetAsyncEnumerator().MoveNextAsync();
+                d.ShouldNotBe(false);
+                var r = events.Current.Event;
+                r.EventId.ShouldBe(Uuid.FromGuid(eId));
+                r.Data.ShouldBe(bytes);
+                r.Metadata.ShouldBe(bytes);
+                r.EventStreamId.ShouldBe($"{category}-{id}");
+                r.EventType.ShouldBe("Foo");
+            }
         }
 
-        private async Task SaveEvents(Guid id, Guid eId, byte[] bytes, string category)
+        private async Task SaveEvents(Guid id, Guid eId, byte[] bytes, string category, CommunicationProtocol protocol)
         {
             var plumber = await CreatePlumber();
+            if (protocol == CommunicationProtocol.Tcp)
+            {
+                var nStore = (NativeEventStore) plumber.DefaultEventStore;
+                var connection = nStore.Connection;
 
-            var nStore =  (ModelingEvolution.Plumberd.EventStore.NativeEventStore)plumber.DefaultEventStore;
-            var connection = nStore.Connection;
-           
-            var ev = new EventData(eId, "Foo", true, bytes, bytes);
-            await connection.AppendToStreamAsync($"{category}-{id}", ExpectedVersion.Any, new EventData[] {ev});
+                var ev = new EventData(eId, "Foo", true, bytes, bytes);
+                await connection.AppendToStreamAsync($"{category}-{id}", ExpectedVersion.Any, new EventData[] {ev});
 
-            await nStore.WriteEventsToFile("test.bak");
+                await nStore.WriteEventsToFile("test.bak");
+            }
+            else
+            {
+                var nStore = new GrpcEventStoreBuilder().Build(true);
+                var connection = nStore.Connection;
+
+                var ev = new global::EventStore.Client.EventData(Uuid.FromGuid(eId), "Foo",bytes,bytes);
+
+                await connection.AppendToStreamAsync($"{category}-{id}", StreamRevision.None, new global::EventStore.Client.EventData[]{ev});
+
+                await nStore.WriteEventsToFile("test.bak");
+            }
         }
 
 
