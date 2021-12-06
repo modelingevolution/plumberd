@@ -9,16 +9,16 @@ namespace ModelingEvolution.Plumberd.Metadata
        
         public static ulong StreamPosition(this IMetadata m)
         {
-            return (ulong) m[MetadataProperty.StreamPosition];
+            return (ulong) m[m.Schema[MetadataProperty.StreamPositionName]];
         }
         public static Guid StreamId(this IMetadata m)
         {
-            return (Guid) m[MetadataProperty.StreamId];
+            return (Guid) m[m.Schema[MetadataProperty.StreamIdName]];
         }
 
         public static string Category(this IMetadata m)
         {
-            return (string) m[MetadataProperty.Category];
+            return (string) m[m.Schema[MetadataProperty.CategoryName]];
         }
     }
 }

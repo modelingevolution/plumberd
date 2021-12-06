@@ -66,8 +66,8 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             var plumber = await CreatePlumber(protocol);
 
             await plumber.DefaultCommandInvoker.Execute(id, c);
-
-            var context = new CommandProcessingContextFactory().Create(this, id, new FooCommand());
+            
+            var context = new CommandProcessingContextFactory().Create(this, new FooCommand());
 
             using (StaticProcessingContext.CreateScope(context))
             {
@@ -197,7 +197,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             /* Waiting 1 sec for the command-handler and event-handler to finish processing. */
             
 
-            var correlationStream = plumber.DefaultEventStore.GetCorrelationStream(c.Id);
+            var correlationStream = plumber.DefaultEventStore.GetCorrelationStream(c.Id, ContextScope.Command);
 
             IRecord[] records = null;
             Stopwatch sw = new Stopwatch();

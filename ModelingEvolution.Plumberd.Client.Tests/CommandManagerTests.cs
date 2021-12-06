@@ -124,8 +124,8 @@ namespace ModelingEvolution.Plumberd.Client.Tests
         public static IMetadata Create(Guid streamId, Guid userId, Guid correlationId)
         {
             IMetadataSchema s = new MetadataSchema();
-            s.RegisterSystem(MetadataProperty.Category);
-            s.RegisterSystem(MetadataProperty.StreamId);
+            s.RegisterSystem(MetadataProperty.Category());
+            s.RegisterSystem(MetadataProperty.StreamId());
             UserIdEnricher u = new UserIdEnricher();
             u.RegisterSchema(s);
 
@@ -133,7 +133,7 @@ namespace ModelingEvolution.Plumberd.Client.Tests
             c.RegisterSchema(s);
 
             var m = new Metadata.Metadata(s, true);
-            m[MetadataProperty.StreamId] = streamId;
+            m[MetadataProperty.StreamId()] = streamId;
             m[u.UserIdProperty] = userId;
             m[c.CorrelationId] = correlationId;
             return m;

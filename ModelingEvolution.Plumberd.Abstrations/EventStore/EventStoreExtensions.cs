@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading.Tasks;
+using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
@@ -27,9 +28,10 @@ namespace ModelingEvolution.Plumberd.EventStore
             return eventStore.GetStream(name, id, context);
         }
 
-        public static IStream GetCorrelationStream(this IEventStore eventStore, Guid correlationId)
+        public static IStream GetCorrelationStream(this IEventStore eventStore, Guid correlationId, ContextScope context)
         {
-            return eventStore.GetStream("$bc", correlationId);
+            var serializer = eventStore.Settings.MetadataSerializerFactory.Get(context);
+            return eventStore.GetStream("$bc", correlationId, null, serializer);
         }
         public static IStream GetCommandStream<TCommand>(this IEventStore eventStore, Guid id)
             where TCommand : ICommand

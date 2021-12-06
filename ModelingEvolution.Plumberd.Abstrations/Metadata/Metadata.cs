@@ -4,6 +4,10 @@ namespace ModelingEvolution.Plumberd.Metadata
 {
     public readonly struct Metadata : IMetadata
     {
+        public void SteamId(Guid id)
+        {
+            this[_schema[MetadataProperty.StreamIdName]] = id;
+        }
         private readonly IMetadataSchema _schema;
         private readonly object[] _data; // fixed?
         public Metadata(IMetadataSchema schema, bool read)
@@ -25,7 +29,10 @@ namespace ModelingEvolution.Plumberd.Metadata
         }
         public object this[MetadataProperty property]
         {
-            get => this[property.Order];
+            get
+            {
+                return this[property.Order];
+            }
             set => this[property.Order] = value;
         }
 
