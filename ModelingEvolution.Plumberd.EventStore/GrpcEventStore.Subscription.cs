@@ -45,11 +45,14 @@ namespace ModelingEvolution.Plumberd.EventStore
                 IProcessingContextFactory processingContextFactory)
             {
                 _parent = parent;
-                this._fromBeginning = fromBeginning;
-                this._onEvent = onEvent;
-                this._streamName = streamName;
-                this._processingContextFactory = processingContextFactory;
-                this._connection = _parent._connection;
+                _fromBeginning = fromBeginning;
+                _onEvent = onEvent;
+                _streamName = streamName;
+                _processingContextFactory = processingContextFactory;
+                _connection = _parent._connection;
+                _subscriptionClient = _parent._subscriptionsClient;
+                settings = new PersistentSubscriptionSettings();
+                
             }
 
             public async Task Subscribe()
@@ -58,16 +61,12 @@ namespace ModelingEvolution.Plumberd.EventStore
                 try
                 {
                     _log.LogInformation("Connecting to persistent subscription {subscriptionName}.", _streamName);
-                    var settings = new PersistentSubscriptionSettings();
-                    _subscriptionClient =
-                         new EventStorePersistentSubscriptionsClient(new EventStoreClientSettings());
-                    
                     await    _subscriptionClient.SubscribeAsync(
                         _streamName,
                         Environment.MachineName,OnEventAppeared,OnSubscriptionDropped, _parent._credentials);
                   await _subscriptionClient.SubscribeAsync(_streamName,Environment.MachineName,OnEventAppeared,OnSubscriptionDropped);
                 }
-                catch (ArgumentException)
+                catch (Exception)
                 {
                     // expected ex.Message = "Subscription not found";
                     //var settings = await CreatePersistentSubscriptionSettings();
@@ -246,14 +245,14 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                 if (_fromBeginning || _streamPosition > 0)
                 {
-                    await _parent._connection.SubscribeToStreamAsync(_streamName,OnEventAppeared, false, OnSubscriptionDropped);
+                    await _parent._connection.SubscribeToStreamAsync(_streamName,OnEventAppeared, false, OnSubscriptionDropped,userCredentials:new UserCredentials("admin","changeit"));
 
                 }
                 else
                 {
                      await _parent._connection.SubscribeToStreamAsync(_streamName,
                         OnEventAppeared, false,
-                        subscriptionDropped: OnSubscriptionDropped);
+                        subscriptionDropped: OnSubscriptionDropped,userCredentials:new UserCredentials("admin","changeit"));
                 }
             }
 

@@ -27,13 +27,13 @@ namespace ModelingEvolution.Plumberd.EventStore
     {
         public event Action<NativeEventStore> Connected;
         private readonly ConcurrentBag<ISubscription> _subscriptions;
-        private readonly ProjectionConfigurations _projectionConfigurations;
+        private readonly GrpcProjectionConfigurations _projectionConfigurations;
         private bool _connected = false;
         private static readonly ILogger Log = LogFactory.GetLogger<NativeEventStore>();
 
         private readonly EventStoreClient _connection;
         internal EventStoreClient Connection => _connection; 
-        private readonly EventStoreProjectionManagementClient management;
+        private readonly EventStoreProjectionManagementClient _projectionsManager;
         private readonly UserCredentials _credentials;
         EventStorePersistentSubscriptionsClient _subscriptionsClient;
         private readonly EventStoreSettings _settings;
@@ -115,7 +115,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 {
 
                     var slice = _connection.ReadAllAsync(Direction.Forwards, Position.Start, int.MaxValue, null,
-                        false);
+                        false, _credentials);
                        await  foreach (var e in slice)
                        {
                            if (!e.Event.EventStreamId.StartsWith("$") && e.Event.EventType != "$>")
@@ -168,12 +168,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             _settings = settings;
             _subscriptions = new ConcurrentBag<ISubscription>();
             _credentials = new UserCredentials(userName, password);
-
-
+            
             //httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
-            tcpUrl = tcpUrl == null ? new Uri("esdb+discover://127.0.0.1:2113?tls=false&keepAliveTimeout=10000&keepAliveInterval=10000") : tcpUrl;
+            tcpUrl = tcpUrl == null ? new Uri("esdb+discover://eventstore.local:2113") : tcpUrl;
 
-
+            
             //var tcpSettings = ConnectionSettings.Create()
             //    //.DisableServerCertificateValidation()
             //    //.UseDebugLogger()
@@ -184,7 +183,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             //    .LimitRetriesForOperationTo(100)
             //    .WithConnectionTimeoutOf(TimeSpan.FromSeconds(5))
             //    .SetDefaultUserCredentials(_credentials);
-            
+
             //if (disableTls)
             //{
             //    tcpSettings = tcpSettings.DisableTls();
@@ -206,12 +205,23 @@ namespace ModelingEvolution.Plumberd.EventStore
             //}
 
             //connectionBuilder?.Invoke(tcpSettings);
-
-            //_projectionsManager = new ProjectionsManager(new ConsoleLogger(), new DnsEndPoint(httpProjectionUrl.Host, httpProjectionUrl.Port), TimeSpan.FromSeconds(10),
-            //    ignoreServerCert ? IgnoreServerCertificateHandler() : null, httpProjectionUrl.Scheme);
-
-            var set = EventStoreClientSettings.Create(tcpUrl.OriginalString);
-            _connection = new EventStoreClient(set);
+          
+           
+            var f = new EventStoreClientSettings();
+            var d = new EventStoreClientConnectivitySettings();
+            d.Address = tcpUrl;
+           
+            f.ConnectivitySettings = d;
+            _connection = new EventStoreClient(f);
+            _subscriptionsClient = new EventStorePersistentSubscriptionsClient(f);
+            var projectionSettings = EventStoreClientSettings.Create(tcpUrl.OriginalString);
+            projectionSettings.LoggerFactory = new LoggerFactory();
+            projectionSettings.DefaultCredentials = _credentials;
+            projectionSettings.ConnectivitySettings = d;
+            _projectionsManager = new EventStoreProjectionManagementClient(projectionSettings);
+            
+            _projectionConfigurations = new(_projectionsManager, _credentials,settings);
+           
             //_projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
             //if (configurations != null)
             //    _projectionConfigurations.Register(configurations);

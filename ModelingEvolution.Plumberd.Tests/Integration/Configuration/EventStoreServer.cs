@@ -34,7 +34,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
                 All = true,
                 Limit = 10000
             });
-            var container = containers.FirstOrDefault(x => x.Names.Any(n => n == "/eventstore-mem"));
+            var container = containers.FirstOrDefault(x => x.Names.Any(n =>n.Contains("eventstore-mem")));
             if (container == null)
             {
                 
@@ -54,6 +54,9 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
                         "EVENTSTORE_ENABLE_EXTERNAL_TCP=true",
                         "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=true",
                         "EVENTSTORE_MEM_DB=true",
+                        "EVENTSTORE_CERTIFICATE_PASSWORD=ca",
+                        "EVENTSTORE_CERTIFICATE_FILE=/cert/eventstore.p12",
+                        "EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH=/cert/ca-certificates/"
                     },
                     Name = "eventstore-mem",
                     HostConfig = new HostConfig()
@@ -63,6 +66,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
                             { "1113", new List<PortBinding>() { new PortBinding() { HostPort = "1113", HostIP = "0.0.0.0" } }},
                             { "2113", new List<PortBinding>() { new PortBinding() { HostPort = "2113", HostIP = "0.0.0.0" } }}
                         }
+                        
                     },
                     ExposedPorts = new Dictionary<string, EmptyStruct>()
                     {

@@ -16,5 +16,15 @@ namespace ModelingEvolution.Plumberd.EventStore
             
             return builder.WithDefaultEventStore(b.Build(checkConnectivity));
         }
+        public static PlumberBuilder WithGrpcEventStore(this PlumberBuilder builder,
+            Func<GrpcEventStoreBuilder, GrpcEventStoreBuilder> configureEventStore,
+            bool checkConnectivity = true)
+        {
+            GrpcEventStoreBuilder b = new GrpcEventStoreBuilder();
+            b = configureEventStore(b);
+
+            return builder.WithDefaultEventStore(b.Build(checkConnectivity));
+        }
     }
+    
 }

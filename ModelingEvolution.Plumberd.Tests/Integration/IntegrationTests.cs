@@ -46,25 +46,27 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             Guid id = Guid.NewGuid();
             var c = new CommandRaisingException();
 
-            var plumber = await CreatePlumber();
+            var plumber = await CreatePlumber(protocol);
             plumber.RegisterController(new CommandHandlerWithExceptions());
             await plumber.StartAsync();
 
             await plumber.DefaultCommandInvoker.Execute(id, c);
-
+            
             await Task.Delay(200000);
         }
 
-        [Fact]
-        public async Task InvokeCommand_HandleCommand_CheckCommandStream()
+        [Theory]
+        [InlineData(CommunicationProtocol.Tcp)]
+        [InlineData(CommunicationProtocol.Grpc)]
+        public async Task InvokeCommand_HandleCommand_CheckCommandStream(CommunicationProtocol protocol)
         {
             Guid id = Guid.NewGuid();
             FooCommand c = new FooCommand();
-
-            var plumber = await CreatePlumber();
+          
+            var plumber = await CreatePlumber(protocol);
 
             await plumber.DefaultCommandInvoker.Execute(id, c);
-            
+
             var context = new CommandProcessingContextFactory().Create(this, id, new FooCommand());
 
             using (StaticProcessingContext.CreateScope(context))
@@ -77,6 +79,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 cmd.Id.ShouldBe(c.Id);
                 cmd.Name.ShouldBe(c.Name);
             }
+           
 
         }
 
@@ -97,11 +100,12 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
 
             await LoadAndAssert(id, eId, bytes, category, protocol);
         }
+
         
         private async Task LoadAndAssert(Guid id, Guid eId, byte[] bytes, string category, CommunicationProtocol protocol)
         {
 
-            var plumber = await CreatePlumber();
+            var plumber = await CreatePlumber(protocol);
             if (protocol == CommunicationProtocol.Tcp)
             {
                 var nStore = (EventStore.NativeEventStore) plumber.DefaultEventStore;
@@ -125,7 +129,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             }
             else
             {
-                //TODO ask about DefaultEventStore (if forget - it was making up Native by default)
+             
                 var nStore = new GrpcEventStoreBuilder().Build(false);
                 var connection = nStore.Connection;
 
@@ -148,7 +152,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
 
         private async Task SaveEvents(Guid id, Guid eId, byte[] bytes, string category, CommunicationProtocol protocol)
         {
-            var plumber = await CreatePlumber();
+            var plumber = await CreatePlumber(protocol);
             if (protocol == CommunicationProtocol.Tcp)
             {
                 var nStore = (NativeEventStore) plumber.DefaultEventStore;
@@ -157,16 +161,17 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 var ev = new EventData(eId, "Foo", true, bytes, bytes);
                 await connection.AppendToStreamAsync($"{category}-{id}", ExpectedVersion.Any, new EventData[] {ev});
 
-                await nStore.WriteEventsToFile("test.bak");
+                await nStore.WriteEventsToFile("test.bak"); //TODO put into separate interface
             }
             else
             {
-                var nStore = new GrpcEventStoreBuilder().Build(true);
+                var nStore = (GrpcEventStore)plumber.DefaultEventStore;
                 var connection = nStore.Connection;
 
                 var ev = new global::EventStore.Client.EventData(Uuid.FromGuid(eId), "Foo",bytes,bytes);
 
-                await connection.AppendToStreamAsync($"{category}-{id}", StreamRevision.None, new global::EventStore.Client.EventData[]{ev});
+                await connection.AppendToStreamAsync($"{category}-{id}", StreamRevision.None, new global::EventStore.Client.EventData[]{ev},userCredentials:new UserCredentials("admin","changeit"));
+                
 
                 await nStore.WriteEventsToFile("test.bak");
             }
@@ -179,7 +184,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             var projection = new FooProjection();
             var commandHandler = new FooCommandHandler();
 
-            var plumber = await CreatePlumber();
+            var plumber = await CreatePlumber(CommunicationProtocol.Grpc);
             plumber.RegisterController(projection);
             plumber.RegisterController(commandHandler);
             await plumber.StartAsync();
@@ -221,7 +226,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             var projection = new FooLinkProjection();
             var commandHandler = new FooCommandHandler() { ReturningEvent = ev };
 
-            var plumber = await CreatePlumber();
+            var plumber = await CreatePlumber(CommunicationProtocol.Grpc);
             plumber.RegisterController(projection);
             plumber.RegisterController(commandHandler);
             await plumber.StartAsync();
@@ -233,12 +238,12 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             do
             {
                 await Task.Delay(100);
-            } while (projection.Count == 0 && sw.Elapsed < TimeSpan.FromSeconds(10));
+            } while (projection.Count == 0 && sw.Elapsed < TimeSpan.FromSeconds(30));
 
             var nStore = plumber.DefaultEventStore;
             await Task.Delay(200);
             var eventHandlerContext = NSubstitute.Substitute.For<IEventHandlerContext>();
-            var data = await nStore.GetStream("/FooLink", projection.StreamId, eventHandlerContext).Read().ToArrayAsync();
+            var data = await nStore.GetStream("/FooLink", id, eventHandlerContext).Read().ToArrayAsync();
             data.Length.ShouldBe(1);
             projection.Event.ShouldNotBeNull();
             data[0].Item2.ShouldBeEquivalentTo(projection.Event);
@@ -254,7 +259,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             var projection = new FooProjection();
             var commandHandler = new FooCommandHandler() { ReturningEvent = ev};
 
-            var plumber = await CreatePlumber();
+            var plumber = await CreatePlumber(CommunicationProtocol.Grpc);
             plumber.RegisterController(projection);
             plumber.RegisterController(commandHandler);
             await plumber.StartAsync();
@@ -280,19 +285,28 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             projection.Metadata.Created().ShouldBe(DateTimeOffset.Now, TimeSpan.FromSeconds(5));
 
         }
-        
-        private async Task<IPlumberRuntime> CreatePlumber()
+        private async Task<IPlumberRuntime> CreatePlumber(CommunicationProtocol protocol)
         {
-            
 
-            this.server = await EventStoreServer.Start();
+            server = await EventStoreServer.Start();
             await Task.Delay(2000);
 
-            PlumberBuilder b = new PlumberBuilder()
-                .WithDefaultEventStore(x => x.InSecure());
+            if (protocol == CommunicationProtocol.Tcp)
+            {
+                PlumberBuilder b = new PlumberBuilder()
+                    .WithDefaultEventStore(x => x.InSecure());
 
-            var plumber = b.Build();
-            return plumber;
+                var plumber = b.Build();
+                return plumber;
+            }
+            else
+            {
+                PlumberBuilder b = new PlumberBuilder()
+                    .WithGrpcEventStore(x => x.InSecure());
+
+                var plumber = b.Build();
+                return plumber;
+            }
         }
     }
 }

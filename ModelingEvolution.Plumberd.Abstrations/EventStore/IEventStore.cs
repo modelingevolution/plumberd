@@ -111,6 +111,16 @@ namespace ModelingEvolution.Plumberd.EventStore
             Id = Guid.NewGuid();
         }
     }
+
+    public interface ISupportBackup
+    {
+
+    }
+
+    public interface IPersistableEventStore : IEventStore
+    {
+        // SaveToFile method
+    }
     public interface IEventStore
     {
         IEventStoreSettings Settings { get; }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -38,7 +39,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _store = store;
                 _category = category;
                 _id = id;
-                _connection = connection;
+                _connection = _store._connection;
                 _metadataSerializer = metadataSerializer;
                 _recordSerializer = recordSerializer;
                 _streamName = $"{_category}-{id}";  
@@ -98,10 +99,9 @@ namespace ModelingEvolution.Plumberd.EventStore
             public async IAsyncEnumerable<IRecord> ReadEvents() 
             {
                
-                ulong start = StreamPosition.Start.ToUInt64();
-                EventStoreClient.ReadStreamResult slice = null;
                 
-                    slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, start, int.MaxValue);
+                EventStoreClient.ReadStreamResult slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, int.MaxValue);
+                    
                     await foreach (var i in slice)
                     {
                         var d = ReadEvent(i);
