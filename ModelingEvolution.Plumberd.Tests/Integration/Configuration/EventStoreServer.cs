@@ -22,10 +22,17 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
             await s.StartInDocker();
             return s;
         }
+        public Uri TcpUrl { get; set; }
+        public Uri HttpUrl { get; set; }
         public async Task StartInDocker()
         {
-            //Uri uri = new Uri("npipe://./pipe/docker_engine");
+            const string eventStoreHostName = "127.0.0.1";
+            const int eventStorePubTcpPort = 1113;
+            const int eventStorePubHttpPort = 2113;
+            await CheckDns(eventStoreHostName);
 
+            TcpUrl = new Uri($"tcp://{eventStoreHostName}:{eventStorePubTcpPort}");
+            HttpUrl = new Uri($"http://{eventStoreHostName}:{eventStorePubHttpPort}");
             DockerClient client = new DockerClientConfiguration()
                 .CreateClient();
 
@@ -40,8 +47,8 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
                 
                 var exposedPorts = new Dictionary<string, object>
                 {
-                    { "2113", new { HostPort = "2113" } },
-                    { "1113", new { HostPort = "1113" } }
+                    { $"{eventStorePubHttpPort}", new { HostPort = "2113" } },
+                    { $"{eventStorePubTcpPort}", new { HostPort = "1113" } }
                 };
                 var response = await client.Containers.CreateContainerAsync(new CreateContainerParameters()
                 {
@@ -54,24 +61,28 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
                         "EVENTSTORE_ENABLE_EXTERNAL_TCP=true",
                         "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=true",
                         "EVENTSTORE_MEM_DB=true",
-                        "EVENTSTORE_CERTIFICATE_PASSWORD=ca",
-                        "EVENTSTORE_CERTIFICATE_FILE=/cert/eventstore.p12",
-                        "EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH=/cert/ca-certificates/"
+                        //"EVENTSTORE_CERTIFICATE_PASSWORD=ca",
+                        //"EVENTSTORE_CERTIFICATE_FILE=/cert/eventstore.p12",
+                        //"EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH=/cert/ca-certificates/"
                     },
                     Name = "eventstore-mem",
                     HostConfig = new HostConfig()
                     {
                         PortBindings = new Dictionary<string, IList<PortBinding>>()
                         {
-                            { "1113", new List<PortBinding>() { new PortBinding() { HostPort = "1113", HostIP = "0.0.0.0" } }},
-                            { "2113", new List<PortBinding>() { new PortBinding() { HostPort = "2113", HostIP = "0.0.0.0" } }}
+                            { $"{eventStorePubTcpPort}", new List<PortBinding>() { new PortBinding() { HostPort = $"{eventStorePubTcpPort}", HostIP = "0.0.0.0" } }},
+                            { $"{eventStorePubHttpPort}", new List<PortBinding>() { new PortBinding() { HostPort = $"{eventStorePubHttpPort}", HostIP = "0.0.0.0" } }}
                         }
                         
                     },
+                    Volumes = new Dictionary<string, EmptyStruct>()
+                    {
+
+                    },
                     ExposedPorts = new Dictionary<string, EmptyStruct>()
                     {
-                        {"2113", default(EmptyStruct)},
-                        {"1113", default(EmptyStruct)}
+                        {$"{eventStorePubHttpPort}", default(EmptyStruct)},
+                        {$"{eventStorePubTcpPort}", default(EmptyStruct)}
                     }
                 });
                 await client.Containers.StartContainerAsync(response.ID, new ContainerStartParameters());
@@ -86,6 +97,24 @@ namespace ModelingEvolution.Plumberd.Tests.Integration.Configuration
 
                 await client.Containers.StartContainerAsync(data.ID, new ContainerStartParameters());
             }
+        }
+
+        private static async Task CheckDns(string eventStoreHostName)
+        {
+            try
+            {
+                var result = await Dns.GetHostEntryAsync(eventStoreHostName);
+                foreach (var i in result.AddressList)
+                {
+                    if (i.Equals(IPAddress.Loopback))
+                        return;
+                }
+            }
+            catch { }
+
+            throw new Exception(
+                    $"To run tests put {eventStoreHostName} to your etc/hosts and modellution's ca certificate to trusted certificate store.");
+            
         }
     }
 }

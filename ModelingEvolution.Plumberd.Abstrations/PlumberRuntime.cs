@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +13,7 @@ using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
+using ModelingEvolution.Plumberd.Serialization;
 using BindingFlags = ModelingEvolution.Plumberd.Binding.BindingFlags;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 

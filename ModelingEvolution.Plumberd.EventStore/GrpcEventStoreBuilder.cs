@@ -23,13 +23,13 @@ namespace ModelingEvolution.Plumberd.EventStore
         private IRecordSerializer _recordSerializer;
         private IMetadataFactory _metadataFactory;
         private Func<Type, string[]> _convention;
-        private Uri _tcpUrl;
+        
         private Uri _httpUrl;
         private static readonly ILogger _logger = LogFactory.GetLogger<GrpcEventStoreBuilder>();
         private string _userName;
         private string _password;
-        private bool _ignoreCert;
-        private bool _disableTls;
+        private bool _isInsecure;
+        
         public bool _withoutDefaultEnrichers;
         private Action<EventStoreClientSettings> _connectionCustomizations;
         private bool _isDevelopment;
@@ -47,7 +47,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         public GrpcEventStoreBuilder WithConfig(IConfiguration c)
         {
 
-            this.SetIfNotEmpty(ref _tcpUrl, c["EventStore:TcpUrl"]);
+           
             this.SetIfNotEmpty(ref _httpUrl, c["EventStore:HttpUrl"]);
             this.SetIfNotEmpty(ref _userName, c["EventStore:User"]);
             this.SetIfNotEmpty(ref _password, c["EventStore:Password"]);
@@ -58,7 +58,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 if (bool.Parse(isInsecure))
                     this.InSecure();
             }
-            _logger.LogInformation("EventStore TcpUrl: {tcpUrl}", _tcpUrl);
+            
             _logger.LogInformation("EventStore HttpUrl: {httpUrl}", _httpUrl);
             return this;
         }
@@ -115,11 +115,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             _metadataSerializer = f;
             return this;
         }
-        public GrpcEventStoreBuilder WithTcpUrl(Uri tcp)
-        {
-            _tcpUrl = tcp;
-            return this;
-        }
+       
         public GrpcEventStoreBuilder WithHttpUrl(Uri http)
         {
             _httpUrl = http;
@@ -160,13 +156,12 @@ namespace ModelingEvolution.Plumberd.EventStore
 
         public GrpcEventStoreBuilder IgnoreServerCert()
         {
-            _ignoreCert = true;
+            _isInsecure = true;
             return this;
         }
         public GrpcEventStoreBuilder InSecure()
         {
-            _ignoreCert = true;
-            _disableTls = true;
+            _isInsecure = true;
             return this;
         }
 
@@ -205,7 +200,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _recordSerializer ?? new RecordSerializer(),
                 _isDevelopment,
                 _convention);
-            return new GrpcEventStore(settings);
+            
+            return new GrpcEventStore(settings, isInsecure: _isInsecure);
             //var es = new GrpcEventStore(new UserCredentials(_userName, _password), settings);
             //if (_logWrittenEventsToLog)
             //    es.CheckConnectivity += WireLog;

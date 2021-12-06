@@ -32,7 +32,6 @@ namespace ModelingEvolution.Plumberd.EventStore
             public GrpcStream(GrpcEventStore store,
                 string category,
                 Guid id,
-                EventStoreClient connection,
                 IMetadataSerializer metadataSerializer,
                 IRecordSerializer recordSerializer)
             {
@@ -100,7 +99,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                
                 
-                EventStoreClient.ReadStreamResult slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, int.MaxValue, userCredentials:_store._credentials);
+                EventStoreClient.ReadStreamResult slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, int.MaxValue, userCredentials:_store._credentials, resolveLinkTos:true);
                     
                     await foreach (var i in slice)
                     {

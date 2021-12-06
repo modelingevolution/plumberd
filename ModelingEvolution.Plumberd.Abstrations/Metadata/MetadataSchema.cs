@@ -41,7 +41,7 @@ namespace ModelingEvolution.Plumberd.Metadata
 
         public IReadOnlyDictionary<Type, IMetadataEnricher> Enrichers => _enrichers;
         
-        public MetadataProperty this[string name] => _properties[name];
+        public MetadataProperty this[string name] => _properties.TryGetValue(name, out var result) ? result : null;
         public IEnumerable<MetadataProperty> Properties => _properties.Values;
         public IReadOnlyList<MetadataProperty> WriteProperties
         {

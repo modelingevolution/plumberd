@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Mime;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client;
 using EventStore.ClientAPI;
@@ -52,7 +53,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
 
             await plumber.DefaultCommandInvoker.Execute(id, c);
             
-            await Task.Delay(200000);
+            await Task.Delay(5000);
         }
 
         [Theory]
@@ -130,7 +131,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             else
             {
              
-                var nStore = new GrpcEventStoreBuilder().Build(false);
+                var nStore = (EventStore.GrpcEventStore)plumber.DefaultEventStore;
                 var connection = nStore.Connection;
 
                 var events =
@@ -178,13 +179,15 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
         }
 
 
-        [Fact]
-        public async Task InvokeCommand_HandleCommand_HandleEvent_CorrelationCheck()
+        [Theory]
+        [InlineData(CommunicationProtocol.Grpc)]
+        [InlineData(CommunicationProtocol.Tcp)]
+        public async Task InvokeCommand_HandleCommand_HandleEvent_CorrelationCheck(CommunicationProtocol protocol)
         {
             var projection = new FooProjection();
             var commandHandler = new FooCommandHandler();
 
-            var plumber = await CreatePlumber(CommunicationProtocol.Grpc);
+            var plumber = await CreatePlumber(protocol);
             plumber.RegisterController(projection);
             plumber.RegisterController(commandHandler);
             await plumber.StartAsync();
@@ -196,7 +199,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
 
             /* Waiting 1 sec for the command-handler and event-handler to finish processing. */
             
-
+            Thread.Sleep(1000);
             var correlationStream = plumber.DefaultEventStore.GetCorrelationStream(c.Id, ContextScope.Command);
 
             IRecord[] records = null;
@@ -216,8 +219,10 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             ((FooEvent)records[1]).Id.ShouldBe(commandHandler.ReturningEvent.Id);
         }
 
-        [Fact]
-        public async Task InvokeCommand_HandleCommand_HandleEvent_LinkCheck()
+        [Theory]
+        [InlineData(CommunicationProtocol.Grpc)]
+        [InlineData(CommunicationProtocol.Tcp)]
+        public async Task InvokeCommand_HandleCommand_HandleEvent_LinkCheck(CommunicationProtocol protocol)
         {
             Guid id = Guid.NewGuid();
             FooCommand command = new FooCommand();
@@ -226,7 +231,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             var projection = new FooLinkProjection();
             var commandHandler = new FooCommandHandler() { ReturningEvent = ev };
 
-            var plumber = await CreatePlumber(CommunicationProtocol.Grpc);
+            var plumber = await CreatePlumber(protocol);
             plumber.RegisterController(projection);
             plumber.RegisterController(commandHandler);
             await plumber.StartAsync();
@@ -241,7 +246,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             } while (projection.Count == 0 && sw.Elapsed < TimeSpan.FromSeconds(30));
 
             var nStore = plumber.DefaultEventStore;
-            await Task.Delay(200);
+            await Task.Delay(500);
             var eventHandlerContext = NSubstitute.Substitute.For<IEventHandlerContext>();
             var data = await nStore.GetStream("/FooLink", id, eventHandlerContext).Read().ToArrayAsync();
             data.Length.ShouldBe(1);
@@ -249,8 +254,10 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             data[0].Item2.ShouldBeEquivalentTo(projection.Event);
 
         }
-        [Fact]
-        public async Task InvokeCommand_HandleCommand_HandleEvent_MetadataCheck()
+        [Theory]
+        [InlineData(CommunicationProtocol.Grpc)]
+        [InlineData(CommunicationProtocol.Tcp)]
+        public async Task InvokeCommand_HandleCommand_HandleEvent_MetadataCheck(CommunicationProtocol protocol)
         {
             Guid id = Guid.NewGuid();
             FooCommand command = new FooCommand();
@@ -259,7 +266,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             var projection = new FooProjection();
             var commandHandler = new FooCommandHandler() { ReturningEvent = ev};
 
-            var plumber = await CreatePlumber(CommunicationProtocol.Grpc);
+            var plumber = await CreatePlumber(protocol);
             plumber.RegisterController(projection);
             plumber.RegisterController(commandHandler);
             await plumber.StartAsync();
@@ -294,7 +301,9 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             if (protocol == CommunicationProtocol.Tcp)
             {
                 PlumberBuilder b = new PlumberBuilder()
-                    .WithDefaultEventStore(x => x.InSecure());
+                    .WithDefaultEventStore(x => x.InSecure()
+                        .WithTcpUrl(server.TcpUrl)
+                        .WithHttpUrl(server.HttpUrl));
 
                 var plumber = b.Build();
                 return plumber;
@@ -302,7 +311,8 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             else
             {
                 PlumberBuilder b = new PlumberBuilder()
-                    .WithGrpcEventStore(x => x.InSecure());
+                    .WithGrpcEventStore(x => x.InSecure()
+                        .WithHttpUrl(server.HttpUrl));
 
                 var plumber = b.Build();
                 return plumber;

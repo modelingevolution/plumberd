@@ -33,7 +33,8 @@ namespace ModelingEvolution.Plumberd.EventStore
         private static readonly ILogger Log = LogFactory.GetLogger<NativeEventStore>();
 
         private readonly EventStoreClient _connection;
-        internal EventStoreClient Connection => _connection; 
+        internal EventStoreClient Connection => _connection;
+       
         private readonly EventStoreProjectionManagementClient _projectionsManager;
         private readonly UserCredentials _credentials;
         EventStorePersistentSubscriptionsClient _subscriptionsClient;
@@ -158,20 +159,17 @@ namespace ModelingEvolution.Plumberd.EventStore
             //_projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
         }
         public GrpcEventStore(EventStoreSettings settings,
-            Uri tcpUrl = null,
-            Uri httpProjectionUrl = null,
+            Uri url = null,
             string userName = "admin",
             string password = "changeit",
-            bool ignoreServerCert = false,
-            bool disableTls = false,
-            IEnumerable<IProjectionConfig> configurations = null)
+            bool isInsecure = false)
         {
             _settings = settings;
             _subscriptions = new ConcurrentBag<ISubscription>();
             _credentials = new UserCredentials(userName, password);
-            
+
             //httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
-            tcpUrl = tcpUrl == null ? new Uri("esdb+discover://eventstore.local:2113") : tcpUrl;
+            url ??= new Uri("esdb+discover://localhost:2113");
 
             
             //var tcpSettings = ConnectionSettings.Create()
@@ -210,22 +208,19 @@ namespace ModelingEvolution.Plumberd.EventStore
            
             var f = new EventStoreClientSettings();
             var d = new EventStoreClientConnectivitySettings();
-            d.Address = tcpUrl;
-           
+            d.Address = url;
+            d.Insecure = isInsecure;
             f.ConnectivitySettings = d;
             _connection = new EventStoreClient(f);
             _subscriptionsClient = new EventStorePersistentSubscriptionsClient(f);
-            var projectionSettings = EventStoreClientSettings.Create(tcpUrl.OriginalString);
+            var projectionSettings = EventStoreClientSettings.Create(url.OriginalString);
             projectionSettings.LoggerFactory = new LoggerFactory();
             projectionSettings.DefaultCredentials = _credentials;
             projectionSettings.ConnectivitySettings = d;
             _projectionsManager = new EventStoreProjectionManagementClient(projectionSettings);
             
             _projectionConfigurations = new(_projectionsManager, _credentials,settings);
-           
-            //_projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
-            //if (configurations != null)
-            //    _projectionConfigurations.Register(configurations);
+            
         }
 
 
@@ -326,7 +321,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             context ??= StaticProcessingContext.Context;
 
-            return new GrpcStream(this, category, id, _connection,
+            return new GrpcStream(this, category, id, 
                 serializer ?? _settings.MetadataSerializerFactory.Get(context),
                 recordSerializer ?? _settings.Serializer);
         }
