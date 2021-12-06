@@ -71,7 +71,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 EventStoreClient.ReadStreamResult slice = null;
                 ulong start = StreamPosition.Start;
   
-                    slice =  _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, int.MaxValue ); //TODO check max count
+                    slice =  _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, int.MaxValue , userCredentials:_store._credentials); 
                     await foreach (var i in slice)
                     {
                         var d = ReadEvent(i);
@@ -88,9 +88,9 @@ namespace ModelingEvolution.Plumberd.EventStore
                 var streamId = i.Event.EventStreamId;
                 var splitIndex = streamId.IndexOf('-');
 
-                m[MetadataProperty.Category] = streamId.Remove(splitIndex);
-                m[MetadataProperty.StreamId] = Guid.Parse(streamId.Substring(splitIndex + 1));
-                m[MetadataProperty.StreamPosition] = (ulong)i.Event.EventNumber;
+                m[m.Schema[MetadataProperty.CategoryName]] = streamId.Remove(splitIndex);
+                m[m.Schema[MetadataProperty.StreamIdName]] = Guid.Parse(streamId.Substring(splitIndex + 1));
+                m[m.Schema[MetadataProperty.StreamPositionName]] = (ulong)i.Event.EventNumber;
 
                 var ev = _recordSerializer.Deserialize(i.Event.Data.ToArray(), m);
                 return (m, ev);
@@ -100,7 +100,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                
                 
-                EventStoreClient.ReadStreamResult slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, int.MaxValue);
+                EventStoreClient.ReadStreamResult slice = _connection.ReadStreamAsync(Direction.Forwards,_streamName, StreamPosition.Start, int.MaxValue, userCredentials:_store._credentials);
                     
                     await foreach (var i in slice)
                     {
