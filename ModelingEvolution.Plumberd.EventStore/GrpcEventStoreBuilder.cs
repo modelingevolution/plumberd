@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 using EventStore.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ModelingEvolution.Plumberd.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
-using Modellution.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore

@@ -10,7 +10,7 @@ using EventStore.Client;
 using FxResources.Microsoft.Extensions.Logging;
 using LiquidProjections.Abstractions;
 using Microsoft.Extensions.Logging;
-using Modellution.Logging;
+using ModelingEvolution.Plumberd.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 

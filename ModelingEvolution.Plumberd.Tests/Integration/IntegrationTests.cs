@@ -15,7 +15,7 @@ using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
 using ModelingEvolution.Plumberd.Tests.Models;
 using Microsoft.Extensions.Logging;
-using Modellution.Logging;
+
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;

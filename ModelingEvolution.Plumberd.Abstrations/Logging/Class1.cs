@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 
 // TODO: Extract this to a nuget.
-namespace Modellution.Logging
+namespace ModelingEvolution.Plumberd.Logging
 {
 
     public sealed class LogFactory
@@ -25,17 +25,17 @@ namespace Modellution.Logging
             public DelayedLogger(Func<ILogger> factory)
             {
                 _factory = factory;
-                Category = String.Empty;
+                Category = string.Empty;
             }
 
             protected string Category;
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
                 if (_logger != null)
-                    _logger.Log<TState>(logLevel, eventId, state, exception, formatter);
+                    _logger.Log(logLevel, eventId, state, exception, formatter);
                 _logger = _factory();
                 if (_logger != null)
-                    _logger.Log<TState>(logLevel, eventId, state, exception, formatter);
+                    _logger.Log(logLevel, eventId, state, exception, formatter);
                 else
                 {
                     Console.WriteLine($"{Level(logLevel)}: {Category}{formatter(state, exception)}");

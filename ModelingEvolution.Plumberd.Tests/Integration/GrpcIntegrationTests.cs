@@ -15,7 +15,7 @@ using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
 using ModelingEvolution.Plumberd.Tests.Models;
 using NSubstitute;
 using Microsoft.Extensions.Logging;
-using Modellution.Logging;
+
 using Xunit;
 using Xunit.Abstractions;
 
