@@ -1,0 +1,9 @@
+﻿# Prereq
+
+run:
+docker run --name esdb-node -it -p 2113:2113 -p 1113:1113 -e EVENTSTORE_MEM_DB=True eventstore/eventstore:latest --insecure --run-projections=All --enable-external-tcp --enable-atom-pub-over-http
+
+browse: http://localhost:2113
+navigate to 'projections' and enable all projections
+
+you start your project and debugging.

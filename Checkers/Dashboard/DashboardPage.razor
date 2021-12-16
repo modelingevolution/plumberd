@@ -1,0 +1,36 @@
+﻿@page "/Dashboard/{Id}"
+@inject DashboardModel _boards;
+
+<div style="vertical-align: center; text-align: center">
+	<h2>
+		Black: @_gameScore.BlackMovesCount
+	</h2>
+	<h2>
+		White: @_gameScore.WhiteMovesCount
+	</h2>
+</div>
+
+@code {
+	private GameScore _gameScore;
+
+	private Guid _id;
+	[Parameter]
+	public string Id
+	{
+		get => _id.ToString();
+		set => _id = Guid.Parse(value);
+	}
+	protected override void OnParametersSet()
+	{
+		if (_gameScore != null)
+			_gameScore.Changed.On -= OnViewChanged;
+		_gameScore = _boards[_id];
+
+		if (_gameScore != null)
+			_gameScore.Changed.On += OnViewChanged;
+	}
+	private void OnViewChanged(object? sender, Guid e)
+	{
+		this.StateHasChanged();
+	}
+}

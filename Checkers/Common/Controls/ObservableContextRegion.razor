@@ -1,0 +1,45 @@
+﻿@implements IDisposable
+@ChildContent
+@using System.ComponentModel
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public INotifyPropertyChanged DataContext { get; set; }
+
+    [Parameter]
+    public EventCallback PropertyChanged { get; set; }
+
+    private INotifyPropertyChanged _dataContext;
+    protected override void OnParametersSet()
+    {
+        if (object.ReferenceEquals(_dataContext,DataContext)) return;
+
+        if (_dataContext != null)
+            _dataContext.PropertyChanged -= OnPropertyChanged;
+
+        _dataContext = DataContext;
+
+        if (_dataContext != null)
+            _dataContext.PropertyChanged += OnPropertyChanged;
+    }
+
+    private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if(PropertyChanged.HasDelegate)
+            PropertyChanged
+                .InvokeAsync()
+                .ContinueWith((x) => this.StateHasChanged());
+        else
+        this.StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (_dataContext != null)
+            _dataContext.PropertyChanged -= OnPropertyChanged;
+    }
+
+}

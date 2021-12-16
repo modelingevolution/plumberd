@@ -301,7 +301,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             if (protocol == CommunicationProtocol.Tcp)
             {
                 PlumberBuilder b = new PlumberBuilder()
-                    .WithDefaultEventStore(x => x.InSecure()
+                    .WithTcpEventStore(x => x.InSecure()
                         .WithTcpUrl(server.TcpUrl)
                         .WithHttpUrl(server.HttpUrl));
 

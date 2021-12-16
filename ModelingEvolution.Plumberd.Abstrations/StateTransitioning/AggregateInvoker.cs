@@ -47,7 +47,7 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
             var type = typeof(TAggregate);
             _streamName = type.GetCustomAttribute<StreamAttribute>()?.Category ?? type.Namespace.LastSegment('.');
         }
-        public async Task AppendEvents(Guid id, IEnumerable<IEvent> events)
+        public async Task AppendEvents(Guid id, ulong expectedVersion, IEnumerable<IEvent> events)
         {
             await _eventStore.GetStream(_streamName, id).Append(events);
         }
@@ -61,8 +61,9 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
         {
             try
             {
+                var version = aggregate.Version;
                 var events = aggregate.Execute(cmd);
-                await AppendEvents(aggregate.Id, events);
+                await AppendEvents(aggregate.Id, version, events);
                 return new ExecuteResult<TAggregate>(aggregate, events);
             }
             catch (Exception ex)

@@ -1,0 +1,38 @@
+﻿@using System.Collections
+@using System.Collections.Specialized
+@using Checkers.Common.RegionManagement
+@inject IRegionManager _regionManager;
+
+
+@code {
+
+    
+
+    [Parameter]
+    public IEnumerable ItemsSource { get; set; }
+    
+    [Parameter]
+    public string RegionName { get; set; }
+
+    private INotifyCollectionChanged _collection;
+
+    protected override void OnParametersSet()
+    {
+        var tmp = ItemsSource as INotifyCollectionChanged;
+        if (tmp != _collection)
+        {
+            if (_collection != null)
+                _collection.CollectionChanged -= OnCollectionChanged;
+            _collection = tmp;
+
+            if (_collection != null)
+                _collection.CollectionChanged += OnCollectionChanged;
+        }
+    }
+
+    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        this.StateHasChanged();
+    }
+
+}

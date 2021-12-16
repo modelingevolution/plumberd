@@ -1,0 +1,121 @@
+﻿@page "/Checkers/{Id}"
+@inject CheckersBoards _boards;
+@inject ICommandInvoker _commandInvoker
+@using System.Xml.XPath
+@using System.Security.Cryptography
+@using Checkers.Game
+@using ModelingEvolution.Plumberd
+@if (_model != null)
+{
+	<table>
+	
+		@foreach (var row in _model.Rows())
+		{
+			<tr>
+				@foreach (var cell in row)
+				{
+					<td style="background-color: @(GetBackground(cell.Column, cell.Row)); width: 48px; height: 48px;">
+
+						@if (cell.State != BoardCell.Empty)
+						{
+							<div @onclick="@(() => OnCellClicked(cell))"
+							     class="cell"
+							     style="border: @(GetOutline(cell.State)) solid 1px; background-color: @(GetFill(cell.State))">
+
+							</div>
+						}
+						else if (_selectedColumn != -1 && _selectedRow != -1)
+						{
+							<div @onclick="@(() => TryMoveTo(cell))" style="width: 48px; height: 48px">
+							</div>
+						}
+					</td>
+				}
+			</tr>
+		}
+	</table>
+}
+<MudLink Href="@DashBoardUrl" Target="_blank">Dashboard</MudLink>
+@code
+{
+	private CheckersBoard _model = null;
+	int _selectedColumn = -1;
+	int _selectedRow = -1;
+	private Guid _id;
+
+	[Parameter]
+	public string Id
+	{
+		get => _id.ToString();
+		set => _id = Guid.Parse(value);
+	}
+	
+	protected override void OnParametersSet()
+	{
+		if (_model != null)
+			_model.Changed.On -= OnViewChanged;
+		_model = _boards[_id];
+
+		if (_model != null)
+			_model.Changed.On += OnViewChanged;
+	}
+
+	private void OnViewChanged(object? sender, string e)
+	{
+		_selectedColumn = _selectedRow = -1;
+		this.StateHasChanged();
+	}
+
+	
+
+	private async Task TryMoveTo(CellViewModel dst)
+	{
+		await _commandInvoker.Execute(_id, new Move() { DstColumn = dst.Column, DstRow = dst.Row, SrcColumn = _selectedColumn, SrcRow = _selectedRow });
+	}
+	private string GetBackground(int i, int j)
+	{
+		if (i == _selectedColumn && j == _selectedRow) return "green";
+		return (i + j) % 2 == 0 ? "gray" : "white";
+	}
+	private string GetOutline(BoardCell cell)
+	{
+		switch (cell)
+		{
+			case BoardCell.WhiteQueen:
+				return "gray";
+			case BoardCell.WhitePawn:
+				return "white";
+			case BoardCell.BlackPawn:
+				return "black";
+			case BoardCell.BlackQueen:
+				return "gray";
+			default:
+				throw new ArgumentOutOfRangeException(nameof(cell), cell, null);
+		}
+	}
+	private string GetFill(BoardCell cell)
+	{
+		switch (cell)
+		{
+			case BoardCell.WhiteQueen:
+			case BoardCell.WhitePawn:
+				return "white";
+			case BoardCell.BlackPawn:
+			case BoardCell.BlackQueen:
+				return "black";
+			default:
+				throw new ArgumentOutOfRangeException(nameof(cell), cell, null);
+		}
+	}
+
+	private void OnCellClicked(CellViewModel cell)
+	{
+		_selectedColumn = cell.Column;
+		_selectedRow = cell.Row;
+	}
+
+	private string DashBoardUrl
+	{
+		get { return $"/Dashboard/{Id}"; }
+	}
+}
