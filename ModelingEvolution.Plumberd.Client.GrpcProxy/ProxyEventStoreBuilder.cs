@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ModelingEvolution.Plumberd.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
-using Modellution.Logging;
+
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
