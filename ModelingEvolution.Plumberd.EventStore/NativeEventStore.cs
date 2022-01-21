@@ -19,16 +19,15 @@ using EventStore.ClientAPI.SystemData;
 using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
-using Modellution.Logging;
 using Newtonsoft.Json;
 using ProtoBuf.Meta;
 using ProtoBuf;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
-
+using ModelingEvolution.Plumberd.Logging;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
-   
+
     public partial class NativeEventStore : IEventStore
     {
         public event Action<NativeEventStore> Connected;

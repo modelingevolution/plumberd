@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MudBlazor" Version="6.0.2" />
+    <PackageReference Include="FluentValidation" Version="10.3.3" />
+    <PackageReference Include="Scrutor" Version="3.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
+    <ProjectReference Include="..\ModelingEvolution.Plumberd.EventStore\ModelingEvolution.Plumberd.EventStore.csproj" />
+  </ItemGroup>
+
+</Project>

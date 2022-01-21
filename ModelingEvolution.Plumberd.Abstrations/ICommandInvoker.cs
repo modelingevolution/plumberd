@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using Microsoft.Extensions.Logging;
-using Modellution.Logging;
+using ModelingEvolution.Plumberd.Logging;
 
 namespace ModelingEvolution.Plumberd
 {

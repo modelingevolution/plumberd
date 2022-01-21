@@ -1,0 +1,11 @@
+﻿@page "/"
+@inject NavigationManager _navigationManager;
+<MudButton @onclick="OnCreateNewGame">Create new game</MudButton>
+@code {
+	
+	private void OnCreateNewGame()
+	{
+		_navigationManager.NavigateTo($"/checkers/{Guid.NewGuid()}");
+	}
+
+}

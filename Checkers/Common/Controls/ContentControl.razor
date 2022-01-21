@@ -1,0 +1,98 @@
+﻿@using Microsoft.Extensions.Logging
+@using Checkers.Common.RegionManagement
+@inject ILogger<ContentControl> Log;
+@inject IRegionManager _regionManager;
+@implements IDisposable;
+@implements IContentControl;
+
+@if (_control.HasValue)
+{
+    @_control.Value.RenderFragment
+}
+
+
+@code {
+    protected override void OnInitialized()
+    {
+        if(!String.IsNullOrWhiteSpace(RegionName))
+            _regionManager.SetRegionName(this, RegionName);
+    }
+
+    [Parameter]
+    public string RegionName
+    {
+        get => _regionName;
+        set
+        {
+            if (_regionName == null)
+            {
+                _regionName = value;
+            }
+            else if (value != _regionName)
+                throw new ArgumentException();
+        }
+    }
+
+    [Parameter]
+    public object Content
+    {
+        get => _content;
+        set
+        {
+            if (value != _content)
+            {
+                _content = value;
+            }
+        }
+    }
+
+    private RenderControl? _control;
+
+    public RenderControl? Control
+    {
+        get => _control;
+        set {
+            if (_control != value)
+            {
+                _control = value;
+                this.StateHasChanged();
+            }
+        }
+    }
+
+    
+    private long _id = -1;
+    protected override void OnParametersSet()
+    {
+        Log.LogDebug("OnParametersSet in content control, {Content}", Content);
+        PrepareRenderControl();
+    }
+
+    private void PrepareRenderControl()
+    {
+        if (Content != null)
+        {
+            var contentType = Content.GetType();
+            var controlType = DataTemplateDictionary.FindControlForContentType(contentType);
+            if (controlType != null && (_control == null || _control.Value.Id < 0))
+            {
+                this.SetContent(controlType, _id--, Content);
+                Log.LogDebug("Content {contentType} was rendered with {controlType}", contentType, controlType);
+            }
+            else
+            {
+                if (controlType == null)
+                    Log.LogDebug("Could not find template for content of type: {contentType}", contentType);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        if(!string.IsNullOrWhiteSpace(RegionName))
+            _regionManager.RemoveRegion(RegionName);
+    }
+
+    private string _regionName;
+    private object _content;
+}

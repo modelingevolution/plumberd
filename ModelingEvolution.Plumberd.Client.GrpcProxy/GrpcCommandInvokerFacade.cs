@@ -12,6 +12,7 @@ using Grpc.Net.Client;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ProtoBuf;
 using Microsoft.Extensions.Logging;
+using ModelingEvolution.Plumberd.Logging;
 
 #pragma warning disable 1998
 
@@ -60,7 +61,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     public class GrpcCommandInvokerFacade : ICommandInvoker, IAsyncDisposable
     {
         private static ulong _counter = 0;
-        private static readonly ILogger Log = Modellution.Logging.LogFactory.GetLogger<GrpcCommandInvokerFacade>();
+        private static readonly ILogger Log = LogFactory.GetLogger<GrpcCommandInvokerFacade>();
         private readonly Channel _channel;
         private readonly ISessionManager _sessionManager;
         

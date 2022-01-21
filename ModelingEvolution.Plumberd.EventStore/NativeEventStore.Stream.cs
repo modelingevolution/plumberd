@@ -94,6 +94,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                 return (m, ev);
             }
 
+            
+
             public async IAsyncEnumerable<IRecord> ReadEvents()
             {
                 StreamEventsSlice slice = null;

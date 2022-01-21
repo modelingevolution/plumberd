@@ -16,7 +16,10 @@ namespace ModelingEvolution.Plumberd
             {
                 var id = i.NameId();
                 if (!_index.TryGetValue(id, out Type t))
+                {
+                    Console.WriteLine($"Contract found: {i.Name}");
                     _index.Add(id, i);
+                }
             }
 
             return this;

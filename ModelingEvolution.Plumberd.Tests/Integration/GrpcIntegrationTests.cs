@@ -15,7 +15,7 @@ using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
 using ModelingEvolution.Plumberd.Tests.Models;
 using NSubstitute;
 using Microsoft.Extensions.Logging;
-using Modellution.Logging;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -121,7 +121,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             await Task.Delay(2000);
 
             PlumberBuilder b = new PlumberBuilder()
-                .WithDefaultEventStore(x => x.InSecure());
+                .WithTcpEventStore(x => x.InSecure());
             
             var plumber = b.Build();
             return plumber;

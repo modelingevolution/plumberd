@@ -21,7 +21,7 @@
     <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Protobuf Include="..\..\Proto\eventstore.proto" GrpcServices="Client">
+    <Protobuf Include="..\eventstore.proto" GrpcServices="Client">
       <Link>Protos\eventstore.proto</Link>
     </Protobuf>
   </ItemGroup>

@@ -1,0 +1,73 @@
+syntax = "proto3";
+package modelingEvolution.eventStore.grpcProxy;
+
+import "google/protobuf/duration.proto";  
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+
+service GrpcEventStoreProxy {
+	rpc ReadStream (ReadReq) returns (stream ReadRsp);
+	rpc WriteStream (stream WriteReq) returns (stream WriteRsp); 
+	rpc WriteBlob (stream BlobChunk) returns (BlobData);
+}
+
+message BlobChunk {
+	int32 i = 1; 
+	bytes data = 2;
+}
+message BlobData {
+	string url = 1;
+	int64 writtenBytes = 2;
+}
+
+message ReadReq {
+	//google.protobuf.Timestamp time = 1;
+	 oneof schema {
+		  GenericProjectionSchema genericSchema = 1;
+		  EventTypeProjectionSchema eventTypeSchema = 2;
+	 }
+	 bool fromBeginning = 3;
+	 bool isPersistent = 4;
+	 repeated string sourceEventTypes = 5;
+}
+message GenericProjectionSchema {
+	string name = 1;
+	string streamName = 2;
+	string script = 3;
+}
+message EventTypeProjectionSchema
+{
+	string name = 1;
+	repeated string eventTypes = 2;
+}
+
+message ReadRsp {
+	//google.protobuf.Timestamp time = 1;
+	UUID typeId = 1;
+	uint64 seq = 2;
+	bytes data = 3;
+	repeated MetadataProperty metadataProps = 4;
+}
+
+message MetadataProperty  
+{
+	UUID id = 1;
+	bytes data = 2;
+}
+
+message UUID {
+	bytes value = 1;
+}
+
+message WriteReq {
+	UUID steamId = 1;
+	UUID typeId = 2;
+	uint64 seq = 3;
+	bytes data = 4;
+	bytes metadata = 5; 
+}
+message WriteRsp {
+	uint64 seq = 1; 
+}

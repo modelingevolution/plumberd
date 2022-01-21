@@ -16,6 +16,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelingEvolution.Plumberd.GrpcProxy", "ModelingEvolution.Plumberd.GrpcProxy\ModelingEvolution.Plumberd.GrpcProxy.csproj", "{BA72975E-1A94-43F4-8ED8-9FC447E0DA46}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{3C2D584F-AD47-4535-A680-ED465DE9F716}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Checkers", "Checkers\Checkers.csproj", "{3AF7D151-B149-4BD2-83D2-4E62FD06EA6B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,9 +40,20 @@ Global
 		{38035D80-E2FF-4683-80A8-64BFD310B9D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{38035D80-E2FF-4683-80A8-64BFD310B9D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{38035D80-E2FF-4683-80A8-64BFD310B9D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA72975E-1A94-43F4-8ED8-9FC447E0DA46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA72975E-1A94-43F4-8ED8-9FC447E0DA46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA72975E-1A94-43F4-8ED8-9FC447E0DA46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA72975E-1A94-43F4-8ED8-9FC447E0DA46}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3AF7D151-B149-4BD2-83D2-4E62FD06EA6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3AF7D151-B149-4BD2-83D2-4E62FD06EA6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3AF7D151-B149-4BD2-83D2-4E62FD06EA6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3AF7D151-B149-4BD2-83D2-4E62FD06EA6B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3AF7D151-B149-4BD2-83D2-4E62FD06EA6B} = {3C2D584F-AD47-4535-A680-ED465DE9F716}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {908EAF1A-0B33-486F-A6C4-B6A65363FBC9}

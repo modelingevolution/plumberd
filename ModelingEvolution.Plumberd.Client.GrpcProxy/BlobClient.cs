@@ -9,6 +9,7 @@ using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd.EventStore;
 using ProtoBuf;
 using Microsoft.Extensions.Logging;
+using ModelingEvolution.Plumberd.Logging;
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
@@ -38,7 +39,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     }
     public class BlobClient
     {
-        private static readonly ILogger Log = Modellution.Logging.LogFactory.GetLogger<BlobClient>();
+        private static readonly ILogger Log = LogFactory.GetLogger<BlobClient>();
         private readonly Channel _channel;
         private GrpcEventStoreProxy.GrpcEventStoreProxyClient _client;
         private ISessionManager _sessionManager;

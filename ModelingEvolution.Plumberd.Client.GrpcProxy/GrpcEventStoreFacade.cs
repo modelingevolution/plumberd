@@ -16,6 +16,7 @@ using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using ProtoBuf;
 using Microsoft.Extensions.Logging;
+using ModelingEvolution.Plumberd.Logging;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 using MetadataProperty = ModelingEvolution.Plumberd.Metadata.MetadataProperty;
 
@@ -60,7 +61,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
     public class GrpcEventStoreFacade : IEventStore
     {
-        private static readonly ILogger Log = Modellution.Logging.LogFactory.GetLogger<GrpcEventStoreFacade>();
+        private static readonly ILogger Log = LogFactory.GetLogger<GrpcEventStoreFacade>();
         private readonly Guid _sessionId = Guid.NewGuid();
         public static event Func<Task> ReadingFailed;
         class Subscription : ISubscription

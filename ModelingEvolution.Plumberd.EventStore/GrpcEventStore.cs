@@ -12,9 +12,9 @@ using System.Text;
 using System.Threading.Tasks;
 using EventStore.Client;
 using Microsoft.Extensions.Logging;
+using ModelingEvolution.Plumberd.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
-using Modellution.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Position = EventStore.Client.Position;
 using ResolvedEvent = EventStore.Client.ResolvedEvent;
@@ -23,7 +23,7 @@ using StreamPosition = EventStore.Client.StreamPosition;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
-    
+
     public partial class GrpcEventStore : IEventStore
     {
         public event Action<NativeEventStore> Connected;

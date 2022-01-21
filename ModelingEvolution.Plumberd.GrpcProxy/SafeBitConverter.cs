@@ -6,7 +6,9 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
 {
     public static class SafeBitConverter
     {
+#if MODELLUTION
         private static readonly ILogger Log = Modellution.Logging.LogFactory.GetLogger();
+#endif
         public static long SafeToInt64(this byte[] data, long defaultValue, string name)
         {
             if (data != null && data.Length == 8) return BitConverter.ToInt64(data);
@@ -23,7 +25,9 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     msgInvestigation.AppendLine();
                 }
             }
+#if MODELLUTION
             Log.LogWarning("Could not convert '{fieldName}' to int64. {investigation}", name, msgInvestigation.ToString());
+#endif
             return defaultValue;
         }
         public static int SafeToInt32(this byte[] data, int defaultValue, string name)
@@ -42,7 +46,9 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     msgInvestigation.AppendLine();
                 }
             }
+#if MODELLUTION
             Log.LogWarning("Could not convert '{fieldName}' to int32. {investigation}", name, msgInvestigation.ToString());
+#endif
             return defaultValue;
         }
         public static bool SafeToBoolean(this byte[] data, bool defaultValue, string name)
@@ -61,7 +67,9 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     msgInvestigation.AppendLine();
                 }
             }
+#if MODELLUTION
             Log.LogWarning("Could not convert '{fieldName}' to bit. {investigation}", name, msgInvestigation.ToString());
+#endif
             return defaultValue;
         }
     }

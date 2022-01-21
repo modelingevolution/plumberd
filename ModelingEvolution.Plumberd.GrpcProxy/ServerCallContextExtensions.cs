@@ -28,7 +28,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 .Select(x => x.Value)
                 .FirstOrDefault();
 
-            return Guid.Parse(userId);
+            return userId != null ? Guid.TryParse(userId, out var ret) ? ret : null : null;
         }
         public static string UserName(this ServerCallContext context)
         {

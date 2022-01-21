@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.Metadata;
 using Microsoft.Extensions.Logging;
-using Modellution.Logging;
+using ModelingEvolution.Plumberd.Logging;
 
 namespace ModelingEvolution.Plumberd.Binding
 {

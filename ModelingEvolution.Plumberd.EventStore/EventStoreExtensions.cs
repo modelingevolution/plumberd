@@ -7,7 +7,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 {
     public static class EventStoreExtensions
     {
-        public static PlumberBuilder WithDefaultEventStore(this PlumberBuilder builder, 
+        public static PlumberBuilder WithTcpEventStore(this PlumberBuilder builder, 
             Func<NativeEventStoreBuilder, NativeEventStoreBuilder> configureEventStore, 
             bool checkConnectivity = true)
         {
@@ -16,6 +16,13 @@ namespace ModelingEvolution.Plumberd.EventStore
             
             return builder.WithDefaultEventStore(b.Build(checkConnectivity));
         }
+        /// <summary>
+        /// EXPERIMENTAL!
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="configureEventStore"></param>
+        /// <param name="checkConnectivity"></param>
+        /// <returns></returns>
         public static PlumberBuilder WithGrpcEventStore(this PlumberBuilder builder,
             Func<GrpcEventStoreBuilder, GrpcEventStoreBuilder> configureEventStore,
             bool checkConnectivity = true)

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using FxResources.Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging;
-using Modellution.Logging;
+using ModelingEvolution.Plumberd.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore

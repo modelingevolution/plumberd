@@ -14,12 +14,28 @@ namespace ModelingEvolution.Plumberd.EventStore
         Guid Id { get; }
 
         Task Append(IRecord ev, IMetadata m);
+        Task Append(IRecord ev, IMetadata m, ulong expectedVersion);
 
         IAsyncEnumerable<IRecord> ReadEvents();
         IAsyncEnumerable<(IMetadata, IRecord)> Read();
+        
     }
     public static class StaticStreamExtensions 
     {
+        public static async Task Append(this IStream stream, IRecord x, ulong expectedVersion, IContext context = null)
+        {
+            context ??= StaticProcessingContext.Context;
+
+            var factory = stream.EventStore.Settings.MetadataFactory;
+            //var metadata = context switch
+            //{
+            //    ICommandHandlerContext cpc => factory.Create(cpc, x),
+            //    IEventHandlerContext epc => factory.Create(epc, x),
+            //    _ => throw new NoContextAvailableException()
+            //};
+            var metadata = factory.Create(x, context);
+            await stream.Append(x, metadata, expectedVersion);
+        }
         public static async Task Append(this IStream stream, IRecord x, IContext context = null)
         {
             context ??= StaticProcessingContext.Context;
@@ -34,7 +50,12 @@ namespace ModelingEvolution.Plumberd.EventStore
             var metadata = factory.Create(x, context);
             await stream.Append(x, metadata);
         }
-
+        public static async Task Append(this IStream stream,ulong expectedVersion, IEnumerable<IRecord> events)
+        {
+            var context = StaticProcessingContext.Context;
+            foreach (var ev in events)
+                await stream.Append(ev, expectedVersion, context);
+        }
         public static async Task Append(this IStream stream, IEnumerable<IRecord> events)
         {
             var context = StaticProcessingContext.Context;

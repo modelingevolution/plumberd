@@ -2,7 +2,8 @@
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Serialization;
 using Microsoft.Extensions.Logging;
-using Modellution.Logging;
+using ModelingEvolution.Plumberd.Logging;
+
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
