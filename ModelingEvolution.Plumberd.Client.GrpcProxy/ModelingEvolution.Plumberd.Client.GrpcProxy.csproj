@@ -18,8 +18,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="6.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\protobuf-net\src\protobuf-net.Core\protobuf-net.Core.csproj" />
-    <ProjectReference Include="..\..\protobuf-net\src\protobuf-net\protobuf-net.csproj" />
     <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
   </ItemGroup>
   <ItemGroup>

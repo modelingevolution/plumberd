@@ -24,9 +24,9 @@ namespace ModelingEvolution.Plumberd.Metadata
                     m[Hop] = epc.Metadata.Hop() + 1;
                     break;
                 case ICommandHandlerContext c:
-                    m[CorrelationId] = c.Metadata.CorrelationId(); //  c.Record.Id
-                    m[CausationId] = c.Record.Id;
-                    m[Hop] = c.Metadata.Hop() + 1;
+                    m[CorrelationId] = c.Metadata?.CorrelationId() ?? Guid.Empty; //  c.Record.Id
+                    m[CausationId] = c.Record?.Id ?? Guid.Empty;
+                    m[Hop] = (c.Metadata?.Hop() ?? 0) + 1;
                     break;
                 case ICommandInvocationContext c:
                     m[CorrelationId] = c.Command.Id;

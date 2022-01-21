@@ -24,6 +24,7 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+    <PackageReference Include="protobuf-net" Version="3.0.101" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\LICENSE">
@@ -34,9 +35,5 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\protobuf-net\src\protobuf-net.Core\protobuf-net.Core.csproj" />
-    <ProjectReference Include="..\..\protobuf-net\src\protobuf-net\protobuf-net.csproj" />
   </ItemGroup>
 </Project>

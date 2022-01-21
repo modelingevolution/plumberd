@@ -26,7 +26,7 @@ namespace ModelingEvolution.Plumberd.Metadata
                     m[SessionIdProperty] = epc.Metadata.SessionId();
                     break;
                 case ICommandHandlerContext c:
-                    m[SessionIdProperty] = c.Metadata.SessionId();
+                    m[SessionIdProperty] = c.Metadata?.SessionId() ?? Guid.Empty;
                     break;
                 case ICommandInvocationContext c:
                     m[SessionIdProperty] = c.ClientSessionId;

@@ -14,7 +14,8 @@ namespace ModelingEvolution.Plumberd.Querying
     {
 
     }
-    public class ObservableCollectionView<TDst,TSrc> : IObservableCollectionView<TDst,TSrc>
+    public class ObservableCollectionView<TDst,TSrc> : 
+        IObservableCollectionView<TDst,TSrc>, IDisposable
 
     where TDst:IViewFor<TSrc>,IEquatable<TDst>
     {
@@ -95,10 +96,15 @@ namespace ModelingEvolution.Plumberd.Querying
             var srcCollectionChanges = src as INotifyCollectionChanged;
             if (srcCollectionChanges == null)
                 throw new ArgumentException("src must implement INotifyCollectionChanged");
-            srcCollectionChanges.CollectionChanged += (s, e) => SourceCollectionChanged(e);
+            srcCollectionChanges.CollectionChanged += OnSrcCollectionChangesOnCollectionChanged;
             _filtered.CollectionChanged += (s, e) => ViewCollectionChanged(e);
             ((INotifyPropertyChanged)_filtered).PropertyChanged += (s, e) => ViewPropertyChanged(e);
             _filter = _trueFilter;
+        }
+
+        private void OnSrcCollectionChangesOnCollectionChanged(object s, NotifyCollectionChangedEventArgs e)
+        {
+            SourceCollectionChanged(e);
         }
 
         private void ViewPropertyChanged(PropertyChangedEventArgs propertyChangedEventArgs)
@@ -281,6 +287,11 @@ namespace ModelingEvolution.Plumberd.Querying
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public void Dispose()
+        {
+            ((INotifyCollectionChanged)_internal).CollectionChanged -= OnSrcCollectionChangesOnCollectionChanged;
         }
     }
     public class ObservableCollectionView<T> : INotifyCollectionChanged, INotifyPropertyChanged, IList<T>, IList, IReadOnlyList<T>

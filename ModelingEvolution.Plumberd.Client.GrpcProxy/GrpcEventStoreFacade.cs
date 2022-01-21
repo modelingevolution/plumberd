@@ -46,7 +46,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         {
             try
             {
-                return Serializer.Deserialize(t, mem);
+                return Serializer.NonGeneric.Deserialize(t, mem);
             }
             catch (Exception ex)
             {

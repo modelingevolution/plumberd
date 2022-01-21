@@ -19,7 +19,7 @@ namespace ModelingEvolution.Plumberd.Metadata
                    
                     break;
                 case ICommandHandlerContext c:
-                    m[UserIdProperty] = c.Metadata.UserId();
+                    m[UserIdProperty] = c.Metadata?.UserId() ?? Guid.Empty;
 
                     break;
                 case ICommandInvocationContext c:

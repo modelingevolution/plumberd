@@ -12,6 +12,7 @@ namespace ModelingEvolution.Plumberd.Serialization
     {
         public static void RegisterReverseInheritanceFrom(this RuntimeTypeModel model, IEnumerable<Type> types)
         {
+            
             foreach (var i in types)
             {
                 var attr = i.GetCustomAttribute<IncludedAsAttribute>();
