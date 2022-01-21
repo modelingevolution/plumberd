@@ -7,7 +7,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
     public static class SafeBitConverter
     {
 #if MODELLUTION
-        private static readonly ILogger Log = Modellution.Logging.LogFactory.GetLogger();
+        private static readonly ILogger Log = ModelingEvolution.Plumberd.Logging.LogFactory.GetLogger();
 #endif
         public static long SafeToInt64(this byte[] data, long defaultValue, string name)
         {
