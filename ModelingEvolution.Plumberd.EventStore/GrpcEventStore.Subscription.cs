@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client;
 using FxResources.Microsoft.Extensions.Logging;
-using LiquidProjections.Abstractions;
+
 using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
