@@ -10,6 +10,7 @@
     <PackageIcon>logo-squere.png</PackageIcon>
     <RepositoryType>GIT</RepositoryType>
     <PackageTags>EventStore CQRS EventSourcing</PackageTags>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="eventstore.proto" />
