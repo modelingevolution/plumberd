@@ -2,7 +2,23 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>disable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>Plumberd.Client.GrpcProxy</PackageId>
+    <Authors>Rafal Maciag</Authors>
+    <Product>Plumberd</Product>
+    <Copyright>ModelingEvolution</Copyright>
+    <PackageProjectUrl>https://github.com/modelingevolution/plumberd</PackageProjectUrl>
+    <PackageIcon>logo-squere.png</PackageIcon>
+    <RepositoryType>GIT</RepositoryType>
+    <PackageTags>EventStore CQRS EventSourcing</PackageTags>
+    <PackageLicenseFile>C:\Users\rafal\Sources\ModelingEvolution\plumberd\LICENSE</PackageLicenseFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\logo-squere.png" Link="logo-squere.png">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
