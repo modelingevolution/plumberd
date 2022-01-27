@@ -8,7 +8,7 @@
     <Authors>Rafal Maciag</Authors>
     <Product>Plumberd</Product>
     <Copyright>ModelingEvolution</Copyright>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageLicenseFile>C:\Users\rafal\Sources\ModelingEvolution\plumberd\LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/modelingevolution/plumberd</PackageProjectUrl>
     <RepositoryUrl>https://github.com/modelingevolution/plumberd</RepositoryUrl>
     <RepositoryType>GIT</RepositoryType>
@@ -25,5 +25,8 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
     <PackageReference Include="protobuf-net" Version="3.0.101" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE.txt" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
