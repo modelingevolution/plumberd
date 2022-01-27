@@ -5,17 +5,17 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.5" />
-    <PackageReference Include="EventStore.Client" Version="21.2.1" />
+    <PackageReference Include="EventStore.Client" Version="21.2.2" />
     <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="21.2.0" />
     <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="21.2.0" />
     <PackageReference Include="EventStore.Client.Grpc.Streams" Version="21.2.0" />
-    <PackageReference Include="FluentAssertions" Version="6.2.0" />
+    <PackageReference Include="FluentAssertions" Version="6.4.0" />
     <PackageReference Include="LiquidProjections" Version="3.2.0" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
     <PackageReference Include="NSubstitute" Version="4.2.2" />
     <PackageReference Include="Shouldly" Version="4.0.3" />
-    <PackageReference Include="System.IO.Pipelines" Version="6.0.0" />
+    <PackageReference Include="System.IO.Pipelines" Version="6.0.1" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <PrivateAssets>all</PrivateAssets>
