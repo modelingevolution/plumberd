@@ -8,10 +8,10 @@
     <Product>Plumberd</Product>
     <Copyright>ModelingEvolution</Copyright>
     <PackageProjectUrl>https://github.com/modelingevolution/plumberd</PackageProjectUrl>
-    <PackageIcon>../logo-squere.png</PackageIcon>
+    <PackageIcon>logo-squere.png</PackageIcon>
     <RepositoryType>GIT</RepositoryType>
     <PackageTags>EventStore CQRS EventSourcing</PackageTags>
-    <PackageLicenseFile>../LICENSE</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup>
     <SupportedPlatform Include="browser" />

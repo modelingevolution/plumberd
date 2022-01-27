@@ -5,9 +5,9 @@
     <Authors>Rafal Maciag</Authors>
     <Product>Plumberd</Product>
     <Copyright>ModelingEvolution</Copyright>
-    <PackageLicenseFile>../LICENSE</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/modelingevolution/plumberd</PackageProjectUrl>
-    <PackageIcon>../logo-squere.png</PackageIcon>
+    <PackageIcon>logo-squere.png</PackageIcon>
     <RepositoryType>GIT</RepositoryType>
     <PackageTags>EventStore CQRS EventSourcing</PackageTags>
   </PropertyGroup>
