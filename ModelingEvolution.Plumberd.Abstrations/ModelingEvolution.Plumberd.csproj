@@ -8,13 +8,13 @@
     <Authors>Rafal Maciag</Authors>
     <Product>Plumberd</Product>
     <Copyright>ModelingEvolution</Copyright>
-    <PackageLicenseFile>../LICENSE</PackageLicenseFile>
+    <PackageLicenseFile>..\LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/modelingevolution/plumberd</PackageProjectUrl>
     <RepositoryUrl>https://github.com/modelingevolution/plumberd</RepositoryUrl>
     <RepositoryType>GIT</RepositoryType>
     <PackageTags>EventStore CQRS EventSourcing</PackageTags>
     <PackageReleaseNotes>Pre-Alfa</PackageReleaseNotes>
-    <PackageIcon>../logo-squere.png</PackageIcon>
+    <PackageIcon>..\logo-squere.png</PackageIcon>
     <Version>0.0.0.3</Version>
     <Description>Plumberd is a lightweight library to make working with EventStore easy. 
 It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated.</Description>
