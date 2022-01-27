@@ -38,7 +38,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
         {
             _testOutputHelper = testOutputHelper;
         }
-
+        [Trait("Category", "Integration")]
         [Theory]
         [InlineData(CommunicationProtocol.Tcp)]
         [InlineData(CommunicationProtocol.Grpc)]
@@ -55,7 +55,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             
             await Task.Delay(5000);
         }
-
+        [Trait("Category", "Integration")]
         [Theory]
         [InlineData(CommunicationProtocol.Tcp)]
         [InlineData(CommunicationProtocol.Grpc)]
@@ -84,7 +84,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
 
         }
 
-
+        [Trait("Category", "Integration")]
         [Theory]
         [InlineData(CommunicationProtocol.Grpc)]
         [InlineData(CommunicationProtocol.Tcp)]
@@ -178,7 +178,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             }
         }
 
-
+        [Trait("Category", "Integration")]
         [Theory]
         [InlineData(CommunicationProtocol.Grpc)]
         [InlineData(CommunicationProtocol.Tcp)]
@@ -218,7 +218,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             ((FooCommand)records[0]).Id.ShouldBe(c.Id);
             ((FooEvent)records[1]).Id.ShouldBe(commandHandler.ReturningEvent.Id);
         }
-
+        [Trait("Category", "Integration")]
         [Theory]
         [InlineData(CommunicationProtocol.Grpc)]
         [InlineData(CommunicationProtocol.Tcp)]
@@ -254,6 +254,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             data[0].Item2.ShouldBeEquivalentTo(projection.Event);
 
         }
+        [Trait("Category", "Integration")]
         [Theory]
         [InlineData(CommunicationProtocol.Grpc)]
         [InlineData(CommunicationProtocol.Tcp)]

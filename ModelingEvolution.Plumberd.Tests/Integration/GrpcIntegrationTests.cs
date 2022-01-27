@@ -30,6 +30,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
         {
             _testOutputHelper = testOutputHelper;
         }
+        [Trait("Category", "Integration")]
         [Fact]
          public async Task InvokeRead()
         {
