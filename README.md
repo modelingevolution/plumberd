@@ -12,8 +12,7 @@ This becomes important especially because **Blazor** and WebAssembly is getting 
 Supported plumbing:
 
 * EventStore [Done]
-* gRPC [comming soon]
-* SignalR [in next release]
+* gRPC Web [Done]
 
 ## GETTING STARTED
 
@@ -144,7 +143,7 @@ Metadata in EventStore is like a headers in WebAPI. Plumberd makes it easy to wr
 
 # ROADMAP
 
-Current version is **PRE-Alfa**. 
+Current version is **Alfa**. 
 
 **pre-Alfa**
 In this version we are experimenting with new features as fast as possible. It's well known that eventsourcing libraries are to complex and do not fit every case. 
@@ -156,29 +155,28 @@ From QA perspective this means that few unit-tests are there, however you will f
 In this version we might introduce new breaking features. The library might be unstable and is not suitable to production environment - unless you know what you do ;)
 Alfa testing will spread testing upon interested people in closed team.
 
-**Beta** version is scheduled on at the end of 2020 or early 2021. 
+**Beta** 
 In this version we'll be encouraging everybody to test the library and give feedback. Some breaking changes might be still introduces.
 
 **Release candidate** will be published as soon as we are satisfied with the scope of features.
 In this stage will focus on performance. 
 
-**Release 1.0** is scheduled at the 1-quater 2021.
+**Release 1.0** yet we don't know when :('.
 
-## PRE-ALFA PROPOSITIONS:
+## NEXT VERSION RELEASE:
 
-- Integrate scope factory.
-- Allow the enrichers can get arguments from container. (scoped)
-- Support 3 argument signature When(Guid, TCommand, IMetadata) in CommandHandler
-- Introduce curcuit breaker. Through enricher / or though correlation-projection.
-- Create a test project with aggregates.
-- Create integration with Kafka
-- Create integration with Carter
-- Refactor library to use decorator pattern when handling records (although this might be done separetly?)
-- Integrate security through metadata-stream
-- Make enrichers to save info about the verion to metadata-stream.
-- Create the concept of consistent stream migration and event-version. 
+Abstractions over processing units seems to workout. Next version will:
+- Provide migration tools for rolling up next eventstore
+- Make LiveQueryExecutor simpler
+- Provide FluentConfiguration as an alternative to attributes.
+- Get rid of ICommand, IEvent and IMetadata interfaces. We will build binders and thus all your hander logic will be fully independent on Plumberd
+- Rewrite all the spagetti code that is there in PlumberdRuntime :)
+- Support for snapshots
+- Better support for session
 
-## GRPC & Error handling
+*If anyone would like to take part in design or help with the library please DM on Twitter/Li or through e-mail: rafal.maciag [at] modelingevolution.com*
+
+## WEB GRPC & Error handling
 - Each client creates a session-id - which identified the client's client. One running client == one session id. 
 - When invoking a command, command handler might throw exception. This exceptions need to be propagated to the app and dispatched. 
 - CommandInvoker can "chain" exception-handler, that will be invoked when exception is propagated back to the client. It will use 'correlation-id' to dispatch right handler. 
