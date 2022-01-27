@@ -30,4 +30,8 @@
   <ItemGroup>
     <Protobuf Include="eventstore.proto" GrpcServices="Server" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" Pack="true" PackagePath="" />
+    <None Include="logo-squere.png" Pack="true" PackagePath="" />
+  </ItemGroup>
 </Project>

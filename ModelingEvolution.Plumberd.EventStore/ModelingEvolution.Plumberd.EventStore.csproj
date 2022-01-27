@@ -33,4 +33,8 @@ This package is the implementation of EventStory from EventStore.</Description>
   <ItemGroup>
     <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" Pack="true" PackagePath="" />
+    <None Include="logo-squere.png" Pack="true" PackagePath="" />
+  </ItemGroup>
 </Project>

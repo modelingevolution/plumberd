@@ -28,5 +28,6 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" Pack="true" PackagePath="" />
+    <None Include="logo-squere.png" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
