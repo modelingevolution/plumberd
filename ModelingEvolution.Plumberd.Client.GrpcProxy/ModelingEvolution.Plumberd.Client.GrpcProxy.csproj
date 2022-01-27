@@ -8,17 +8,11 @@
     <Product>Plumberd</Product>
     <Copyright>ModelingEvolution</Copyright>
     <PackageProjectUrl>https://github.com/modelingevolution/plumberd</PackageProjectUrl>
-    <PackageIcon>logo-squere.png</PackageIcon>
+    <PackageIcon>../logo-squere.png</PackageIcon>
     <RepositoryType>GIT</RepositoryType>
     <PackageTags>EventStore CQRS EventSourcing</PackageTags>
-    <PackageLicenseFile>C:\Users\rafal\Sources\ModelingEvolution\plumberd\LICENSE</PackageLicenseFile>
+    <PackageLicenseFile>../LICENSE</PackageLicenseFile>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="..\logo-squere.png" Link="logo-squere.png">
-      <PackagePath>\</PackagePath>
-      <Pack>True</Pack>
-    </None>
-  </ItemGroup>
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
