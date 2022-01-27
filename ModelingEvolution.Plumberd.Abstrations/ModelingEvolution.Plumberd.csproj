@@ -27,6 +27,6 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
     <PackageReference Include="protobuf-net" Version="3.0.101" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="LICENSE.txt" Pack="true" PackagePath="" />
+    <None Include="LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
