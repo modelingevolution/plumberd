@@ -8,7 +8,7 @@
     <Authors>Rafal Maciag</Authors>
     <Product>Plumberd</Product>
     <Copyright>ModelingEvolution</Copyright>
-    <PackageLicenseFile>C:\Users\rafal\Sources\ModelingEvolution\plumberd\LICENSE</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/modelingevolution/plumberd</PackageProjectUrl>
     <RepositoryUrl>https://github.com/modelingevolution/plumberd</RepositoryUrl>
     <RepositoryType>GIT</RepositoryType>
