@@ -21,7 +21,7 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
 This package is the implementation of EventStory from EventStore.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="EventStore.Client" Version="21.2.2" />
+    <PackageReference Include="EventStore.Client" Version="21.2.3" />
     <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="21.2.0" />
     <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="21.2.0" />
     <PackageReference Include="EventStore.Client.Grpc.Streams" Version="21.2.0" />
