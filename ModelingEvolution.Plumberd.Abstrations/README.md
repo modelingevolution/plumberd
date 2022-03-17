@@ -3,7 +3,7 @@
 
 ## INTRODUCTION
 
-User Voice: [Vote for features here](https://feedback-plumberd.modelingevolution.com/)
+**[Version 2.0 is comming, read here](Plumberd2.0.md)**
 
 Plumberd is a lightweight library to make working with Event driven apps easy. It unifies abstractions and thus combines Event Drive Architecture (messageing) and Event Sourcing (persistance) together.
 It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated. 

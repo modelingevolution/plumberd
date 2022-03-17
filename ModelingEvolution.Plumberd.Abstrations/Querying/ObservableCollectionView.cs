@@ -154,7 +154,8 @@ namespace ModelingEvolution.Plumberd.Querying
                 {
                     _filtered.Remove(i);
                 }
-            } else if (args.Action == NotifyCollectionChangedAction.Replace)
+            } 
+            else if (args.Action == NotifyCollectionChangedAction.Replace)
             {
                 if (!IsFiltered)
                 {
@@ -164,6 +165,10 @@ namespace ModelingEvolution.Plumberd.Querying
                     }
                 }
                 else throw new NotSupportedException();
+            } else if (args.Action == NotifyCollectionChangedAction.Reset)
+            {
+                _filtered.Clear();
+                _filtered.AddRange(_internal.Select(_convertItem));
             }
         }
 
