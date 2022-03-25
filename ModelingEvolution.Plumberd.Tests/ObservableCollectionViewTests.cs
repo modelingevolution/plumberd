@@ -114,5 +114,22 @@ namespace ModelingEvolution.Plumberd.Tests
             vm[0].Source.Id.Should().Be(1);
             vm[1].Source.Id.Should().Be(3);
         }
+
+
+        [Fact]
+        public void AddSingle()
+        {
+            ObservableCollection<Item> src = new ObservableCollection<Item>();
+            ObservableCollectionView<Item> view = new ObservableCollectionView<Item>(src);
+
+            src.Add(new Item(1));
+            src.Add(new Item(2));
+            view.Filter = x => x.Id > 1;
+            src.Add(new Item(3));
+
+            
+
+            view.Should().HaveCount(2);
+        }
     }
 }
