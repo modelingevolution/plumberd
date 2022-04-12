@@ -398,6 +398,12 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             await responseStream.WriteAsync(rsp);
         }
 
+        public Type GetRequiredType(Guid guid)
+        {
+            if (_typeRegister[guid] == null)
+                throw new InvalidResultWhenTryingToGetRequiredType($"There is no type with guid: {guid} in _typeregister. Register all necessary types first.");
+            return _typeRegister[guid];
+        }
         public async override Task WriteStream(IAsyncStreamReader<WriteReq> requestStream, IServerStreamWriter<WriteRsp> responseStream, ServerCallContext context)
         {
             await CheckAuthorizationData(context);
@@ -409,7 +415,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 if(steamId == Guid.Empty) continue;
                 
                 Guid typeId = new Guid(i.TypeId.Value.Span);
-                var type = _typeRegister[typeId];
+                var type = GetRequiredType(typeId);
                 var cmd = Serializer.NonGeneric.Deserialize(type, i.Data.Memory) as ICommand;
 
                 using (CommandInvocationContext cc = new CommandInvocationContext(steamId, 
