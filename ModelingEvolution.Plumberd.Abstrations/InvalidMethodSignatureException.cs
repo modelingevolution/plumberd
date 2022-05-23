@@ -3,6 +3,19 @@ using System.Reflection;
 
 namespace ModelingEvolution.Plumberd
 {
+    public class InvalidResultWhenTryingToGetRequiredType : Exception
+    {
+
+
+        public InvalidResultWhenTryingToGetRequiredType()
+        {
+
+        }
+        public InvalidResultWhenTryingToGetRequiredType(string message) : base(message)
+        {
+
+        }
+    }
     public class InvalidMethodSignatureException : Exception
     {
         public string MethodName { get; set; }

@@ -46,6 +46,12 @@ namespace ModelingEvolution.Plumberd
                 return null;
             }
         }
+        public Type GetRequiredType(Guid guid)
+        {
+            if (_index.TryGetValue(guid, out var t))
+                return t;
+            throw new InvalidResultWhenTryingToGetRequiredType($"There is no type with guid: {guid} in {nameof(TypeRegister)}. Register all necessary types first.");
+        }
         public TypeRegister()
         {
             _index = new Dictionary<Guid, Type>();

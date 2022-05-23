@@ -409,7 +409,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 if(steamId == Guid.Empty) continue;
                 
                 Guid typeId = new Guid(i.TypeId.Value.Span);
-                var type = _typeRegister[typeId];
+                var type = _typeRegister.GetRequiredType(typeId);
                 var cmd = Serializer.NonGeneric.Deserialize(type, i.Data.Memory) as ICommand;
 
                 using (CommandInvocationContext cc = new CommandInvocationContext(steamId, 
