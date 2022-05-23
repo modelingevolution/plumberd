@@ -44,6 +44,47 @@ namespace ModelingEvolution.Plumberd.Serialization
                     var value = JsonSerializer.Deserialize(ref reader, property.Type, _options);
                     m[property] = value;
                 }
+                else
+                {
+                    // we need to skip the object... 
+                    int objectDepthCounter = 0;
+                    bool skipping = true;
+                    while (skipping && reader.Read())
+                    {
+                        var token = reader.TokenType;
+                        switch (token)
+                        {
+                            case JsonTokenType.None:
+                                break;
+                            case JsonTokenType.StartArray:
+                            case JsonTokenType.StartObject:
+                                objectDepthCounter += 1;
+                                break;
+                            case JsonTokenType.EndArray:
+                            case JsonTokenType.EndObject:
+                                objectDepthCounter -= 1;
+                                if (objectDepthCounter == 0)
+                                    skipping = false;
+                                break;
+                            
+                            case JsonTokenType.PropertyName:
+                                break;
+                            case JsonTokenType.Comment:
+                                break;
+                            case JsonTokenType.String:
+                            case JsonTokenType.Number:
+                            case JsonTokenType.True:
+                            case JsonTokenType.False:
+                            case JsonTokenType.Null:
+                                if (objectDepthCounter == 0)
+                                    skipping = false;
+                                break;
+                            
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                    }
+                }
             }
 
             return m;

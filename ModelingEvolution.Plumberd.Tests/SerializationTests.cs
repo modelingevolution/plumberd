@@ -1,12 +1,41 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using FluentAssertions;
+using ModelingEvolution.Plumberd.Metadata;
+using ModelingEvolution.Plumberd.Serialization;
 using ProtoBuf;
 using Xunit;
 
 namespace ModelingEvolution.Plumberd.Tests
 {
+    public class MetadataSerializerTests
+    {
+        [Fact]
+        public void CanDeserialize()
+        {
+            string json =
+                "{\r\n  \"$correlationId\": \"49fc3411-7421-48ad-bc7c-6310b4afd26c\",\r\n  \"$causationId\": \"49fc3411-7421-48ad-bc7c-6310b4afd26c\",\r\n  \"hop\": 2,\r\n  \"UserId\": \"00000000-0000-0000-0000-000000000000\",\r\n  \"SessionId\": \"00000000-0000-0000-0000-000000000000\",\r\n  \"Type\": \"Modellution.CodingServices.Server.Domain.Renderers.SourceRendererRegistered, Modellution.CodingServices.Server, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null\",\r\n  \"ProcessingUnit\": \"SourceRendererCommandHandler\",\r\n  \"Created\": \"2022-05-22T19:52:41.1612563+00:00\"\r\n, \r\n  \"Complex\": { \"Name\":\"Value\" }\r\n}";
+
+            var schema = new MetadataSchema();
+            schema.IgnoreDuplicates();
+
+            var enrichers = new List<IMetadataEnricher>()
+            {
+                new CorrelationEnricher(),
+                new CreateTimeEnricher(),
+                new DictionaryEnricher(),
+                new UserIdEnricher()
+            };
+            foreach (var i in enrichers)
+                i.RegisterSchema(schema);
+
+            MetadataSerializer serializer = new MetadataSerializer(schema);
+            var metadata = serializer.Deserialize(Encoding.UTF8.GetBytes(json));
+        }
+    }
     public class SerializationTests
     {
         [Fact]
