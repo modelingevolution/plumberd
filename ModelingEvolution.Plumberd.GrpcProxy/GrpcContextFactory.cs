@@ -22,6 +22,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             public SynchronizationContext SynchronizationContext { get; }
             public IEventStore EventStore { get; }
             public ICommandInvoker CommandInvoker { get; }
+            public Version Version { get; }
             public IRecord Record { get; set; }
             public IMetadata Metadata { get; set; }
         }

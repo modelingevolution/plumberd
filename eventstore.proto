@@ -62,11 +62,12 @@ message UUID {
 }
 
 message WriteReq {
-	UUID steamId = 1;
+	UUID streamId = 1;
 	UUID typeId = 2;
 	uint64 seq = 3;
 	bytes data = 4;
-	bytes metadata = 5; 
+	string version = 5;
+	//bytes metadata = 5; 
 }
 message WriteRsp {
 	uint64 seq = 1; 

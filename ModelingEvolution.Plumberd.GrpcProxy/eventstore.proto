@@ -24,13 +24,13 @@ message BlobData {
 
 message ReadReq {
 	//google.protobuf.Timestamp time = 1;
-	 oneof schema {
-		  GenericProjectionSchema genericSchema = 1;
-		  EventTypeProjectionSchema eventTypeSchema = 2;
-	 }
-	 bool fromBeginning = 3;
-	 bool isPersistent = 4;
-	 repeated string sourceEventTypes = 5;
+	oneof schema {
+		GenericProjectionSchema genericSchema = 1;
+		EventTypeProjectionSchema eventTypeSchema = 2;
+	}
+	bool fromBeginning = 3;
+	bool isPersistent = 4;
+	repeated string sourceEventTypes = 5;
 }
 message GenericProjectionSchema {
 	string name = 1;
@@ -62,11 +62,12 @@ message UUID {
 }
 
 message WriteReq {
-	UUID steamId = 1;
+	UUID streamId = 1;
 	UUID typeId = 2;
 	uint64 seq = 3;
 	bytes data = 4;
-	bytes metadata = 5; 
+	string version = 5;
+	//bytes metadata = 5; 
 }
 message WriteRsp {
 	uint64 seq = 1; 

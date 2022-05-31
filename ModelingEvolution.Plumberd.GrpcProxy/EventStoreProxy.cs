@@ -342,7 +342,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         Email = email,
                         Name = name
                     };
-                    using (CommandInvocationContext cc = new CommandInvocationContext(streamId, cmd, streamId, sessionId ?? Guid.Empty))
+                    using (CommandInvocationContext cc = new CommandInvocationContext(streamId, cmd, streamId, sessionId ?? Guid.Empty, new Version(0,0)))
                     {
                         await _commandInvoker.Execute(streamId, cmd, cc);
                     }
@@ -405,15 +405,15 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             Guid sessionId = context.SessionId() ?? Guid.Empty;
             await foreach (var i in requestStream.ReadAllAsync())
             {
-                var steamId = new Guid(i.SteamId.Value.Span);
+                var steamId = new Guid(i.StreamId.Value.Span);
                 if(steamId == Guid.Empty) continue;
                 
                 Guid typeId = new Guid(i.TypeId.Value.Span);
                 var type = _typeRegister.GetRequiredType(typeId);
                 var cmd = Serializer.NonGeneric.Deserialize(type, i.Data.Memory) as ICommand;
-
+                var version = Version.Parse(i.Version);
                 using (CommandInvocationContext cc = new CommandInvocationContext(steamId, 
-                    cmd, context.UserId() ?? Guid.Empty, sessionId))
+                    cmd, context.UserId() ?? Guid.Empty, sessionId, version))
                 {
                     await _commandInvoker.Execute(steamId, cmd, cc);
 

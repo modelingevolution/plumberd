@@ -11,7 +11,7 @@ namespace ModelingEvolution.Plumberd
     public interface ICommandInvoker
     {
         Task Execute(Guid id, ICommand c, IContext context = null);
-        Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId);
+        Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId, Version v = null);
     }
 
     public interface ICommandInvokerMetadataFactory
@@ -63,47 +63,55 @@ namespace ModelingEvolution.Plumberd
     public class CommandInvoker : ICommandInvoker
     {
         private readonly IEventStore _eventStore;
+        private readonly Version _defaultVersion;
 
         private static readonly ILogger _logger = LogFactory.GetLogger<CommandInvoker>();
 
-        public CommandInvoker(IEventStore eventStore)
+        public CommandInvoker(IEventStore eventStore, Version defaultVersion)
         {
             _eventStore = eventStore;
-
+            _defaultVersion = defaultVersion;
         }
      
 
         public async Task Execute(Guid id, ICommand c, IContext context = null)
         {
-            if (context == null)
-                context = StaticProcessingContext.Context;
+            Type commandType = c.GetType();
+            var info = GetStreamName(commandType, c);
+
+            context ??= StaticProcessingContext.Context;
+
             if (context == null)
             {
                 // this is brand new invocation.
-                context = new CommandInvocationContext(id,c, Guid.Empty, Guid.Empty);
+                context = new CommandInvocationContext(id,c, Guid.Empty, Guid.Empty, info.Version ?? _defaultVersion);
             }
-            Type commandType = c.GetType();
+            
+            var stream = _eventStore.GetStream($"{_eventStore.Settings.CommandStreamPrefix}{info.Category}", id, context);
             _logger.LogInformation("Invoking command {commandType} from context {contextName}", c.GetType().Name, context.GetType().Name);
-            
-            string name = GetStreamName(commandType,c);
-            
-            var stream = _eventStore.GetStream($"{_eventStore.Settings.CommandStreamPrefix}{name}", id, context);
+
             await stream.Append(c, context);
         }
 
-        private string GetStreamName(Type commandType, ICommand c)
+        record StreamInfo(string Category, Version Version);
+        private StreamInfo GetStreamName(Type commandType, ICommand c)
         {
             if (c is IStreamAware sa)
-                return sa.StreamCategory;
+            {
+                return new StreamInfo(sa.StreamCategory, _defaultVersion);
+            }
             
             var streamAttr = commandType.GetCustomAttribute<StreamAttribute>();
-            return streamAttr != null ? streamAttr.Category : commandType.Namespace.LastSegment('.');
+            return new StreamInfo(streamAttr != null ? streamAttr.Category : commandType.Namespace.LastSegment('.'),
+                    streamAttr != null ? streamAttr.Version : _defaultVersion);
             
         }
 
-        public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId)
+        
+
+        public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId, Version v = null)
         {
-            return Execute(id, c, new CommandInvocationContext(id, c, userId, sessionId));
+            return Execute(id, c, new CommandInvocationContext(id, c, userId, sessionId, v));
         }
     }
 }

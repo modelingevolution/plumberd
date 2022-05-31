@@ -6,6 +6,7 @@ namespace ModelingEvolution.Plumberd.EventProcessing
     [AttributeUsage(AttributeTargets.Class)]
     public class ProcessingUnitConfigAttribute : Attribute
     {
+        public bool RequiresCurrentVersion { get; set; }
         public bool SubscribesFromBeginning { get; set; }
         public bool IsPersistent { get; set; }
         public bool IsEventEmitEnabled { get; set; }

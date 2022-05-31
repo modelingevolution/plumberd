@@ -61,6 +61,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 .WithMetadataEnricher<UserIdEnricher>(ContextScope.All)
                 .WithMetadataEnricher(() => new RecordTypeEnricher(TypeNamePersistenceConvention.AssemblyQualifiedName), ContextScope.All)
                 .WithMetadataEnricher(() => new ProcessingUnitEnricher(TypeNamePersistenceConvention.Name), ContextScope.Event | ContextScope.Command)
+                .WithMetadataEnricher<VersionEnricher>(ContextScope.All)
                 .WithMetadataEnricher<CreateTimeEnricher>(ContextScope.All);
         }
 

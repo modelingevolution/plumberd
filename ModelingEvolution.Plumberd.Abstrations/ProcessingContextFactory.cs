@@ -31,7 +31,7 @@ namespace ModelingEvolution.Plumberd
         public ICommandInvoker CommandInvoker => _commandInvoker;
         public ProcessingMode ProcessingMode => _processingMode;
         public ISubscription Subscription { get; set; }
-
+        public Version Version { get;  }
         public ProcessingContextFactory(Func<Type,object> factory,
             Type type,
             bool isScopedFactory,
@@ -40,7 +40,8 @@ namespace ModelingEvolution.Plumberd
             ICommandInvoker commandInvoker,
             IEventHandlerBinder binder,
             IProcessingUnitConfig config,
-            SynchronizationContext synchronizationContext)
+            SynchronizationContext synchronizationContext,
+            Version version)
         {
             _binder = binder;
             _factory = factory;
@@ -62,8 +63,9 @@ namespace ModelingEvolution.Plumberd
             {
                 _processingMode = ProcessingMode.EventHandler;
             }
-            else 
+            else
                 throw new NotSupportedException("Mixing command-handler scope and event-handler is not supported.");
+            Version = version;
         }
 
         public IProcessingContext Create()

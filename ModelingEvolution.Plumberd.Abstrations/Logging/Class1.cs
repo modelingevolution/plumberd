@@ -38,7 +38,7 @@ namespace ModelingEvolution.Plumberd.Logging
                     _logger.Log(logLevel, eventId, state, exception, formatter);
                 else
                 {
-                    Console.WriteLine($"{Level(logLevel)}: {Category}{formatter(state, exception)}");
+                    Console.WriteLine($"{Level(logLevel)}: {Category}{exception?.Message}");
                 }
             }
 

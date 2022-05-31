@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd.EventStore;
@@ -15,7 +16,7 @@ using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
 using ModelingEvolution.Plumberd.Tests.Models;
 using NSubstitute;
 using Microsoft.Extensions.Logging;
-
+using ModelingEvolution.Plumberd.GrpcProxy.Authentication;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -104,7 +105,10 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             collection.AddSingleton(plumberRuntime);
             collection.AddSingleton(plumberRuntime.DefaultEventStore);
             collection.AddSingleton(plumberRuntime.DefaultCommandInvoker);
-            collection.AddScoped<EventStoreProxy>();
+            collection.AddSingleton<ILogger<EventStoreProxy>>(Substitute.For<ILogger<EventStoreProxy>>());
+            collection.AddSingleton<IConfiguration>(Substitute.For<IConfiguration>());
+            collection.AddSingleton<UsersModel>();
+            collection.AddSingleton<EventStoreProxy>();
 
             TypeRegister tr = new TypeRegister();
             tr.Index(typeof(FooCommand).Assembly.GetTypes().Where(x => typeof(IRecord).IsAssignableFrom(x))

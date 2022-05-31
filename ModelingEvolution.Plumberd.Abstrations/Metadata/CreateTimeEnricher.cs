@@ -23,12 +23,4 @@ namespace ModelingEvolution.Plumberd.Metadata
             return new CreateTimeEnricher();
         }
     }
-    public static class CreateTimeEnricherExtensions
-    {
-        public static DateTimeOffset Created(this IMetadata m)
-        {
-            return (DateTimeOffset)m[m.Schema.Enricher<CreateTimeEnricher>().Property];
-        }
-
-    }
 }

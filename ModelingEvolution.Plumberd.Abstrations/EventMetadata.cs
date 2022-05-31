@@ -58,14 +58,24 @@ namespace ModelingEvolution.Plumberd
             return this;
         }
 
-        
+        public Version DefaultVersion { get; set; } = new Version(0, 0);
+        public PlumberBuilder WithVersion(Version v)
+        {
+            DefaultVersion = v;
+            return this;
+        }
+        public PlumberBuilder WithVersionFrom<T>()
+        {
+            DefaultVersion = typeof(T).Assembly.GetName().Version;
+            return this;
+        }
         public IPlumberRuntime Build()
         {
             if (DefaultCommandInvoker == null)
             {
                 var factory = new CommandInvokerMetadataFactory();
                 
-                DefaultCommandInvoker = new CommandInvoker(DefaultEventStore);
+                DefaultCommandInvoker = new CommandInvoker(DefaultEventStore, DefaultVersion);
             }
 
             if (DefaultServiceProvider == null)
@@ -77,7 +87,7 @@ namespace ModelingEvolution.Plumberd
             return new PlumberRuntime(DefaultCommandInvoker, 
                 DefaultEventStore, 
                 DefaultSynchronizationContext,
-                DefaultServiceProvider);
+                DefaultServiceProvider, DefaultVersion);
         }
 
         public PlumberBuilder WithDefaultServiceProvider(IServiceProvider serviceProvider)
@@ -117,6 +127,7 @@ namespace ModelingEvolution.Plumberd
         public SynchronizationContext SynchronizationContext => _parent.SynchronizationContext;
         public IEventStore EventStore => _parent.EventStore;
         public ICommandInvoker CommandInvoker => _parent.CommandInvoker;
+        public Version Version => _parent.Version;
         public IRecord Record { get; set; }
         public IMetadata Metadata { get; set; }
         public Type ProcessingUnitType => _parent.Type;
@@ -144,12 +155,14 @@ namespace ModelingEvolution.Plumberd
         public ICommand Command { get;  }
         public Guid UserId { get; }
         public Guid ClientSessionId { get; }
-        public CommandInvocationContext(Guid id, ICommand command, Guid userId, Guid sessionId)
+        public Version Version { get; }
+        public CommandInvocationContext(Guid id, ICommand command, Guid userId, Guid sessionId, Version version)
         {
             Id = id;
             Command = command;
             ClientSessionId = sessionId;
             UserId = userId;
+            Version = version;
         }
 
         public void Dispose()
@@ -162,6 +175,7 @@ namespace ModelingEvolution.Plumberd
         ICommand Command { get; }
         Guid UserId { get; }
         Guid ClientSessionId { get; }
+        Version Version { get; }
     }
 
     public interface ICommandHandlerContext : IProcessingContext
@@ -180,7 +194,7 @@ namespace ModelingEvolution.Plumberd
         SynchronizationContext SynchronizationContext { get; }
         IEventStore EventStore { get; }
         ICommandInvoker CommandInvoker { get; }
-
+        Version Version { get; }
         IRecord Record { get; set; }  // We need to set it up.
         IMetadata Metadata { get; set; }
     }

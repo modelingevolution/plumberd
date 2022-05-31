@@ -304,7 +304,8 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 PlumberBuilder b = new PlumberBuilder()
                     .WithTcpEventStore(x => x.InSecure()
                         .WithTcpUrl(server.TcpUrl)
-                        .WithHttpUrl(server.HttpUrl));
+                        .WithHttpUrl(server.HttpUrl))
+                    .WithVersion(new Version(1,2));
 
                 var plumber = b.Build();
                 return plumber;

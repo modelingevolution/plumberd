@@ -28,6 +28,9 @@ namespace ModelingEvolution.Plumberd
         public IEventStore EventStore => _parent.EventStore;
 
         public ICommandInvoker CommandInvoker => _parent.CommandInvoker;
+
+        public Version Version => _parent?.Version;
+
         public IRecord Record { get; set; }
         public IMetadata Metadata { get; set; }
 

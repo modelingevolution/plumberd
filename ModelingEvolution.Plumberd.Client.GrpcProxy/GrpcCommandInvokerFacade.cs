@@ -55,6 +55,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             return _sessions.Values.First();
         }
     }
+
+    public interface IAppInfo
+    {
+        Version Version { get; }
+    }
     /// <summary>
     /// Designed to be thread-safe
     /// </summary>
@@ -64,20 +69,22 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private static readonly ILogger Log = LogFactory.GetLogger<GrpcCommandInvokerFacade>();
         private readonly Channel _channel;
         private readonly ISessionManager _sessionManager;
-        
+        private readonly IAppInfo _appInfo;
+
         private readonly ArrayBufferWriter<byte> _buffer;
-        public GrpcCommandInvokerFacade(Channel channel, ISessionManager sessionManager)
+        public GrpcCommandInvokerFacade(Channel channel, ISessionManager sessionManager, IAppInfo appInfo)
         {
             _channel = channel;
             _sessionManager = sessionManager;
-            
+            _appInfo = appInfo;
+
             _buffer = new ArrayBufferWriter<byte>(1024*128); // 128 KB
         }
 
 
-        public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId)
+        public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId, Version v = null)
         {
-            return Execute(id, c, new CommandInvocationContext(id, c, userId, sessionId));
+            return Execute(id, c, new CommandInvocationContext(id, c, userId, sessionId, v));
         }
         public async Task Execute(Guid id, ICommand c, IContext context = null)
         {
@@ -89,9 +96,10 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
                 Serializer.Serialize(_buffer, c);
                 
                 msg.Seq = Interlocked.Increment(ref _counter);
-                msg.SteamId = new UUID() { Value = ByteString.CopyFrom(id.ToByteArray()) };
+                msg.StreamId = new UUID() { Value = ByteString.CopyFrom(id.ToByteArray()) };
                 msg.TypeId = new UUID() { Value = ByteString.CopyFrom(c.GetType().NameHash()) };
                 msg.Data = ByteString.CopyFrom(_buffer.WrittenSpan);
+                msg.Version = _appInfo.Version.ToString();
                 _buffer.Clear();
             }
 

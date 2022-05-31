@@ -16,6 +16,7 @@ namespace ModelingEvolution.Plumberd
     public interface IStreamAware 
     {
         string StreamCategory { get; }
+
     }
     public interface ILink : IEvent, IStreamAware
     {

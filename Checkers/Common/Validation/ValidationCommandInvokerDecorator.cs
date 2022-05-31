@@ -13,9 +13,9 @@ namespace Checkers.Common.Validation
             _next = next;
             _validatorFactory = validatorFactoryFactory;
         }
-        public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId)
+        public Task Execute(Guid id, ICommand c, Guid userId, Guid sessionId, Version v)
         {
-            return Execute(id, c, new CommandInvocationContext(id, c, userId, sessionId));
+            return Execute(id, c, new CommandInvocationContext(id, c, userId, sessionId, v));
         }
         public async Task Execute(Guid id, ICommand c, IContext context = null)
         {

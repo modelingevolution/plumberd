@@ -24,6 +24,7 @@ namespace ModelingEvolution.Plumberd
         ICommandInvoker DefaultCommandInvoker { get; }
         IServiceProvider DefaultServiceProvider { get; }
         IEventStore DefaultEventStore { get; }
+        Version DefaultVersion { get; }
         IReadOnlyList<IProcessingUnit> Units { get; }
         IPlumberRuntime RegisterController(Type processingUnitType,
             Func<Type, object> controllerFactory = null,
@@ -59,16 +60,18 @@ namespace ModelingEvolution.Plumberd
     internal sealed class PlumberRuntime : IPlumberRuntime
     {
         private readonly List<ProcessingContextFactory> _units;
+        public Version DefaultVersion { get; }
         public IReadOnlyList<IProcessingUnit> Units => _units;
-        public PlumberRuntime(ICommandInvoker defaultCommandInvoker, 
-            IEventStore defaultEventStore, 
-            SynchronizationContext defaultSynchronizationContext, 
-            IServiceProvider defaultServiceProvider)
+        public PlumberRuntime(ICommandInvoker defaultCommandInvoker,
+            IEventStore defaultEventStore,
+            SynchronizationContext defaultSynchronizationContext,
+            IServiceProvider defaultServiceProvider, Version defaultVersion)
         {
             DefaultCommandInvoker = defaultCommandInvoker;
             DefaultEventStore = defaultEventStore;
             DefaultSynchronizationContext = defaultSynchronizationContext;
             DefaultServiceProvider = defaultServiceProvider;
+            DefaultVersion = defaultVersion;
             _units = new List<ProcessingContextFactory>();
         }
         public IServiceProvider DefaultServiceProvider { get; }
@@ -272,7 +275,7 @@ namespace ModelingEvolution.Plumberd
                     commandInvoker,
                     eventHandlerBinder,
                     config,
-                    context);
+                    context, DefaultVersion);
 
                 _units.Add(factory);
                 return factory;
@@ -343,7 +346,15 @@ namespace ModelingEvolution.Plumberd
             ProcessingResults result = new ProcessingResults();
             try
             {
-                result = await context.Dispatcher(context.ProcessingUnit, m, e);
+                if (context.Config.RequiresCurrentVersion)
+                {
+                    if(context.Version == m.Version())
+                        result = await context.Dispatcher(context.ProcessingUnit, m, e);
+                }
+                else
+                {
+                    result = await context.Dispatcher(context.ProcessingUnit, m, e);
+                }
             }
             catch (ProcessingException ex)
             {
@@ -386,7 +397,16 @@ namespace ModelingEvolution.Plumberd
             if (context.Config.ProcessingLag > TimeSpan.Zero)
                 await Task.Delay(context.Config.ProcessingLag);
             ProcessingResults result = new ProcessingResults();
-            context.SynchronizationContext.Send(x => result += context.Dispatcher(context.ProcessingUnit, m, e).GetAwaiter().GetResult(), null);
+            if (context.Config.RequiresCurrentVersion)
+            {
+                if (context.Version == m.Version())
+                    context.SynchronizationContext.Send(x => result += context.Dispatcher(context.ProcessingUnit, m, e).GetAwaiter().GetResult(), null);
+            }
+            else
+            {
+                context.SynchronizationContext.Send(x => result += context.Dispatcher(context.ProcessingUnit, m, e).GetAwaiter().GetResult(), null);
+            }
+            
             if (!result.IsEmpty)
             {
                 if (context.Config.IsEventEmitEnabled)

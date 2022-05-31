@@ -14,6 +14,7 @@ namespace ModelingEvolution.Plumberd.EventProcessing
         bool IsNameOverriden { get; }
         bool IsEventEmitEnabled { get; }
         bool IsCommandEmitEnabled { get; }
+        bool RequiresCurrentVersion { get; }
         ProcessingMode ProcessingMode { get; }
         BindingFlags BindingFlags { get; }
         TimeSpan ProcessingLag { get; set; }

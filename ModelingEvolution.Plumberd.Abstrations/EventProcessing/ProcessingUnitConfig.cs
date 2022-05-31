@@ -12,6 +12,7 @@ namespace ModelingEvolution.Plumberd.EventProcessing
     {
         private readonly Type _type;
         private string _name;
+        
 
         public ProcessingUnitConfig(Type type)
         {
@@ -36,6 +37,7 @@ namespace ModelingEvolution.Plumberd.EventProcessing
                 ProcessingMode = att.ProcessingMode;
                 BindingFlags = att.BindingFlags;
                 ProcessingLag = att.ProcessingLag;
+                RequiresCurrentVersion = att.RequiresCurrentVersion;
                 _name = att.StreamName;
             }
         }
@@ -52,6 +54,7 @@ namespace ModelingEvolution.Plumberd.EventProcessing
         public bool IsNameOverriden => _name != null;
         public bool IsEventEmitEnabled { get;  set; }
         public bool IsCommandEmitEnabled { get;  set; }
+        public bool RequiresCurrentVersion { get; }
         public ProcessingMode ProcessingMode { get;  set; }
         public BindingFlags BindingFlags { get; }
         public TimeSpan ProcessingLag { get; set; }
