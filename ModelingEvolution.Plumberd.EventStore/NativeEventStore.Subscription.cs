@@ -52,9 +52,10 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                 try
                 {
+                    var group = _processingContextFactory.Config.Type.Name;
                     _log.LogInformation("Connecting to persistent subscription {subscriptionName}.", _streamName);
                     this._subscription = await _connection.ConnectToPersistentSubscriptionAsync(_streamName,
-                        Environment.MachineName,
+                        group /*Environment.MachineName*/,
                         OnEventAppeared,
                         userCredentials: _parent._credentials,
                         subscriptionDropped: OnSubscriptionDropped);
@@ -63,16 +64,16 @@ namespace ModelingEvolution.Plumberd.EventStore
                 {
                     // expected ex.Message = "Subscription not found";
                     var settings = await CreatePersistentSubscriptionSettings();
-                    
+                    var group = _processingContextFactory.Config.Type.Name;
                     _log.LogInformation("Creating persistent subscription {subscriptionName} from beginning: {isFromBeginning}", _streamName, _fromBeginning);
                     await _connection.CreatePersistentSubscriptionAsync(_streamName,
-                        Environment.MachineName,
+                        group/*Environment.MachineName*/,
                         settings.Build(),
                         _parent._credentials);
 
                     _log.LogInformation("Connecting to persistent subscription {subscriptionName}.", _streamName);
-                    this._subscription = await _connection.ConnectToPersistentSubscriptionAsync(_streamName, 
-                        Environment.MachineName,
+                    this._subscription = await _connection.ConnectToPersistentSubscriptionAsync(_streamName,
+                        group/*Environment.MachineName*/,
                         OnEventAppeared, userCredentials: _parent._credentials,
                         subscriptionDropped: OnSubscriptionDropped);
                 }

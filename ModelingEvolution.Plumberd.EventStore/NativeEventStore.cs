@@ -258,12 +258,15 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                 // Direct, no projection name;
                 schema.StreamName = $"$et-{types[0]}";
+                schema.ProjectionName = $"{name}-{key}";
+                schema.IsDirect = true;
             }
             else
             {
                 // InDirect
                 schema.StreamName = $"{_settings.ProjectionStreamPrefix}{name}-{key}";
                 schema.ProjectionName = $"{name}-{key}";
+                
             }
 
             schema.Script = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingLinksToStream(schema.StreamName).Script();

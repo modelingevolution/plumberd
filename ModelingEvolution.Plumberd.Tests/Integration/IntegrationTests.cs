@@ -248,7 +248,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             var nStore = plumber.DefaultEventStore;
             await Task.Delay(500);
             var eventHandlerContext = NSubstitute.Substitute.For<IEventHandlerContext>();
-            var data = await nStore.GetStream("/FooLink", id, eventHandlerContext).Read().ToArrayAsync();
+            var data = await nStore.GetStream("/FooLink", projection.StreamId, eventHandlerContext).Read().ToArrayAsync();
             data.Length.ShouldBe(1);
             projection.Event.ShouldNotBeNull();
             data[0].Item2.ShouldBeEquivalentTo(projection.Event);

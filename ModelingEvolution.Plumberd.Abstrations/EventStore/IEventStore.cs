@@ -151,7 +151,7 @@ namespace ModelingEvolution.Plumberd.EventStore
     }
     public class ProjectionSchema
     {
-        public bool IsDirect => string.IsNullOrWhiteSpace(ProjectionName);
+        public bool IsDirect { get; set; }
         public string ProjectionName { get; set; }
         public string StreamName { get; set; }
         public string Script { get; set; }

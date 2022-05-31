@@ -92,7 +92,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             StringBuilder query = new StringBuilder();
 
             query.AppendLine(".when( { \r\n    $any : function(s,e) { ");
-            query.AppendLine($"var streamName = '{_category}-'+e.body.{_propertyName};");
+            query.AppendLine($"const streamName = '{_category}-'+e.body.{_propertyName};");
             query.AppendLine($"linkTo(streamName, e); }}");
             query.Append("});");
 
@@ -105,8 +105,8 @@ namespace ModelingEvolution.Plumberd.EventStore
             StringBuilder query = new StringBuilder();
 
             query.AppendLine(".when( { \r\n    $any : function(s,e) { ");
-            query.AppendLine("var m = JSON.parse(e.metadataRaw);");
-            query.AppendLine($"var streamName = '{_category}-'+m.{_propertyName};");
+            query.AppendLine("const m = JSON.parse(e.metadataRaw);");
+            query.AppendLine($"const streamName = '{_category}-'+m.{_propertyName};");
             query.AppendLine($"linkTo(streamName, e); }}");
             query.Append("});");
 
@@ -119,8 +119,8 @@ namespace ModelingEvolution.Plumberd.EventStore
             StringBuilder query = new StringBuilder();
 
             query.AppendLine(".when( { \r\n    $any : function(s,e) { ");
-            query.AppendLine("var m = JSON.parse(e.metadataRaw);");
-            query.AppendLine($"var streamName = '{_category}-'+m.{_propertyName};");
+            query.AppendLine("const m = JSON.parse(e.metadataRaw);");
+            query.AppendLine($"const streamName = '{_category}-'+m.{_propertyName};");
             query.AppendLine($"linkTo(streamName, e); }}");
             query.Append("});");
 

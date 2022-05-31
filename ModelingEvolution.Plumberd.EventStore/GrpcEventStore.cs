@@ -280,7 +280,6 @@ namespace ModelingEvolution.Plumberd.EventStore
             IProcessingContextFactory factory)
         {
             CheckConnectivity();
-
             if (!schema.IsDirect)
                 await _projectionConfigurations.UpdateProjectionSchema(schema);
 
