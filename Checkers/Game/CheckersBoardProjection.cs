@@ -13,7 +13,7 @@ namespace Checkers.Game
         {
             Boards = boards;
         }
-
+        
         public CheckersBoards Boards { get; }
     }
 }
