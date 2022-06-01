@@ -272,12 +272,13 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         ProjectionName = request.GenericSchema.Name,
                         Script = request.GenericSchema.Script,
                         StreamName = request.GenericSchema.StreamName,
-                        IsDirect = request.GenericSchema.Name == null
+                        IsDirect = string.IsNullOrWhiteSpace(request.GenericSchema.Name)
                     };
-                    _logger.LogInformation("GrpcProxy -> Subscribing -> Generic({projectionName},{script},{steamName})",
+                    _logger.LogInformation("GrpcProxy -> Subscribing -> Generic({projectionName},{script},{steamName},{isDirect})",
                         schema.ProjectionName,
                         schema.Script,
-                        schema.StreamName);
+                        schema.StreamName, 
+                        schema.IsDirect);
 
                     IProcessingContextFactory f = new GrpcContextFactory();
                     resources = await _eventStore.Subscribe(schema,
