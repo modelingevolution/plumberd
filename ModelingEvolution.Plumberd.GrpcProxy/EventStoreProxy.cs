@@ -271,7 +271,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     {
                         ProjectionName = request.GenericSchema.Name,
                         Script = request.GenericSchema.Script,
-                        StreamName = request.GenericSchema.StreamName
+                        StreamName = request.GenericSchema.StreamName,
+                        IsDirect = request.GenericSchema.Name == null
                     };
                     _logger.LogInformation("GrpcProxy -> Subscribing -> Generic({projectionName},{script},{steamName})",
                         schema.ProjectionName,
