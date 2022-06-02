@@ -9,7 +9,7 @@ import "google/protobuf/empty.proto";
 
 service GrpcEventStoreProxy {
 	rpc ReadStream (ReadReq) returns (stream ReadRsp);
-	rpc WriteStream (stream WriteReq) returns (stream WriteRsp); 
+	rpc WriteStream (WriteReq) returns (WriteRsp); 
 	rpc WriteBlob (stream BlobChunk) returns (BlobData);
 }
 
@@ -64,11 +64,12 @@ message UUID {
 message WriteReq {
 	UUID streamId = 1;
 	UUID typeId = 2;
-	uint64 seq = 3;
+	//uint64 seq = 3;
 	bytes data = 4;
 	string version = 5;
 	//bytes metadata = 5; 
 }
 message WriteRsp {
-	uint64 seq = 1; 
+	//uint64 seq = 1; 
+	uint64 status = 1;
 }

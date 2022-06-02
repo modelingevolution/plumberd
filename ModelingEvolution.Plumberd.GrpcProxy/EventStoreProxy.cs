@@ -400,29 +400,25 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             await responseStream.WriteAsync(rsp);
         }
 
-        public async override Task WriteStream(IAsyncStreamReader<WriteReq> requestStream, IServerStreamWriter<WriteRsp> responseStream, ServerCallContext context)
+        public override async Task<WriteRsp> WriteStream(WriteReq request, ServerCallContext context)
         {
             await CheckAuthorizationData(context);
 
             Guid sessionId = context.SessionId() ?? Guid.Empty;
-            await foreach (var i in requestStream.ReadAllAsync())
-            {
-                var steamId = new Guid(i.StreamId.Value.Span);
-                if(steamId == Guid.Empty) continue;
-                
-                Guid typeId = new Guid(i.TypeId.Value.Span);
-                var type = _typeRegister.GetRequiredType(typeId);
-                var cmd = Serializer.NonGeneric.Deserialize(type, i.Data.Memory) as ICommand;
-                var version = Version.Parse(i.Version);
-                using (CommandInvocationContext cc = new CommandInvocationContext(steamId, 
-                    cmd, context.UserId() ?? Guid.Empty, sessionId, version))
-                {
-                    await _commandInvoker.Execute(steamId, cmd, cc);
 
-                    await responseStream.WriteAsync(new WriteRsp() {Seq = i.Seq});
-                }
+            var steamId = new Guid(request.StreamId.Value.Span);
+            if (steamId == Guid.Empty) return null;
+
+            Guid typeId = new Guid(request.TypeId.Value.Span);
+            var type = _typeRegister.GetRequiredType(typeId);
+            var cmd = Serializer.NonGeneric.Deserialize(type, request.Data.Memory) as ICommand;
+            var version = Version.Parse(request.Version);
+            using (CommandInvocationContext cc = new CommandInvocationContext(steamId,
+                cmd, context.UserId() ?? Guid.Empty, sessionId, version))
+            {
+                await _commandInvoker.Execute(steamId, cmd, cc);
+                return new WriteRsp() { Status = 200 };
             }
-            
         }
     }
 }

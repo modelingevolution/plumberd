@@ -95,7 +95,6 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             {
                 Serializer.Serialize(_buffer, c);
                 
-                msg.Seq = Interlocked.Increment(ref _counter);
                 msg.StreamId = new UUID() { Value = ByteString.CopyFrom(id.ToByteArray()) };
                 msg.TypeId = new UUID() { Value = ByteString.CopyFrom(c.GetType().NameHash()) };
                 msg.Data = ByteString.CopyFrom(_buffer.WrittenSpan);
@@ -107,11 +106,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             var sessionId = _sessionManager.GetSessionId(_channel.Address);
             metadata.Add("SessionId-bin", sessionId.ToByteArray());
 
-            var writeStream = client.WriteStream(metadata);
-            {
-                await writeStream.RequestStream.WriteAsync(msg);
-                await writeStream.RequestStream.CompleteAsync();
-            }
+            var rsp = client.WriteStream(msg,metadata);
+            
         }
 
 
