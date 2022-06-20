@@ -339,6 +339,12 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 var u = _userModel.FindByUserId(streamId);
                 if (u == null || u.Name != name || u.Email != email)
                 {
+                    if (string.IsNullOrWhiteSpace(email))
+                        throw new AuthorizationDeniedException("Email cannot be empty.");
+
+                    if (string.IsNullOrWhiteSpace(name))
+                        throw new AuthorizationDeniedException("Name cannot be empty.");
+
                     var cmd = new RetrieveAuthorizationData()
                     {
                         Email = email,
@@ -420,5 +426,11 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                 return new WriteRsp() { Status = 200 };
             }
         }
+    }
+
+    public class AuthorizationDeniedException : Exception
+    {
+        public AuthorizationDeniedException(string msg) : base(msg){}
+        
     }
 }
