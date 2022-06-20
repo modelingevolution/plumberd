@@ -106,7 +106,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             var sessionId = _sessionManager.GetSessionId(_channel.Address);
             metadata.Add("SessionId-bin", sessionId.ToByteArray());
 
-            var rsp = client.WriteStream(msg,metadata);
+            var rsp = await client.WriteStreamAsync(msg,metadata);
             
         }
 
