@@ -26,14 +26,14 @@ namespace ModelingEvolution.Plumberd.Metadata
             switch (context)
             {
                 case IEventHandlerContext epc:
-                    m[Version] = epc.Metadata.Version().ToString();
+                    m[Version] = epc.Metadata.Version()?.ToString() ?? "0.0.0.0";
                     break;
                 case ICommandHandlerContext c:
-                    m[Version] = (c.Metadata?.Version() ?? c.Version).ToString(); //  c.Record.Id
+                    m[Version] = (c.Metadata?.Version() ?? c.Version)?.ToString() ?? "0.0.0.0"; //  c.Record.Id
                    
                     break;
                 case ICommandInvocationContext c:
-                    m[Version] = c.Version.ToString();
+                    m[Version] = c.Version?.ToString() ?? "0.0.0.0";
                     break;
                 default:
                     throw new NotSupportedException("Unsupported context.");
