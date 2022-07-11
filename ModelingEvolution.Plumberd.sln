@@ -25,6 +25,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Checkers", "Checkers\Checke
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelingEvolution.Plumberd.Client.GrpcProxy", "ModelingEvolution.Plumberd.Client.GrpcProxy\ModelingEvolution.Plumberd.Client.GrpcProxy.csproj", "{60AE68D3-30F3-4759-913A-3348BE59F540}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Development", "Development", "{DC9BEC30-C057-4648-B0BE-C5DAF0F43810}"
+	ProjectSection(SolutionItems) = preProject
+		Development\cake.ps1 = Development\cake.ps1
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
