@@ -44,7 +44,7 @@ namespace ModelingEvolution.Plumberd.Querying
                     ProcessingMode = ProcessingMode.EventHandler,
                     SubscribesFromBeginning = true,
                     // Projection Schema => From Metadata.UserId or Event.Property
-                    ProjectionSchema = new ProjectionSchema() { StreamName = _streamName },
+                    ProjectionSchema = new ProjectionSchema() { StreamName = _streamName, IsDirect = true },
                     OnAfterDispatch = async (u, m, e, r) => results.FireChanged(m,e)
                 });
 

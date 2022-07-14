@@ -63,7 +63,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     /// <summary>
     /// Designed to be thread-safe
     /// </summary>
-    public class GrpcCommandInvokerFacade : ICommandInvoker, IAsyncDisposable
+    public class GrpcCommandInvokerFacade : ICommandInvoker
     {
         private static ulong _counter = 0;
         private static readonly ILogger Log = LogFactory.GetLogger<GrpcCommandInvokerFacade>();
@@ -110,10 +110,5 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             
         }
 
-
-        public async ValueTask DisposeAsync()
-        {
-            
-        }
     }
 }
