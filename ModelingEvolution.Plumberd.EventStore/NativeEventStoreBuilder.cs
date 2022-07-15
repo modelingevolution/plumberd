@@ -45,13 +45,13 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             return WithConfig(c, "EventStore");
         }
-        public NativeEventStoreBuilder WithConfig(IConfiguration c, string prefix)
+        public NativeEventStoreBuilder WithConfig(IConfiguration c, string sectionKey)
         {
             
-            this.SetIfNotEmpty(ref _tcpUrl, c[$"{prefix}:TcpUrl"]);
-            this.SetIfNotEmpty(ref _httpUrl, c[$"{prefix}:HttpUrl"]);
-            this.SetIfNotEmpty(ref _userName, c[$"{prefix}:User"]);
-            this.SetIfNotEmpty(ref _password, c[$"{prefix}:Password"]);
+            this.SetIfNotEmpty(ref _tcpUrl, c[$"{sectionKey}:TcpUrl"]);
+            this.SetIfNotEmpty(ref _httpUrl, c[$"{sectionKey}:HttpUrl"]);
+            this.SetIfNotEmpty(ref _userName, c[$"{sectionKey}:User"]);
+            this.SetIfNotEmpty(ref _password, c[$"{sectionKey}:Password"]);
 
             var isInsecure = c["{prefix}:Insecure"];
             if (!string.IsNullOrWhiteSpace(isInsecure))
