@@ -53,7 +53,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             this.SetIfNotEmpty(ref _userName, c[$"{sectionKey}:User"]);
             this.SetIfNotEmpty(ref _password, c[$"{sectionKey}:Password"]);
 
-            var isInsecure = c[$"{prefix}:Insecure"];
+            var isInsecure = c[$"{sectionKey}:Insecure"];
             if (!string.IsNullOrWhiteSpace(isInsecure))
             {
                 if (bool.Parse(isInsecure))
