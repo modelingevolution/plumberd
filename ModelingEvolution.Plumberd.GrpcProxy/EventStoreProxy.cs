@@ -33,18 +33,21 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
     public class EventStoreProxy : GrpcEventStoreProxy.GrpcEventStoreProxyBase
     {
         private readonly TypeRegister _typeRegister;
+        private readonly IPlumberRuntime _plumberRuntime;
         private readonly ICommandInvoker _commandInvoker;
         private readonly IEventStore _eventStore;
         private readonly ILogger _logger;
         private readonly UsersModel _userModel;
         private readonly IConfiguration _config;
         public EventStoreProxy(TypeRegister typeRegister, 
+            IPlumberRuntime plumberRuntime,
             ICommandInvoker commandInvoker, 
             IEventStore eventStore, ILogger<EventStoreProxy> logger, 
-            UsersModel userModel, 
+            UsersModel userModel,
             IConfiguration config)
         {
             _typeRegister = typeRegister;
+            _plumberRuntime = plumberRuntime;
             _commandInvoker = commandInvoker;
             _eventStore = eventStore;
             _logger = logger;
@@ -377,7 +380,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             Serializer.Serialize(buffer, ev);
             rsp.Data = ByteString.CopyFrom(buffer.WrittenSpan);
             rsp.TypeId = new UUID() {Value = ByteString.CopyFrom(ev.GetType().NameId().ToByteArray())};
-
+            
             foreach (var i in metadata.Schema.Properties)
             {
                 var value = metadata[i];
@@ -401,6 +404,13 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                     Data = ByteString.CopyFrom(buffer.WrittenSpan)
                 };
                 rsp.MetadataProps.Add(metadataProperty);
+            }
+
+            var correlationId = metadata.CorrelationId();
+            if (this._plumberRuntime.IgnoreFilter.IsFiltered(correlationId))
+            {
+                _logger.LogInformation("GrpcProxy -> {recordType} Ignored for transmission.", ev.GetType().Name);
+                return;
             }
             _logger.LogInformation("GrpcProxy -> Subscription.WriteResponse({recordType})", ev.GetType().Name);
             await responseStream.WriteAsync(rsp);

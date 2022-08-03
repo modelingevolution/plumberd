@@ -23,6 +23,7 @@ namespace ModelingEvolution.Plumberd
 {
     public interface IPlumberRuntime
     {
+        IIgnoreFilter IgnoreFilter { get; }
         ICommandInvoker DefaultCommandInvoker { get; }
         IServiceProvider DefaultServiceProvider { get; }
         IEventStore DefaultEventStore { get; }
@@ -77,7 +78,7 @@ namespace ModelingEvolution.Plumberd
             IgnoreFilter = new IgnoreFilter();
             _units = new List<ProcessingContextFactory>();
         }
-        public IIgnoreFilterModel IgnoreFilter { get;  }
+        public IIgnoreFilter IgnoreFilter { get;  }
         public IServiceProvider DefaultServiceProvider { get; }
         public ICommandInvoker DefaultCommandInvoker { get; }
         public IEventStore DefaultEventStore { get; }

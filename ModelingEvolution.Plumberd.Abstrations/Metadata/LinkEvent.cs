@@ -24,7 +24,7 @@ namespace ModelingEvolution.Plumberd.Metadata
         public ulong SourceStreamPosition { get; }
     }
 
-    internal interface IIgnoreFilterModel
+    public interface IIgnoreFilter
     {
         bool IsFiltered(Guid correlationId);
     }

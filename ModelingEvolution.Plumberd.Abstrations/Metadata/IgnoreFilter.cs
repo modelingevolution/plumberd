@@ -10,7 +10,7 @@ namespace ModelingEvolution.Plumberd.Metadata;
     SubscribesFromBeginning = true,
     IsPersistent = false,
     ProcessingMode = ProcessingMode.EventHandler)]
-class IgnoreFilter : IIgnoreFilterModel
+class IgnoreFilter : IIgnoreFilter
 {
     public ConcurrentHashSet<Guid> _index;
 
