@@ -41,7 +41,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private readonly UserCredentials _credentials;
         
         private readonly EventStoreSettings _settings;
-        internal IEventStoreConnection Connection => _connection;
+        public IEventStoreConnection Connection => _connection;
         public IEventStoreSettings Settings => _settings;
         private HttpClientHandler IgnoreServerCertificateHandler()
         {
