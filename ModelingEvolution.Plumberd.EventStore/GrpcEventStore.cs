@@ -255,6 +255,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                 // Direct, no projection name;
                 schema.StreamName = $"$et-{types[0]}";
+                schema.IsDirect = true;
             }
             else
             {

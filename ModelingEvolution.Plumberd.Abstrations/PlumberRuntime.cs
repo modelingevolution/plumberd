@@ -10,10 +10,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using ModelingEvolution.Plumberd.Binding;
+using ModelingEvolution.Plumberd.CommandHandling;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
+using ModelingEvolution.Plumberd.Threading;
 using BindingFlags = ModelingEvolution.Plumberd.Binding.BindingFlags;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 
@@ -72,8 +74,10 @@ namespace ModelingEvolution.Plumberd
             DefaultSynchronizationContext = defaultSynchronizationContext;
             DefaultServiceProvider = defaultServiceProvider;
             DefaultVersion = defaultVersion;
+            IgnoreFilter = new IgnoreFilter();
             _units = new List<ProcessingContextFactory>();
         }
+        public IIgnoreFilterModel IgnoreFilter { get;  }
         public IServiceProvider DefaultServiceProvider { get; }
         public ICommandInvoker DefaultCommandInvoker { get; }
         public IEventStore DefaultEventStore { get; }
@@ -307,6 +311,14 @@ namespace ModelingEvolution.Plumberd
         {
             filter ??= x => true;
 
+            var filterConfig = BuildConfiguration(this.IgnoreFilter.GetType(), null, DefaultEventStore, ProcessingMode.EventHandler);
+            AsyncManualResetEvent sv = new AsyncManualResetEvent(false);
+            filterConfig.OnLive += sv.Set;
+            var filterUnit = await RunController(this.IgnoreFilter, filterConfig);
+            await sv.WaitAsync();
+
+            RegisterController(new IgnoreFilterCommandHandler());
+
             await _units
                 .Where(x=>x.EventStore != null && filter(x))
                 .Select(x => x.EventStore)
@@ -338,7 +350,7 @@ namespace ModelingEvolution.Plumberd
                 return await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
                     u.Config.IsPersistent, loop, u, types);
         }
-
+        
         async Task ProcessEventsLoop(IProcessingContext context, IMetadata m, IRecord e)
         {
             if (context.Config.ProcessingLag > TimeSpan.Zero)
@@ -346,6 +358,10 @@ namespace ModelingEvolution.Plumberd
             ProcessingResults result = new ProcessingResults();
             try
             {
+                // BAD: we assume that correllation-id is on.
+                if (this.IgnoreFilter?.IsFiltered(m.CorrelationId()) ?? false)
+                    return;
+
                 if (context.Config.RequiresCurrentVersion)
                 {
                     if(context.Version == m.Version())

@@ -177,6 +177,32 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
                 await nStore.WriteEventsToFile("test.bak");
             }
         }
+        [Trait("Category", "Integration")]
+        [Theory]
+        [InlineData(CommunicationProtocol.Tcp)]
+        public async Task InvokeErrorCommand_IgnoreCorrellationId(CommunicationProtocol proto)
+        {
+            var projection = new FooProjection();
+            var commandHandler = new FooCommandHandler();
+
+            var plumber = await CreatePlumber(proto);
+            plumber.RegisterController(projection);
+            plumber.RegisterController(commandHandler);
+            await plumber.StartAsync();
+
+            /* Invoking new command */
+            Guid id = Guid.NewGuid();
+            var faultyCommand = new FaultyCommand();
+            var goodCommand = new FooCommand();
+            await plumber.DefaultCommandInvoker.Execute(id, faultyCommand);
+            await plumber.DefaultCommandInvoker.Execute(id, new IgnoreByCorrelationId(){CorrelationId = faultyCommand.Id});
+            await plumber.DefaultCommandInvoker.Execute(id, goodCommand);
+
+            await Task.Delay(2000);
+            /* Waiting 1 sec for the command-handler and event-handler to finish processing. */
+            projection.Count.ShouldBe(1);
+
+        }
 
         [Trait("Category", "Integration")]
         [Theory]

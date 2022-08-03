@@ -21,7 +21,20 @@ namespace ModelingEvolution.Plumberd.Tests.Models
             Count += 1;
             yield return ReturningEvent ??= new FooEvent();
         }
-        
+        public IEnumerable<IEvent> When(Guid id, FaultyCommand cmd)
+        {
+            throw new Exception();
+        }
+    }
+
+    public class FaultyCommand : ICommand
+    {
+        public Guid Id { get; set; }
+
+        public FaultyCommand()
+        {
+            Id = Guid.NewGuid();
+        }
     }
     [ProcessingUnitConfig(
         IsCommandEmitEnabled = false,
