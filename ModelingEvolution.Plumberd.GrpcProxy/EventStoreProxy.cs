@@ -61,8 +61,11 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             int i = 0;
             try
             {
+                _logger.LogInformation("Blob writing started...");
                 var userId = await CheckAuthorizationData(context);
+                _logger.LogInformation("UserId from authorized data:{userID}. ", userId);
                 var blobDescriptor = Get(context.RequestHeaders);
+                _logger.LogInformation("Blob Descriptor. ", userId);
                 var blobDir = _config["BlobDir"];
                 var root = string.IsNullOrWhiteSpace(blobDir)
                     ? Path.Combine(Path.GetTempPath(), "Modellution")
