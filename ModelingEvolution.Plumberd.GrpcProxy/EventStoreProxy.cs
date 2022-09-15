@@ -156,7 +156,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             return sb.ToString();
         }
 
-        private static string[] bitmapExtensions = new string[] {".png",".jpg",".jpeg",".bmp"};
+        private static string[] bitmapExtensions = {".png", ".jpg", ".jpeg", ".bmp", ".webp"};
 
         private async Task InvokeUploadEvent(ServerCallContext context, 
             BlobDescriptor blobDescriptor, 
