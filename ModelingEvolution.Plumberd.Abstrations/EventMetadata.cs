@@ -37,11 +37,15 @@ namespace ModelingEvolution.Plumberd
 
     public class PlumberBuilder
     {
-        private static readonly ILogger Logger = LogFactory.GetLogger<PlumberBuilder>();
         public IServiceProvider DefaultServiceProvider { get; private set; }
+        public Version DefaultVersion { get; set; } = new Version(0, 0);
         private ICommandInvoker DefaultCommandInvoker { get;  set; }
         private IEventStore DefaultEventStore { get;  set; }
         private SynchronizationContext DefaultSynchronizationContext { get;  set;}
+        private Action<Exception> OnException { get; set; }
+        
+        private static readonly ILogger Logger = LogFactory.GetLogger<PlumberBuilder>();
+
         public PlumberBuilder WithSynchronizationContext(SynchronizationContext context)
         {
             DefaultSynchronizationContext = context;
@@ -58,7 +62,11 @@ namespace ModelingEvolution.Plumberd
             return this;
         }
 
-        public Version DefaultVersion { get; set; } = new Version(0, 0);
+        public PlumberBuilder WithExceptionHook(Action<Exception> onException)
+        {
+            OnException = onException;
+            return this;
+        }
         public PlumberBuilder WithVersion(Version v)
         {
             DefaultVersion = v;
@@ -84,10 +92,13 @@ namespace ModelingEvolution.Plumberd
             }
 
             // validate
-            return new PlumberRuntime(DefaultCommandInvoker, 
+            return new PlumberRuntime(
+                DefaultCommandInvoker, 
                 DefaultEventStore, 
                 DefaultSynchronizationContext,
-                DefaultServiceProvider, DefaultVersion);
+                DefaultServiceProvider,
+                DefaultVersion,
+                OnException);
         }
 
         public PlumberBuilder WithDefaultServiceProvider(IServiceProvider serviceProvider)

@@ -62,13 +62,18 @@ namespace ModelingEvolution.Plumberd
     
     internal sealed class PlumberRuntime : IPlumberRuntime
     {
-        private readonly List<ProcessingContextFactory> _units;
-        public Version DefaultVersion { get; }
         public IReadOnlyList<IProcessingUnit> Units => _units;
-        public PlumberRuntime(ICommandInvoker defaultCommandInvoker,
+        private readonly List<ProcessingContextFactory> _units;
+        private readonly Action<Exception> _onException;
+            
+        
+        public PlumberRuntime(
+            ICommandInvoker defaultCommandInvoker,
             IEventStore defaultEventStore,
             SynchronizationContext defaultSynchronizationContext,
-            IServiceProvider defaultServiceProvider, Version defaultVersion)
+            IServiceProvider defaultServiceProvider, 
+            Version defaultVersion,
+            Action<Exception> onException)
         {
             DefaultCommandInvoker = defaultCommandInvoker;
             DefaultEventStore = defaultEventStore;
@@ -77,12 +82,14 @@ namespace ModelingEvolution.Plumberd
             DefaultVersion = defaultVersion;
             IgnoreFilter = new IgnoreFilter();
             _units = new List<ProcessingContextFactory>();
+            _onException = onException;
         }
         public IIgnoreFilter IgnoreFilter { get;  }
         public IServiceProvider DefaultServiceProvider { get; }
         public ICommandInvoker DefaultCommandInvoker { get; }
         public IEventStore DefaultEventStore { get; }
         public SynchronizationContext DefaultSynchronizationContext { get; }
+        public Version DefaultVersion { get; }
 
         public IPlumberRuntime RegisterController(
             Type processingUnitType,
@@ -337,19 +344,25 @@ namespace ModelingEvolution.Plumberd
                 .SelectMany(u.EventStore.Settings.RecordNamingConvention)
                 .ToArray();
 
-            EventHandler loop = ProcessEventsLoop;
-            if (u.SynchronizationContext != null)
-                //loop = async (c,m,e) => await ProcessEventsLoop(c,m,e);
-            //else 
-                loop = ProcessEventsLoopWithSync;
-
-
-            if (u.Config.ProjectionSchema != null)
-                return await u.EventStore.Subscribe(u.Config.ProjectionSchema, u.Config.SubscribesFromBeginning,
-                    u.Config.IsPersistent, loop, u);
-            else
-                return await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
-                    u.Config.IsPersistent, loop, u, types);
+            try
+            {
+                EventHandler loop = ProcessEventsLoop;
+                if (u.SynchronizationContext != null)
+                    //loop = async (c,m,e) => await ProcessEventsLoop(c,m,e);
+                    //else 
+                    loop = ProcessEventsLoopWithSync;
+                if (u.Config.ProjectionSchema != null)
+                    return await u.EventStore.Subscribe(u.Config.ProjectionSchema, u.Config.SubscribesFromBeginning,
+                                                        u.Config.IsPersistent, loop, u);
+                else
+                    return await u.EventStore.Subscribe(u.Config.Name, u.Config.SubscribesFromBeginning,
+                                                        u.Config.IsPersistent, loop, u, types);
+            }
+            catch (Exception ex)
+            {
+                _onException?.Invoke(ex);
+                throw;
+            }
         }
         
         async Task ProcessEventsLoop(IProcessingContext context, IMetadata m, IRecord e)
