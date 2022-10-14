@@ -225,7 +225,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             }
             catch (ObjectDisposedException e)
             {
-                Log.LogInformation(e, "We need to logout.");
+                Log.LogInformation(e, "Object was disposed (on the client).");
             }
             catch (Exception ex)
             {
