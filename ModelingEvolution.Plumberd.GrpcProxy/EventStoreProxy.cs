@@ -25,6 +25,7 @@ using ModelingEvolution.Plumberd.GrpcProxy.Authentication;
 using ModelingEvolution.Plumberd.Metadata;
 using ProtoBuf;
 using Microsoft.Extensions.Logging;
+using SkiaSharp;
 using EventHandler = ModelingEvolution.Plumberd.EventStore.EventHandler;
 using MetadataProperty = ModelingEvolution.EventStore.GrpcProxy.MetadataProperty;
 
@@ -61,8 +62,11 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             int i = 0;
             try
             {
+                _logger.LogInformation("Blob writing started...");
                 var userId = await CheckAuthorizationData(context);
+                _logger.LogInformation("UserId from authorized data:{userID}. ", userId);
                 var blobDescriptor = Get(context.RequestHeaders);
+                _logger.LogInformation("Blob Descriptor. ", userId);
                 var blobDir = _config["BlobDir"];
                 var root = string.IsNullOrWhiteSpace(blobDir)
                     ? Path.Combine(Path.GetTempPath(), "Modellution")
@@ -152,7 +156,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             return sb.ToString();
         }
 
-        private static string[] bitmapExtensions = new string[] {".png",".jpg",".jpeg",".bmp"};
+        private static string[] bitmapExtensions = {".png", ".jpg", ".jpeg", ".bmp", ".webp"};
 
         private async Task InvokeUploadEvent(ServerCallContext context, 
             BlobDescriptor blobDescriptor, 
@@ -163,7 +167,8 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
             var ext = Path.GetExtension(blobDescriptor.FileName).ToLowerInvariant();
             if (bitmapExtensions.Contains(ext))
             {
-                using var image = Image.FromFile(fileName);
+                using var bitmap = SKBitmap.Decode(fileName);
+                using var image = SKImage.FromBitmap(bitmap);
                 props = new ImageProperties() 
                 { 
                     Width = image.Width, 
