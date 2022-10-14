@@ -226,7 +226,6 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             catch (ObjectDisposedException e)
             {
                 Log.LogInformation(e, "We need to logout.");
-                await ReadingFailed?.Invoke();
             }
             catch (Exception ex)
             {
