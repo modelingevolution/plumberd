@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging.Abstractions;
 using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.Client.GrpcProxy;
 using ModelingEvolution.Plumberd.EventProcessing;
@@ -115,7 +116,7 @@ namespace ModelingEvolution.Plumberd.Client.Tests
         {
             IMetadata m = MetadataFactory.Create(_aggregateId, Guid.NewGuid(), _cmd.Id);
             var eventException = new MyExceptionData();
-            await _binder.CreateDispatcher()(_handler, m, eventException);
+            await _binder.CreateDispatcher(new NullLoggerFactory())(_handler, m, eventException);
             return eventException;
         }
     }
