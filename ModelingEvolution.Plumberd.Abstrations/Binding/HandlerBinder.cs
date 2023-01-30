@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.Metadata;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 
 namespace ModelingEvolution.Plumberd.Binding
 {
@@ -168,9 +168,14 @@ namespace ModelingEvolution.Plumberd.Binding
 
         private class DispatcherBuilder
         {
-            private static readonly ILogger Log = LogFactory.GetLogger<DispatcherBuilder>();
+            private readonly ILogger<DispatcherBuilder> Log;
             private readonly Dictionary<Type, List<HandlerDispatcher>> invokers =
                 new Dictionary<Type, List<HandlerDispatcher>>();
+
+            public DispatcherBuilder(ILogger<DispatcherBuilder> log)
+            {
+                Log = log;
+            }
 
             public void Register(HandlerDispatcher method, Type ev)
             {

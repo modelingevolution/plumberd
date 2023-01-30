@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using FxResources.Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace ModelingEvolution.Plumberd.EventStore
@@ -23,8 +22,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             private readonly NativeEventStore _parent;
 
-            private static readonly Microsoft.Extensions.Logging.ILogger _log =
-                LogFactory.GetLogger<PersistentSubscription>();
+            private readonly Microsoft.Extensions.Logging.ILogger<PersistentSubscription> _log;
             private readonly bool _fromBeginning;
             private readonly EventHandler _onEvent;
             private readonly string _streamName;
@@ -38,13 +36,14 @@ namespace ModelingEvolution.Plumberd.EventStore
                 in bool fromBeginning, 
                 EventHandler onEvent, 
                 string streamName, 
-                IProcessingContextFactory processingContextFactory)
+                IProcessingContextFactory processingContextFactory, ILogger<PersistentSubscription> log)
             {
                 _parent = parent;
                 this._fromBeginning = fromBeginning;
                 this._onEvent = onEvent;
                 this._streamName = streamName;
                 this._processingContextFactory = processingContextFactory;
+                _log = log;
                 this._connection = _parent._connection;
             }
 
@@ -161,7 +160,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private class ContinuesSubscription : INativeSubscription
         {
             private readonly NativeEventStore _parent;
-            private readonly static ILogger _log = LogFactory.GetLogger<ContinuesSubscription>();
+            private readonly ILogger _log;
             private readonly bool _fromBeginning;
             private readonly EventHandler _onEvent;
             private readonly string _streamName;
@@ -175,7 +174,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 in bool fromBeginning,
                 EventHandler onEvent,
                 string streamName,
-                IProcessingContextFactory processingContextFactory)
+                IProcessingContextFactory processingContextFactory, ILogger log)
             {
                 _parent = parent;
                 _connection = _parent._connection;
@@ -183,6 +182,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _onEvent = onEvent;
                 _streamName = streamName;
                 _processingContextFactory = processingContextFactory;
+                _log = log;
             }
 
             public async Task Subscribe()

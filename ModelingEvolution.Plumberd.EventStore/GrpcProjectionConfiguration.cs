@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using EventStore.Client;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
@@ -14,7 +14,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private readonly UserCredentials _userCredentials;
         private readonly IEventStoreSettings _settings;
         private readonly List<IProjectionConfig> _configs;
-        private static ILogger Log = LogFactory.GetLogger<ProjectionConfigurations>();
+        private readonly ILogger _log;
 
         public GrpcProjectionConfigurations(EventStoreProjectionManagementClient projectionManager,
             UserCredentials userCredentials,
@@ -24,7 +24,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             _userCredentials = userCredentials;
             _settings = settings;
             _configs = new List<IProjectionConfig>();
-
+            _log = settings.LoggerFactory.CreateLogger<GrpcProjectionConfigurations>();
         }
 
         public void Register(IProjectionConfig c)

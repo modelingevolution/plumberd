@@ -2,7 +2,7 @@
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Serialization;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
@@ -17,13 +17,14 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         public string CommandStreamPrefix { get; }
         public Func<Type, string[]> RecordNamingConvention { get; }
 
-        public static readonly ILogger Logger = LogFactory.GetLogger<EventStoreSettings>();
+        public ILoggerFactory LoggerFactory { get; }
 
 
         public EventStoreSettings(IMetadataFactory metadataFactory,
             IMetadataSerializerFactory metadataSerializer,
             IRecordSerializer serializer, 
             bool isDevelopment, 
+            ILoggerFactory loggerFactory, 
             Func<Type, string[]> eventNamingConvention = null,
             string projectionStreamPrefix = "/",
             string commandStreamPrefix = ">")
@@ -33,6 +34,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             MetadataSerializerFactory = metadataSerializer;
             Serializer = serializer;
             IsDevelopment = isDevelopment;
+            LoggerFactory = loggerFactory;
 
             ProjectionStreamPrefix = projectionStreamPrefix;
             CommandStreamPrefix = commandStreamPrefix;

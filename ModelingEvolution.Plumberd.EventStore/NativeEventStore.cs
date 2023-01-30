@@ -23,7 +23,7 @@ using Newtonsoft.Json;
 using ProtoBuf.Meta;
 using ProtoBuf;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
-using ModelingEvolution.Plumberd.Logging;
+
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
@@ -34,7 +34,8 @@ namespace ModelingEvolution.Plumberd.EventStore
         private readonly ConcurrentBag<ISubscription> _subscriptions;
         private readonly ProjectionConfigurations _projectionConfigurations;
         private bool _connected = false;
-        private static readonly ILogger Log = LogFactory.GetLogger<NativeEventStore>();
+        private readonly Lazy<ILogger> _lazyLog;
+        private ILogger Log => _lazyLog.Value;
 
         private readonly IEventStoreConnection _connection;
         private readonly ProjectionsManager _projectionsManager;
@@ -55,6 +56,8 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             await _projectionConfigurations.UpdateIfRequired();
         }
+
+        
         public async Task LoadEventFromFile(string file)
         {
             Log.LogInformation("Loading events from file: {fileName}", file);
@@ -154,10 +157,12 @@ namespace ModelingEvolution.Plumberd.EventStore
         public NativeEventStore(IEventStoreConnection connection, 
             ProjectionsManager projectionsManager, 
             UserCredentials credentials,
-            EventStoreSettings settings)
+            EventStoreSettings settings, 
+            Func<ILogger<NativeEventStore>> log)
 
         {
             _settings = settings;
+            _lazyLog = new Lazy<ILogger>(log);
             _subscriptions = new ConcurrentBag<ISubscription>();
             _projectionsManager = projectionsManager;
             _connection = connection;
@@ -165,8 +170,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             _credentials = credentials;
             _projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
         }
-        public NativeEventStore(EventStoreSettings settings,
-            Uri tcpUrl = null,
+        public NativeEventStore(EventStoreSettings settings, Func<ILogger<NativeEventStore>> log, Uri tcpUrl = null,
             Uri httpProjectionUrl = null,
             string userName = "admin",
             string password = "changeit",
@@ -176,6 +180,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             IEnumerable<IProjectionConfig> configurations = null)
         {
             _settings = settings;
+            _lazyLog = new Lazy<ILogger>(log);
             _subscriptions = new ConcurrentBag<ISubscription>();
             _credentials = new UserCredentials(userName, password);
             
@@ -319,7 +324,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             string streamName, 
             IProcessingContextFactory processingContextFactory)
         {
-            ContinuesSubscription s = new ContinuesSubscription(this,  fromBeginning, onEvent, streamName, processingContextFactory);
+            ContinuesSubscription s = new ContinuesSubscription(this,  fromBeginning, onEvent, streamName, processingContextFactory, _settings.LoggerFactory.CreateLogger<ContinuesSubscription>());
             await s.Subscribe();
             _subscriptions.Add(s);
             return s;
@@ -331,7 +336,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             string streamName, 
             IProcessingContextFactory processingContextFactory)
         {
-            PersistentSubscription s = new PersistentSubscription(this,  fromBeginning, onEvent, streamName, processingContextFactory);
+            PersistentSubscription s = new PersistentSubscription(this,  fromBeginning, onEvent, streamName, processingContextFactory, _settings.LoggerFactory.CreateLogger<PersistentSubscription>());
             await s.Subscribe();
             _subscriptions.Add(s);
             return s;

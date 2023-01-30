@@ -9,7 +9,8 @@ using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 
 namespace ModelingEvolution.Plumberd
 {
@@ -41,10 +42,23 @@ namespace ModelingEvolution.Plumberd
         public Version DefaultVersion { get; set; } = new Version(0, 0);
         private ICommandInvoker DefaultCommandInvoker { get;  set; }
         private IEventStore DefaultEventStore { get;  set; }
+        public ILoggerFactory DefaultLoggerFactory { get; private set; }
         private SynchronizationContext DefaultSynchronizationContext { get;  set;}
         private Action<Exception> OnException { get; set; }
-        
-        private static readonly ILogger Logger = LogFactory.GetLogger<PlumberBuilder>();
+
+        private ILogger<PlumberBuilder> _loggerValue;
+
+        private ILogger Logger
+        {
+            get
+            {
+                if (_loggerValue == null)
+                    return _loggerValue;
+                _loggerValue = DefaultLoggerFactory
+                    .CreateLogger<PlumberBuilder>();
+                return _loggerValue;
+            }
+        }
 
         public PlumberBuilder WithSynchronizationContext(SynchronizationContext context)
         {
@@ -72,6 +86,12 @@ namespace ModelingEvolution.Plumberd
             DefaultVersion = v;
             return this;
         }
+
+        public PlumberBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
+        {
+            DefaultLoggerFactory = loggerFactory;
+            return this;
+        }
         public PlumberBuilder WithVersionFrom<T>()
         {
             DefaultVersion = typeof(T).Assembly.GetName().Version;
@@ -91,12 +111,17 @@ namespace ModelingEvolution.Plumberd
                 DefaultServiceProvider = new ActivatorServiceProvider();
             }
 
+            if (DefaultLoggerFactory == null)
+            {
+                DefaultLoggerFactory = new NullLoggerFactory();
+            }
             // validate
             return new PlumberRuntime(
                 DefaultCommandInvoker, 
                 DefaultEventStore, 
                 DefaultSynchronizationContext,
-                DefaultServiceProvider,
+                DefaultServiceProvider, 
+                DefaultLoggerFactory,
                 DefaultVersion,
                 OnException);
         }
