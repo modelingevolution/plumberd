@@ -124,7 +124,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             eventMetadataFactory.LockRegistration();
             var es = new GrpcEventStoreFacade(channelFactory, 
                 eventMetadataFactory, metadataSerializerFactory, sessionManager, _typeRegister, 
-                this._isDevelopment, _loggerFactory ?? sp.GetRequiredService<ILoggerFactory>());
+                this._isDevelopment, _loggerFactory);
             
             return es;
         }
