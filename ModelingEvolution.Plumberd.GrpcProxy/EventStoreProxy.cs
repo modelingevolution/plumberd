@@ -314,7 +314,7 @@ namespace ModelingEvolution.Plumberd.GrpcProxy
                         }
                     };
 
-                    _logger.LogInformation("GrpcProxy -> Subscribing -> EventType({name,eventTypes})",
+                    _logger.LogInformation("GrpcProxy -> Subscribing -> EventType({name},{eventTypes})",
                         request.EventTypeSchema.Name,
                         string.Join(", ", request.EventTypeSchema.EventTypes));
 
