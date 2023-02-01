@@ -17,7 +17,7 @@ namespace ModelingEvolution.Plumberd.Querying
         private readonly IServiceProvider _serviceProvider;
         private readonly IPlumberRuntime _plumber;
 
-        class ModelQueryExecutor<TProjection>
+        class ModelQueryExecutor<TProjection> where TProjection : class
         {
             private readonly IServiceProvider _serviceProvider;
             private readonly IPlumberRuntime _plumber;
@@ -29,12 +29,12 @@ namespace ModelingEvolution.Plumberd.Querying
                 _streamName = streamName;
             }
 
-            public async Task<IProjectionResult<TProjection>> Execute()
+            public async Task<IProjectionResult<TProjection>> Execute(TProjection? projection = null, bool subscribeFromBeginning = true) 
             {
                 var results = new ProjectionResult<TProjection>();
                 var scopedProvider = (results.Scope = _serviceProvider.CreateScope()).ServiceProvider;
 
-                results.Projection = scopedProvider.GetRequiredService<TProjection>();
+                results.Projection = projection ?? scopedProvider.GetRequiredService<TProjection>();
                 
                 results.ProcessingUnit = await _plumber.RunController(results.Projection, new ProcessingUnitConfig(typeof(TProjection))
                 {
@@ -42,7 +42,7 @@ namespace ModelingEvolution.Plumberd.Querying
                     IsCommandEmitEnabled = false,
                     IsPersistent = false,
                     ProcessingMode = ProcessingMode.EventHandler,
-                    SubscribesFromBeginning = true,
+                    SubscribesFromBeginning = subscribeFromBeginning,
                     // Projection Schema => From Metadata.UserId or Event.Property
                     ProjectionSchema = new ProjectionSchema() { StreamName = _streamName, IsDirect = true },
                     OnAfterDispatch = async (u, m, e, r) => results.FireChanged(m,e)
@@ -245,10 +245,10 @@ namespace ModelingEvolution.Plumberd.Querying
             var executor = new ModelQueryExecutor<TProjection, TModel>(_serviceProvider, _plumber, streamName);
             return executor.Execute();
         }
-        public Task<IProjectionResult<TProjection>> Execute<TProjection>(string streamName)
+        public Task<IProjectionResult<TProjection>> Execute<TProjection>(string streamName, TProjection? projection=null, bool fromBeginning=true) where TProjection:class
         {
             var executor = new ModelQueryExecutor<TProjection>(_serviceProvider, _plumber, streamName);
-            return executor.Execute();
+            return executor.Execute(projection, fromBeginning);
         }
 
         public Task<ICollectionResult<TResult>> Execute<TQuery, TResult, TQueryHandler, TProjection, TModel>(ICollectionResultQuery<TResult> query, string streamName)
