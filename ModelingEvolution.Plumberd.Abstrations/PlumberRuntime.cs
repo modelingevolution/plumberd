@@ -9,6 +9,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.CommandHandling;
 using ModelingEvolution.Plumberd.EventProcessing;
@@ -64,6 +65,7 @@ namespace ModelingEvolution.Plumberd
     {
         public IReadOnlyList<IProcessingUnit> Units => _units;
         private readonly List<ProcessingContextFactory> _units;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly Action<Exception> _onException;
             
         
@@ -72,6 +74,7 @@ namespace ModelingEvolution.Plumberd
             IEventStore defaultEventStore,
             SynchronizationContext defaultSynchronizationContext,
             IServiceProvider defaultServiceProvider, 
+            ILoggerFactory loggerFactory,
             Version defaultVersion,
             Action<Exception> onException)
         {
@@ -82,8 +85,10 @@ namespace ModelingEvolution.Plumberd
             DefaultVersion = defaultVersion;
             IgnoreFilter = new IgnoreFilter();
             _units = new List<ProcessingContextFactory>();
+            _loggerFactory = loggerFactory;
             _onException = onException;
         }
+
         public IIgnoreFilter IgnoreFilter { get;  }
         public IServiceProvider DefaultServiceProvider { get; }
         public ICommandInvoker DefaultCommandInvoker { get; }
@@ -268,7 +273,7 @@ namespace ModelingEvolution.Plumberd
 
             if (recordTypes.Any())
             {
-                var dispatcher = eventHandlerBinder.CreateDispatcher();
+                var dispatcher = eventHandlerBinder.CreateDispatcher(_loggerFactory);
                 if (config.OnAfterDispatch != null)
                 {
                     var inner = dispatcher;
@@ -337,8 +342,20 @@ namespace ModelingEvolution.Plumberd
                 .ExecuteForAll(Start);
         }
 
+        private ILogger _log;
+
+        private ILogger Log
+        {
+            get
+            {
+                if (_log != null) return _log;
+                _log = _loggerFactory.CreateLogger<PlumberRuntime>();
+                return _log;
+            }
+        }
         private async Task<ISubscription> Start(ProcessingContextFactory u)
         {
+            Log.Log(LogLevel.Information, $"Starting {u?.Type?.Name ?? "-"}" );
             var types = u.Binder
                 .Types()
                 .SelectMany(u.EventStore.Settings.RecordNamingConvention)

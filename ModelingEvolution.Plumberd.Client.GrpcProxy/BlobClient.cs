@@ -9,7 +9,7 @@ using ModelingEvolution.EventStore.GrpcProxy;
 using ModelingEvolution.Plumberd.EventStore;
 using ProtoBuf;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 
 namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 {
@@ -39,15 +39,17 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
     }
     public class BlobClient
     {
-        private static readonly ILogger Log = LogFactory.GetLogger<BlobClient>();
+        
         private readonly Channel _channel;
         private GrpcEventStoreProxy.GrpcEventStoreProxyClient _client;
         private ISessionManager _sessionManager;
+        private readonly ILogger<BlobClient> _logger;
         const int BUFFER_SIZE = 64 * 1024; // 64KB
-        public BlobClient(Channel channel, ISessionManager sessionManager)
+        public BlobClient(Channel channel, ISessionManager sessionManager, ILogger<BlobClient> logger)
         {
             _channel = channel;
             _sessionManager = sessionManager;
+            _logger = logger;
         }
 
         public async Task Write(Guid id, 
@@ -94,7 +96,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
 
             await context.RequestStream.WriteAsync(new BlobChunk() {Data = ByteString.Empty, I=i});
             await Task.Delay(100);
-            Log.LogInformation("Written {written}/{len} bytes in {i} iterations. [ {completness}% ]", written, len, i, written/len*100);
+            _logger.LogInformation("Written {written}/{len} bytes in {i} iterations. [ {completness}% ]", written, len, i, written/len*100);
             await context.RequestStream.CompleteAsync();
         }
 

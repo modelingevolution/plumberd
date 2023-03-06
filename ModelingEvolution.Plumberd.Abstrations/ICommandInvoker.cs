@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Metadata;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 
 namespace ModelingEvolution.Plumberd
 {
@@ -65,12 +65,13 @@ namespace ModelingEvolution.Plumberd
         private readonly IEventStore _eventStore;
         private readonly Version _defaultVersion;
 
-        private static readonly ILogger _logger = LogFactory.GetLogger<CommandInvoker>();
+        private readonly ILogger _logger;
 
         public CommandInvoker(IEventStore eventStore, Version defaultVersion)
         {
             _eventStore = eventStore;
             _defaultVersion = defaultVersion;
+            _logger = eventStore.Settings.LoggerFactory.CreateLogger<CommandInvoker>();
         }
      
 

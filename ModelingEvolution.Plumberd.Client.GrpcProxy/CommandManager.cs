@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.Client.GrpcProxy;
 using ModelingEvolution.Plumberd.EventProcessing;
@@ -115,7 +116,7 @@ namespace ModelingEvolution.Plumberd.Client
                 return types;
             }
 
-            public HandlerDispatcher CreateDispatcher()
+            public HandlerDispatcher CreateDispatcher(ILoggerFactory factory)
             {
                 return (processingUnit, metadata, ev) =>
                 {

@@ -12,6 +12,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             bool checkConnectivity = true)
         {
             NativeEventStoreBuilder b = new NativeEventStoreBuilder();
+            b.WithLoggerFactory(builder.DefaultLoggerFactory);
             b = configureEventStore(b);
             
             return builder.WithDefaultEventStore(b.Build(checkConnectivity));
@@ -28,6 +29,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             bool checkConnectivity = true)
         {
             GrpcEventStoreBuilder b = new GrpcEventStoreBuilder();
+            b.WithLoggerFactory(builder.DefaultLoggerFactory);
             b = configureEventStore(b);
 
             return builder.WithDefaultEventStore(b.Build(checkConnectivity));

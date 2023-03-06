@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.Metadata;
 
@@ -53,9 +54,9 @@ namespace ModelingEvolution.Plumberd.Binding
     }
     public partial class EventHandlerBinder : IEventHandlerBinder
     {
-        public HandlerDispatcher CreateDispatcher()
+        public HandlerDispatcher CreateDispatcher(ILoggerFactory loggerFactory)
         {
-            var d = new DispatcherBuilder();
+            var d = new DispatcherBuilder(loggerFactory.CreateLogger<DispatcherBuilder>());
 
 
             var metaParam = Expression.Parameter(typeof(IMetadata), "schema");

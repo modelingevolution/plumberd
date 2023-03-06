@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 
@@ -15,8 +15,8 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private IMetadataSerializerFactory _metadataSerializer;
         private IRecordSerializer _recordSerializer;
         private IMetadataFactory _metadataFactory;
-
-        private static readonly ILogger _logger = LogFactory.GetLogger<ProxyEventStoreBuilder>();
+        private ILoggerFactory _loggerFactory;
+        
         
         public bool _withoutDefaultEnrichers;
 
@@ -27,6 +27,11 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             _metadataSerializer = null;
         }
 
+        public ProxyEventStoreBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
+        {
+            _loggerFactory = loggerFactory;
+            return this;
+        }
         public ProxyEventStoreBuilder WithMetadataFactory(IMetadataFactory f)
         {
             _metadataFactory = f;
@@ -119,7 +124,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             eventMetadataFactory.LockRegistration();
             var es = new GrpcEventStoreFacade(channelFactory, 
                 eventMetadataFactory, metadataSerializerFactory, sessionManager, _typeRegister, 
-                this._isDevelopment);
+                this._isDevelopment, _loggerFactory);
             
             return es;
         }

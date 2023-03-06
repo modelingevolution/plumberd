@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
@@ -14,7 +14,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private readonly UserCredentials _userCredentials;
         private readonly IEventStoreSettings _settings;
         private readonly List<IProjectionConfig> _configs;
-        private static ILogger Log = LogFactory.GetLogger<ProjectionConfigurations>();
+        private readonly ILogger _log;
         public ProjectionConfigurations(ProjectionsManager projectionManager, 
             UserCredentials userCredentials, 
             IEventStoreSettings settings)
@@ -23,6 +23,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             _userCredentials = userCredentials;
             _settings = settings;
             _configs = new List<IProjectionConfig>();
+            _log = settings.LoggerFactory.CreateLogger<ProjectionConfigurations>();
         }
         public void Register(IProjectionConfig c)
         {
@@ -67,7 +68,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                 if (query != currentQuery || !config.EmitEnabled)
                 {
-                    Log.LogInformation("Updating continues projection definition and config: {projectionName}",
+                    _log.LogInformation("Updating continues projection definition and config: {projectionName}",
                         projectionName);
                     await _projectionManager.UpdateQueryAsync(projectionName, query, true, _userCredentials);
                 }

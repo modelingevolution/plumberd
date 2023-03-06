@@ -15,7 +15,7 @@ using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Tests.Integration.Configuration;
 using ModelingEvolution.Plumberd.Tests.Models;
 using Microsoft.Extensions.Logging;
-
+using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
@@ -328,6 +328,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             if (protocol == CommunicationProtocol.Tcp)
             {
                 PlumberBuilder b = new PlumberBuilder()
+                    .WithLoggerFactory(new NullLoggerFactory())
                     .WithTcpEventStore(x => x.InSecure()
                         .WithTcpUrl(server.TcpUrl)
                         .WithHttpUrl(server.HttpUrl))
@@ -339,6 +340,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             else
             {
                 PlumberBuilder b = new PlumberBuilder()
+                    .WithLoggerFactory(new NullLoggerFactory())
                     .WithGrpcEventStore(x => x.InSecure()
                         .WithHttpUrl(server.HttpUrl));
 

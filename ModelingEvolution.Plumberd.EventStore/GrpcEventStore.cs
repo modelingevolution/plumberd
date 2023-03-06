@@ -12,7 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using EventStore.Client;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -29,8 +29,9 @@ namespace ModelingEvolution.Plumberd.EventStore
         public event Action<NativeEventStore> Connected;
         private readonly ConcurrentBag<ISubscription> _subscriptions;
         private readonly GrpcProjectionConfigurations _projectionConfigurations;
+        private readonly ILogger<GrpcEventStore> _log;
         private bool _connected = false;
-        private static readonly ILogger Log = LogFactory.GetLogger<NativeEventStore>();
+        
 
         private readonly EventStoreClient _connection;
         internal EventStoreClient Connection => _connection;
@@ -55,7 +56,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         }
         public async Task LoadEventFromFile(string file)
         {
-            Log.LogInformation("Loading events from file: {fileName}", file);
+            _log.LogInformation("Loading events from file: {fileName}", file);
             long n = 0;
             byte[] buffer = new byte[16 * 1024]; // 16KB
             Task writeTask = null;
@@ -99,13 +100,13 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                 if (writeTask != null)
                     await writeTask;
-                Log.LogInformation("Loaded {count} events from file: {fileName}", n, file);
+                _log.LogInformation("Loaded {count} events from file: {fileName}", n, file);
             }
 
         }
         public async Task WriteEventsToFile(string file)
         {
-            Log.LogInformation("Writing events to file {fileName}", file);
+            _log.LogInformation("Writing events to file {fileName}", file);
             long n = 0;
             Stopwatch s = new Stopwatch();
             s.Start();
@@ -144,27 +145,28 @@ namespace ModelingEvolution.Plumberd.EventStore
                 }
             }
             s.Stop();
-            Log.LogInformation("Writing {count} done in: {duration}", n, s.Elapsed);
+            _log.LogInformation("Writing {count} done in: {duration}", n, s.Elapsed);
 
         }
         public GrpcEventStore(
             UserCredentials credentials,
-            EventStoreClientSettings settings)
+            EventStoreClientSettings settings, ILogger<GrpcEventStore> log)
 
         {
             _subscriptions = new ConcurrentBag<ISubscription>();
             EventStoreClient cl =
                 _connection = new EventStoreClient(settings);
             _credentials = credentials;
+            _log = log;
             //_projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
         }
-        public GrpcEventStore(EventStoreSettings settings,
-            Uri url = null,
+        public GrpcEventStore(EventStoreSettings settings, ILogger<GrpcEventStore> log, Uri url = null,
             string userName = "admin",
             string password = "changeit",
             bool isInsecure = false)
         {
             _settings = settings;
+            _log = log;
             _subscriptions = new ConcurrentBag<ISubscription>();
             _credentials = new UserCredentials(userName, password);
 
@@ -231,7 +233,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 var result = _connection.ReadAllAsync(Direction.Backwards, Position.End, 1,
                     null, false, _credentials);
               if(!result.GetAsyncEnumerator().Current.Equals(null))
-                Log.LogInformation("Connected.");
+                _log.LogInformation("Connected.");
                 _connected = true;
              
             }
@@ -298,7 +300,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             string streamName,
             IProcessingContextFactory processingContextFactory)
         {
-            GrpcContinuesSubscription s = new GrpcContinuesSubscription(this, fromBeginning, onEvent, streamName, processingContextFactory);
+            GrpcContinuesSubscription s = new GrpcContinuesSubscription(this, fromBeginning, onEvent, streamName, processingContextFactory, _settings.LoggerFactory.CreateLogger<GrpcPersistentSubscription>());
             await s.Subscribe();
             _subscriptions.Add(s);
             return s;
@@ -310,7 +312,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             string streamName,
             IProcessingContextFactory processingContextFactory) //TODO swap to async
         {
-            var q = new GrpcPersistentSubscription(this, fromBeginning, onEvent, streamName, processingContextFactory);
+            var q = new GrpcPersistentSubscription(this, fromBeginning, onEvent, streamName, processingContextFactory, _settings.LoggerFactory.CreateLogger<GrpcPersistentSubscription>());
             await q.Subscribe();
             _subscriptions.Add(q);
             return q ;

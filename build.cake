@@ -1,8 +1,8 @@
 #addin nuget:?package=Cake.Git
 
-var target = Argument("target", "Test");
+var target = Argument("target", "Publish");
 var configuration = Argument("configuration", "Release");
-var version = Argument("version", "0.0.0.1");
+var version = Argument("version", "1.2.35.1");
 
 
 var commits = GitLog("./", int.MaxValue);
@@ -39,20 +39,20 @@ Task("Build")
     .IsDependentOn("Clean")
     .Does(() =>
 {
-    var settings =  new DotNetCoreBuildSettings
+    var settings =  new DotNetBuildSettings 
     {
         Configuration = configuration,
-        MSBuildSettings = new DotNetCoreMSBuildSettings()
+        MSBuildSettings = new DotNetMSBuildSettings()
     };
     settings.MSBuildSettings.WithProperty("Version",version);
-    DotNetCoreBuild("./ModelingEvolution.Plumberd.sln", settings);
+    DotNetBuild("./ModelingEvolution.Plumberd.sln", settings);
 });
 
 Task("Test")
     .IsDependentOn("Build")
     .Does(() =>
 {
-    DotNetCoreTest("./ModelingEvolution.Plumberd.sln", new DotNetCoreTestSettings
+    DotNetTest("./ModelingEvolution.Plumberd.sln", new DotNetTestSettings
     {
         Configuration = configuration,
         NoBuild = true,

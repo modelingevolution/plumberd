@@ -6,6 +6,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 {
     public class EventStoreSettings : IEventStoreSettings
     {
+        public ILoggerFactory LoggerFactory { get; }
         public bool IsDevelopment { get;  }
         public IMetadataFactory MetadataFactory { get; }
         public IMetadataSerializerFactory MetadataSerializerFactory { get; }
@@ -19,8 +20,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
         public EventStoreSettings(IMetadataFactory metadataFactory, 
             IMetadataSerializerFactory metadataSerializer, 
-            IRecordSerializer serializer, bool isDevelopment, 
-            Func<Type, string[]> eventNamingConvention = null,
+            IRecordSerializer serializer, bool isDevelopment, ILoggerFactory loggerFactory, Func<Type, string[]> eventNamingConvention = null,
             string projectionStreamPrefix = "/", 
             string commandStreamPrefix = ">")
         {
@@ -30,8 +30,9 @@ namespace ModelingEvolution.Plumberd.EventStore
             MetadataSerializerFactory = metadataSerializer;
             Serializer = serializer;
             IsDevelopment = isDevelopment;
+            LoggerFactory = loggerFactory;
 
-            
+
             ProjectionStreamPrefix = projectionStreamPrefix;
             CommandStreamPrefix = commandStreamPrefix;
         }

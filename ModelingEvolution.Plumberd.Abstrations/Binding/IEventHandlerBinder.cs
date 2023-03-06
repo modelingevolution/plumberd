@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.EventProcessing;
 
 namespace ModelingEvolution.Plumberd.Binding
@@ -9,6 +10,6 @@ namespace ModelingEvolution.Plumberd.Binding
     {
         IEventHandlerBinder Discover(bool searchInProperties, Predicate<MethodInfo> methodFilter = null);
         IEnumerable<Type> Types();
-        HandlerDispatcher CreateDispatcher();
+        HandlerDispatcher CreateDispatcher(ILoggerFactory loggerFactory);
     }
 }

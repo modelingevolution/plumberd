@@ -26,6 +26,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Checkers", "Checkers\Checke
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelingEvolution.Plumberd.Client.GrpcProxy", "ModelingEvolution.Plumberd.Client.GrpcProxy\ModelingEvolution.Plumberd.Client.GrpcProxy.csproj", "{60AE68D3-30F3-4759-913A-3348BE59F540}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelingEvolution.Plumberd.Client.Tests", "ModelingEvolution.Plumberd.Client.Tests\ModelingEvolution.Plumberd.Client.Tests.csproj", "{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{60AE68D3-30F3-4759-913A-3348BE59F540}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{60AE68D3-30F3-4759-913A-3348BE59F540}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{60AE68D3-30F3-4759-913A-3348BE59F540}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

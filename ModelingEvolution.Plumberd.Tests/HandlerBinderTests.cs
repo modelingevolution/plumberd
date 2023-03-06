@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Binding;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.Metadata;
@@ -36,7 +37,7 @@ namespace ModelingEvolution.Plumberd.Tests
             EventHandlerBinder<ComplexProcessingUnit> binder = new EventHandlerBinder<ComplexProcessingUnit>();
             binder.Discover(true);
 
-            this.Sut = binder.CreateDispatcher();
+            this.Sut = binder.CreateDispatcher(NSubstitute.Substitute.For<ILoggerFactory>());
 
             var result = await Sut(controller, m, r);
             result.IsEmpty.ShouldBe(isEmptyEmit);

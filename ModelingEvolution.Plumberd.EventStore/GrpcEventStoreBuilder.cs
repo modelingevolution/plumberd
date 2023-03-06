@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using EventStore.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using ModelingEvolution.Plumberd.Logging;
+
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -22,10 +22,11 @@ namespace ModelingEvolution.Plumberd.EventStore
         private IMetadataSerializerFactory _metadataSerializer;
         private IRecordSerializer _recordSerializer;
         private IMetadataFactory _metadataFactory;
+        private ILoggerFactory _loggerFactory;
         private Func<Type, string[]> _convention;
         
         private Uri _httpUrl;
-        private static readonly ILogger _logger = LogFactory.GetLogger<GrpcEventStoreBuilder>();
+        
         private string _userName;
         private string _password;
         private bool _isInsecure;
@@ -44,6 +45,22 @@ namespace ModelingEvolution.Plumberd.EventStore
             _projectionConfigs = new List<IProjectionConfig>();
         }
 
+        public GrpcEventStoreBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
+        {
+            _loggerFactory = loggerFactory;
+            return this;
+        }
+
+        private ILogger _loggerValue;
+        private ILogger _logger
+        {
+            get
+            {
+                if(_loggerValue != null) return _loggerValue;
+                _loggerValue = _loggerFactory.CreateLogger<GrpcEventStoreBuilder>();
+                return _loggerValue;
+            }
+        }
         public GrpcEventStoreBuilder WithConfig(IConfiguration c)
         {
 
@@ -199,10 +216,10 @@ namespace ModelingEvolution.Plumberd.EventStore
             EventStoreSettings settings = new EventStoreSettings(eventMetadataFactory,
                 metadataSerializerFactory,
                 _recordSerializer ?? new RecordSerializer(),
-                _isDevelopment,
+                _isDevelopment,_loggerFactory,
                 _convention);
             
-            return new GrpcEventStore(settings, isInsecure: _isInsecure);
+            return new GrpcEventStore(settings, _loggerFactory.CreateLogger<GrpcEventStore>(),isInsecure: _isInsecure);
             //var es = new GrpcEventStore(new UserCredentials(_userName, _password), settings);
             //if (_logWrittenEventsToLog)
             //    es.CheckConnectivity += WireLog;
