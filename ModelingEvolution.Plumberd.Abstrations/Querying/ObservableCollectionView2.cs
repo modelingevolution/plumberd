@@ -370,15 +370,7 @@ namespace ModelingEvolution.Plumberd.Querying
         {
             get
             {
-                _lock.EnterReadLock();
-                try
-                {
-                    return _filtered[index];
-                }
-                finally
-                {
-                    _lock.ExitReadLock();
-                }
+                return _filtered[index];
             }
         }
 

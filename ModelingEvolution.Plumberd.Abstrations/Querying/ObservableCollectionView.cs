@@ -284,21 +284,13 @@ namespace ModelingEvolution.Plumberd.Querying
             }
         }
 
-        
+
 
         public T this[int index]
         {
             get
             {
-                _lock.EnterReadLock();
-                try
-                {
-                    return _filtered[index];
-                }
-                finally
-                {
-                    _lock.ExitReadLock();
-                }
+                return _filtered[index];
             }
         }
 
