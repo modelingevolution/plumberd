@@ -5,23 +5,57 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
+using static System.Formats.Asn1.AsnWriter;
 
 
 namespace ModelingEvolution.Plumberd.Querying
 {
-    public interface IObservableCollectionView<TDst, TSrc> : INotifyCollectionChanged, INotifyPropertyChanged, IList<TDst>, IList, IReadOnlyList<TDst>
+
+    public interface IObservableCollectionView<TDst, TSrc> : INotifyCollectionChanged, INotifyPropertyChanged, IReadOnlyList<TDst>
         where TDst : IViewFor<TSrc>, IEquatable<TDst>
     {
 
     }
     
-    public class ObservableCollectionView<T> : INotifyCollectionChanged, INotifyPropertyChanged, IList<T>, IList, IReadOnlyList<T>, IDisposable
+    public class ObservableCollectionView<T> : INotifyCollectionChanged, INotifyPropertyChanged, IReadOnlyList<T>, IDisposable
     {
-        private readonly IList<T> _internal;
+        class LockedEnumerator : IEnumerator<T>
+        {
+            private readonly IEnumerator<T> _inner;
+            private readonly ReaderWriterLockSlim _lock;
+
+            public LockedEnumerator(IEnumerable<T> src, ReaderWriterLockSlim l)
+            {
+                _lock = l;
+                _lock.EnterReadLock();
+                _inner = src.GetEnumerator();
+            }
+            public bool MoveNext()
+            {
+                return _inner.MoveNext();
+            }
+
+            public void Reset()
+            {
+                _inner.Reset();
+            }
+
+            public T Current => _inner.Current;
+
+            object IEnumerator.Current => Current;
+
+            public void Dispose()
+            {
+                _lock.ExitReadLock();
+            }
+        }
+        private readonly IReadOnlyList<T> _internal;
         private readonly ObservableCollection<T> _filtered;
         private Predicate<T> _filter;
-        
-
+        private readonly ReaderWriterLockSlim _lock;
+        private readonly ReaderWriterLockSlimScope _scope;
+        public IReaderWriterLockSlimScope Lock => _scope;
         public Predicate<T> Filter
         {
             get { return _filter; }
@@ -38,48 +72,64 @@ namespace ModelingEvolution.Plumberd.Querying
 
         private void Merge()
         {
-            int index = 0;
-            foreach (var src in _internal)
+            _lock.EnterWriteLock();
+            try
             {
-                if (index < _filtered.Count)
+                int index = 0;
+                foreach (var src in _internal)
                 {
-                    if (_filter(src))
+                    if (index < _filtered.Count)
                     {
-                        // we expect the same object in dst
-                        if (!object.ReferenceEquals(src, _filtered[index]))
+                        if (_filter(src))
                         {
-                            _filtered.Insert(index, src);
-                        }
+                            // we expect the same object in dst
+                            if (!object.ReferenceEquals(src, _filtered[index]))
+                            {
+                                _filtered.Insert(index, src);
+                            }
 
-                        index += 1;
-                        continue;
+                            index += 1;
+                            continue;
+                        }
+                        else
+                        {
+                            if (object.ReferenceEquals(src, _filtered[index]))
+                            {
+                                _filtered.RemoveAt(index);
+                            }
+
+                            continue;
+                        }
                     }
                     else
                     {
-                        if (object.ReferenceEquals(src, _filtered[index]))
+                        if (_filter(src))
                         {
-                            _filtered.RemoveAt(index);
+                            _filtered.Add(src);
+                            index += 1;
                         }
-                        continue;
                     }
                 }
-                else
-                {
-                    if (_filter(src))
-                    {
-                        _filtered.Add(src);
-                        index += 1;
-                    }
-                }
+
+                while (index < _filtered.Count)
+                    _filtered.RemoveAt(index);
             }
-            while (index < _filtered.Count)
-                _filtered.RemoveAt(index);
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
         }
 
-        public IList<T> Source => _internal;
-
-        public ObservableCollectionView(IList<T> src = null)
+        public void Refresh()
         {
+            Merge();
+        }
+        public IReadOnlyList<T> Source => _internal;
+        public int Count => _filtered.Count;
+        public ObservableCollectionView(IReadOnlyList<T> src = null)
+        {
+            _lock = new ReaderWriterLockSlim();
+            _scope = new ReaderWriterLockSlimScope(_lock);
             _internal = src ?? new ObservableCollection<T>();
             _filtered = new ObservableCollection<T>();
             _filtered.AddRange(_internal);
@@ -106,148 +156,165 @@ namespace ModelingEvolution.Plumberd.Querying
 
         private void SourceCollectionChanged(object s, NotifyCollectionChangedEventArgs args)
         {
-            if (args.Action == NotifyCollectionChangedAction.Add)
+            _lock.EnterWriteLock();
+            try
             {
-                var toAdd = args.NewItems.OfType<T>().Where(x => _filter(x)).ToArray();
-                _filtered.AddRange(toAdd);
-            }
-            else if (args.Action == NotifyCollectionChangedAction.Remove)
-            {
-                foreach (var i in args.OldItems.OfType<T>().Where(x => _filter(x)))
+                if (args.Action == NotifyCollectionChangedAction.Add)
                 {
-                    _filtered.Remove(i);
+                    var toAdd = args.NewItems.OfType<T>().Where(x => _filter(x)).ToArray();
+                    _filtered.AddRange(toAdd);
                 }
-            }
-            else if (args.Action == NotifyCollectionChangedAction.Replace)
-            {
-                for (int i = 0; i < args.NewItems.Count; i++)
+                else if (args.Action == NotifyCollectionChangedAction.Remove)
                 {
-                    var item = (T)args.NewItems[i];
-                    var index = _filtered.IndexOf(item);
-                    if (index >= 0)
-                        _filtered[index] = item;
+                    foreach (var i in args.OldItems.OfType<T>().Where(x => _filter(x)))
+                    {
+                        _filtered.Remove(i);
+                    }
                 }
+                else if (args.Action == NotifyCollectionChangedAction.Replace)
+                {
+                    for (int i = 0; i < args.NewItems.Count; i++)
+                    {
+                        var item = (T)args.NewItems[i];
+                        var index = _filtered.IndexOf(item);
+                        if (index >= 0)
+                            _filtered[index] = item;
+                    }
 
+                }
+                else if (args.Action == NotifyCollectionChangedAction.Reset)
+                {
+                    _filtered.Clear();
+                    _filtered.AddRange(_internal.Where(x => _filter(x)));
+                }
             }
-            else if (args.Action == NotifyCollectionChangedAction.Reset)
+            finally
             {
-                _filtered.Clear();
-                _filtered.AddRange(_internal.Where(x => _filter(x)));
+                _lock.ExitWriteLock();
             }
         }
         
         public void CopyTo(Array array, int index)
         {
-            ((ICollection)_filtered).CopyTo(array, index);
+            _lock.EnterReadLock();
+            try
+            {
+
+                ((ICollection)_filtered).CopyTo(array, index);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         public bool IsSynchronized => ((ICollection)_filtered).IsSynchronized;
 
         public object SyncRoot => ((ICollection)_filtered).SyncRoot;
 
-        public int Add(object value)
-        {
-            return ((IList)_filtered).Add(value);
-        }
+        //public int Add(object value)
+        //{
+        //    return ((IList)_filtered).Add(value);
+        //}
 
-        public bool Contains(object value)
-        {
-            return ((IList)_filtered).Contains(value);
-        }
+        //public bool Contains(object value)
+        //{
+        //    return ((IList)_filtered).Contains(value);
+        //}
 
         public int IndexOf(object value)
         {
-            return ((IList)_filtered).IndexOf(value);
+            _lock.EnterReadLock();
+            try
+            {
+                return ((IList)_filtered).IndexOf(value);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
-        public void Insert(int index, object value)
-        {
-            ((IList)_filtered).Insert(index, value);
-        }
-
-        public void Remove(object value)
-        {
-            ((IList)_filtered).Remove(value);
-        }
-
+       
         public bool IsFixedSize => ((IList)_filtered).IsFixedSize;
 
-        bool IList.IsReadOnly
-        {
-            get { return false; }
-        }
-
-        object IList.this[int index]
-        {
-            get { return this[index]; }
-            set { this[index] = (T)value; }
-        }
-
-
-        public void Add(T item)
-        {
-            _filtered.Add(item);
-        }
-
-        public void Clear()
-        {
-            _filtered.Clear();
-        }
+       
 
         public bool Contains(T item)
         {
-            return _filtered.Contains(item);
+            _lock.EnterReadLock();
+            try
+            {
+                return _filtered.Contains(item);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         public void CopyTo(T[] array, int index)
         {
-            _filtered.CopyTo(array, index);
+            _lock.EnterReadLock();
+            try
+            {
+                _filtered.CopyTo(array, index);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         public IEnumerator<T> GetEnumerator()
         {
-            foreach (var i in _filtered)
-                yield return i;
+            return new LockedEnumerator(this._filtered, _lock);
         }
 
         public int IndexOf(T item)
         {
-            return _filtered.IndexOf(item);
+            _lock.EnterReadLock();
+            try
+            {
+                return _filtered.IndexOf(item);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
-        public void Insert(int index, T item)
-        {
-            _filtered.Insert(index, item);
-        }
-
-        public bool Remove(T item)
-        {
-            return _filtered.Remove(item);
-        }
-
-        public void RemoveAt(int index)
-        {
-            _filtered.RemoveAt(index);
-        }
-
-        public int Count => _filtered.Count;
-
-        bool ICollection<T>.IsReadOnly
-        {
-            get { return false; }
-        }
+        
 
         public T this[int index]
         {
-            get => _filtered[index];
-            set => _filtered[index] = value;
+            get
+            {
+                _lock.EnterReadLock();
+                try
+                {
+                    return _filtered[index];
+                }
+                finally
+                {
+                    _lock.ExitReadLock();
+                }
+            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         public void Move(int oldIndex, int newIndex)
         {
-            _filtered.Move(oldIndex, newIndex);
+            _lock.EnterWriteLock();
+            try
+            {
+                _filtered.Move(oldIndex, newIndex);
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
         }
 
         public event NotifyCollectionChangedEventHandler CollectionChanged;

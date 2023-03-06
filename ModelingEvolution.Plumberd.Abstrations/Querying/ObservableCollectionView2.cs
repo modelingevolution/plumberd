@@ -6,84 +6,169 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace ModelingEvolution.Plumberd.Querying
 {
+    public interface IReaderWriterLockSlimScope
+    {
+        IDisposable LockForWrite();
+        IDisposable LockForRead();
+    }
+
+    class ReaderWriterLockSlimScope : IReaderWriterLockSlimScope
+    {
+        private readonly ReaderWriterLockSlim _lock;
+
+        public ReaderWriterLockSlimScope(ReaderWriterLockSlim @lock)
+        {
+            _lock = @lock;
+        }
+
+        private readonly struct DisposableAction : IDisposable
+        {
+            private readonly Action<ReaderWriterLockSlim> _action;
+            private readonly ReaderWriterLockSlim _lock;
+            public DisposableAction(Action<ReaderWriterLockSlim> a, ReaderWriterLockSlim @lock)
+            {
+                _action = a;
+                _lock = @lock;
+            }
+            public void Dispose()
+            {
+                _action(_lock);
+            }
+        }
+
+        public IDisposable LockForWrite()
+        {
+            _lock.EnterWriteLock();
+            return new DisposableAction((x) => x.ExitWriteLock(), _lock);
+        }
+        public IDisposable LockForRead()
+        {
+            _lock.EnterReadLock();
+            return new DisposableAction((x) => x.ExitReadLock(), _lock);
+        }
+    }
     public class ObservableCollectionView<TDst, TSrc> :
         IObservableCollectionView<TDst, TSrc>, IDisposable
 
     where TDst : IViewFor<TSrc>, IEquatable<TDst>
     {
+        class LockedEnumerator : IEnumerator<TDst>
+        {
+            private readonly IEnumerator<TDst> _inner;
+            private readonly ReaderWriterLockSlim _lock;
+
+            public LockedEnumerator(IEnumerable<TDst> src, ReaderWriterLockSlim l)
+            {
+                _lock = l;
+                _lock.EnterReadLock();
+                _inner = src.GetEnumerator();
+            }
+            public bool MoveNext()
+            {
+                return _inner.MoveNext();
+            }
+
+            public void Reset()
+            {
+                _inner.Reset();
+            }
+
+            public TDst Current => _inner.Current;
+
+            object IEnumerator.Current => Current;
+
+            public void Dispose()
+            {
+                _lock.ExitReadLock();
+            }
+        }
         private readonly Func<TSrc, TDst> _convertItem;
-        private readonly IList<TSrc> _internal;
+        private readonly IReadOnlyList<TSrc> _internal;
         private readonly ObservableCollection<TDst> _filtered;
         private Predicate<TDst> _filter;
         private static readonly Predicate<TDst> _trueFilter = x => true;
-
-
+        private readonly ReaderWriterLockSlim _lock;
+        private readonly ReaderWriterLockSlimScope _scope;
+        public IReaderWriterLockSlimScope Lock => _scope;
         public Predicate<TDst> Filter
         {
             get { return _filter == _trueFilter ? null : _filter; }
             set
             {
-                if (value != null)
-                    _filter = value;
-                else
-                    _filter = _trueFilter;
+                _filter = value ?? _trueFilter;
 
                 Merge();
             }
         }
-
+        public void Refresh()
+        {
+            Merge();
+        }
         private void Merge()
         {
-            int index = 0;
-            foreach (var src in _internal)
+            _lock.EnterWriteLock();
+            try
             {
-                if (index < _filtered.Count)
+                int index = 0;
+                foreach (var src in _internal)
                 {
-                    TDst c;
-                    if (_filter(c = _convertItem(src)))
+                    if (index < _filtered.Count)
                     {
-                        // we expect the same object in dst
-                        if (!object.ReferenceEquals(src, _filtered[index].Source))
+                        TDst c;
+                        if (_filter(c = _convertItem(src)))
                         {
-                            _filtered.Insert(index, c);
-                        }
+                            // we expect the same object in dst
+                            if (!object.ReferenceEquals(src, _filtered[index].Source))
+                            {
+                                _filtered.Insert(index, c);
+                            }
 
-                        index += 1;
-                        continue;
+                            index += 1;
+                            continue;
+                        }
+                        else
+                        {
+                            if (object.ReferenceEquals(src, _filtered[index].Source))
+                            {
+                                _filtered.RemoveAt(index);
+                            }
+                            continue;
+                        }
                     }
                     else
                     {
-                        if (object.ReferenceEquals(src, _filtered[index].Source))
+                        TDst c;
+                        if (_filter(c = _convertItem(src)))
                         {
-                            _filtered.RemoveAt(index);
+                            _filtered.Add(c);
+                            index += 1;
                         }
-                        continue;
                     }
                 }
-                else
-                {
-                    TDst c;
-                    if (_filter(c = _convertItem(src)))
-                    {
-                        _filtered.Add(c);
-                        index += 1;
-                    }
-                }
+                while (index < _filtered.Count)
+                    _filtered.RemoveAt(index);
             }
-            while (index < _filtered.Count)
-                _filtered.RemoveAt(index);
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
 
         }
 
 
 
 
-        public ObservableCollectionView(Func<TSrc, TDst> convertItem, IList<TSrc> src)
+
+        public ObservableCollectionView(Func<TSrc, TDst> convertItem, IReadOnlyList<TSrc> src)
         {
+            _lock = new ReaderWriterLockSlim();
+            _scope = new ReaderWriterLockSlimScope(_lock);
             _convertItem = convertItem;
             _internal = src;
             _filtered = new ObservableCollection<TDst>();
@@ -116,131 +201,146 @@ namespace ModelingEvolution.Plumberd.Querying
         public bool IsFiltered => Filter != null;
         private void SourceCollectionChanged(NotifyCollectionChangedEventArgs args)
         {
-            if (args.Action == NotifyCollectionChangedAction.Add)
+            _lock.EnterWriteLock();
+            try
             {
-                var toAdd = args.NewItems.OfType<TSrc>()
-                    .Select(_convertItem)
-                    .Where(x => _filter(x))
-                    .ToArray();
-                if (!IsFiltered)
+
+                if (args.Action == NotifyCollectionChangedAction.Add)
                 {
-                    // we care about the order
-                    if (args.NewStartingIndex == _filtered.Count)
+                    var toAdd = args.NewItems.OfType<TSrc>()
+                        .Select(_convertItem)
+                        .Where(x => _filter(x))
+                        .ToArray();
+                    if (!IsFiltered)
                     {
-                        // we're adding at the end
-                        _filtered.AddRange(toAdd);
-                    }
-                    else
-                    {
-                        // it's in the middle
-                        foreach (var i in toAdd.Reverse())
+                        // we care about the order
+                        if (args.NewStartingIndex == _filtered.Count)
                         {
-                            _filtered.Insert(args.NewStartingIndex, i);
+                            // we're adding at the end
+                            _filtered.AddRange(toAdd);
+                        }
+                        else
+                        {
+                            // it's in the middle
+                            foreach (var i in toAdd.Reverse())
+                            {
+                                _filtered.Insert(args.NewStartingIndex, i);
+                            }
                         }
                     }
+                    else
+                        _filtered.AddRange(toAdd);
                 }
-                else
-                    _filtered.AddRange(toAdd);
-            }
-            else if (args.Action == NotifyCollectionChangedAction.Remove)
-            {
-                foreach (var i in args.OldItems.OfType<TSrc>()
-                    .Select(_convertItem)
-                    .Where(x => _filter(x)))
+                else if (args.Action == NotifyCollectionChangedAction.Remove)
                 {
-                    _filtered.Remove(i);
-                }
-            }
-            else if (args.Action == NotifyCollectionChangedAction.Replace)
-            {
-                if (!IsFiltered)
-                {
-                    for (int i = 0; i < args.NewItems.Count; i++)
+                    foreach (var i in args.OldItems.OfType<TSrc>()
+                        .Select(_convertItem)
+                        .Where(x => _filter(x)))
                     {
-                        _filtered[i + args.OldStartingIndex] = _convertItem((TSrc)args.NewItems[i]);
+                        _filtered.Remove(i);
                     }
                 }
-                else throw new NotSupportedException();
+                else if (args.Action == NotifyCollectionChangedAction.Replace)
+                {
+                    if (!IsFiltered)
+                    {
+                        for (int i = 0; i < args.NewItems.Count; i++)
+                        {
+                            _filtered[i + args.OldStartingIndex] = _convertItem((TSrc)args.NewItems[i]);
+                        }
+                    }
+                    else throw new NotSupportedException();
+                }
+                else if (args.Action == NotifyCollectionChangedAction.Reset)
+                {
+                    _filtered.Clear();
+                    _filtered.AddRange(_internal.Select(_convertItem));
+                }
             }
-            else if (args.Action == NotifyCollectionChangedAction.Reset)
+            finally
             {
-                _filtered.Clear();
-                _filtered.AddRange(_internal.Select(_convertItem));
+                _lock.ExitWriteLock();
             }
         }
 
         public void CopyTo(Array array, int index)
         {
-            ((ICollection)_filtered).CopyTo(array, index);
+            _lock.EnterReadLock();
+            try
+            {
+                ((ICollection)_filtered).CopyTo(array, index);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         public bool IsSynchronized => ((ICollection)_filtered).IsSynchronized;
 
         public object SyncRoot => ((ICollection)_filtered).SyncRoot;
 
-        public int Add(object value)
-        {
-            return ((IList)_filtered).Add(value);
-        }
 
         public bool Contains(object value)
         {
-            return ((IList)_filtered).Contains(value);
+            _lock.EnterReadLock();
+            try
+            {
+                return ((IList)_filtered).Contains(value);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         public int IndexOf(object value)
         {
-            return ((IList)_filtered).IndexOf(value);
+            _lock.EnterReadLock();
+            try
+            {
+                return ((IList)_filtered).IndexOf(value);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
-        public void Insert(int index, object value)
-        {
-            ((IList)_filtered).Insert(index, value);
-        }
 
-        public void Remove(object value)
-        {
-            ((IList)_filtered).Remove(value);
-        }
 
         public bool IsFixedSize => ((IList)_filtered).IsFixedSize;
 
-        bool IList.IsReadOnly
-        {
-            get { return false; }
-        }
-
-        object IList.this[int index]
-        {
-            get { return this[index]; }
-            set { this[index] = (TDst)value; }
-        }
-
-
-        public void Add(TDst item)
-        {
-            _filtered.Add(item);
-        }
-
-        public void Clear()
-        {
-            _filtered.Clear();
-        }
 
         public bool Contains(TDst item)
         {
-            return _filtered.Contains(item);
+            _lock.EnterReadLock();
+            try
+            {
+                return _filtered.Contains(item);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         public void CopyTo(TDst[] array, int index)
         {
-            _filtered.CopyTo(array, index);
+            _lock.EnterReadLock();
+            try
+            {
+                _filtered.CopyTo(array, index);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         public IEnumerator<TDst> GetEnumerator()
         {
-            foreach (var i in _filtered)
-                yield return i;
+            return new LockedEnumerator(this._filtered, _lock);
         }
 
         public int IndexOf(TDst item)
@@ -250,37 +350,51 @@ namespace ModelingEvolution.Plumberd.Querying
 
         public void Insert(int index, TDst item)
         {
-            _filtered.Insert(index, item);
+            _lock.EnterReadLock();
+            try
+            {
+                _filtered.Insert(index, item);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
-        public bool Remove(TDst item)
-        {
-            return _filtered.Remove(item);
-        }
-
-        public void RemoveAt(int index)
-        {
-            _filtered.RemoveAt(index);
-        }
 
         public int Count => _filtered.Count;
 
-        bool ICollection<TDst>.IsReadOnly
-        {
-            get { return false; }
-        }
+
 
         public TDst this[int index]
         {
-            get => _filtered[index];
-            set => _filtered[index] = value;
+            get
+            {
+                _lock.EnterReadLock();
+                try
+                {
+                    return _filtered[index];
+                }
+                finally
+                {
+                    _lock.ExitReadLock();
+                }
+            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         public void Move(int oldIndex, int newIndex)
         {
-            _filtered.Move(oldIndex, newIndex);
+            _lock.EnterWriteLock();
+            try
+            {
+                _filtered.Move(oldIndex, newIndex);
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
         }
 
         public event NotifyCollectionChangedEventHandler CollectionChanged;
