@@ -4,6 +4,7 @@
     {
         AssemblyQualifiedName,
         FullName,
-        Name
+        Name,
+        Custom
     }
 }
