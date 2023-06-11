@@ -275,17 +275,27 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             private void OnSubscriptionDropped(EventStoreCatchUpSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
             {
-                _log.LogInformation("Subscription dropped {reason} {exception}", subscriptionDropReason, arg3?.Message ?? "NoException");
+                _log.LogInformation("Subscription dropped {steamName} {reason} {exception} at {position}",
+                    _streamName,
+                    subscriptionDropReason, arg3?.Message ?? "NoException",
+                    _streamPosition);
+
                 eventStoreCatchUpSubscription.Stop();
                 if(subscriptionDropReason != SubscriptionDropReason.UserInitiated)
                     Task.Run(TrySubscribe);
+                else _log.LogInformation("We won't resubscribe to {streamName}", _streamName);
             }
             private void OnSubscriptionDropped(EventStoreSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
             {
-                _log.LogInformation("Subscription dropped {reason} {exception}", subscriptionDropReason, arg3?.Message ?? "NoException");
+                _log.LogInformation("Subscription dropped {steamName} {reason} {exception}  at {position}", 
+                    _streamName,
+                    subscriptionDropReason, arg3?.Message ?? "NoException",
+                    _streamPosition);
+
                 eventStoreCatchUpSubscription.Dispose();
                 if (subscriptionDropReason != SubscriptionDropReason.UserInitiated)
                     Task.Run(TrySubscribe);
+                else _log.LogInformation("We won't resubscribe to {streamName}", _streamName);
             }
 
             public void Dispose()
