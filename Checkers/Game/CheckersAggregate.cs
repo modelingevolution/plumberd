@@ -6,7 +6,7 @@ using ModelingEvolution.Plumberd.StateTransitioning;
 namespace Checkers.Game;
 
 [Stream("Checkers")]
-public class CheckersAggregate : RootAggregate<CheckersAggregate,CheckersAggregate.State>
+public class CheckersAggregate : RootAggregate<CheckersAggregate, CheckersAggregate.State>
 {
     public class State
     {
