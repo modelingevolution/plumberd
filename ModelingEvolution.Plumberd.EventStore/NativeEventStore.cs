@@ -226,13 +226,21 @@ namespace ModelingEvolution.Plumberd.EventStore
             if (!_connected)
             {
                 Log.LogInformation("Establishing connection.");
-                
-                Log.LogInformation("Testing reading.");
-                var slice = _connection.ReadAllAsync(Direction.Backwards, Position.End, 1);
-                var c = await slice.CountAwaitAsync(async (x) => true);
-                Log.LogInformation("Connected.");
-                _connected = true;
-                Connected?.Invoke(this);
+                for (int i = 0; i < 10; i++)
+                {
+                    Log.LogInformation($"Testing reading({i}).");
+                    try
+                    {
+                        var slice = _connection.ReadAllAsync(Direction.Backwards, Position.End, 1);
+                        var c = await slice.CountAwaitAsync(async (x) => true);
+                    } 
+                    catch {await Task.Delay(1000); continue;}
+
+                    Log.LogInformation("Connected.");
+                    _connected = true;
+                    Connected?.Invoke(this);
+                    return;
+                }
             }
         }
         
@@ -368,28 +376,22 @@ namespace ModelingEvolution.Plumberd.EventStore
 
         public async IAsyncEnumerable<IStream> GetStreams()
         {
-            EventStoreClient.ReadStreamResult pack = null;
-            int p = 0;
-            const int pageSize = 1000;
-            do
+            EventStoreClient.ReadStreamResult result = _connection.ReadStreamAsync(Direction.Forwards, "$streams", StreamPosition.Start, long.MaxValue, false);
+            if ((await result.ReadState) == ReadState.StreamNotFound) yield break;
+            await foreach (var s in result)
             {
-                p = 0;
-                var position = pack?.LastStreamPosition ?? StreamPosition.Start;
-                pack = _connection.ReadStreamAsync(Direction.Forwards, "$streams", position, pageSize, false);
-                await foreach (var s in pack)
-                {
-                    string streamName = Encoding.UTF8.GetString(s.Event.Data.Span);
+                string streamName = Encoding.UTF8.GetString(s.Event.Data.Span);
 
-                    int atIndex = streamName.IndexOf('@');
-                    int dashIndex = streamName.IndexOf('-', atIndex);
+                int atIndex = streamName.IndexOf('@');
+                int dashIndex = streamName.IndexOf('-', atIndex);
 
-                    string category = streamName.Substring(atIndex + 1, dashIndex - atIndex - 1);
-                    Guid id = Guid.Parse(streamName.Substring(dashIndex + 1));
+                string category = streamName.Substring(atIndex + 1, dashIndex - atIndex - 1);
+                Guid id = Guid.Parse(streamName.Substring(dashIndex + 1));
 
-                    yield return GetStream(category, id,null);
-                    p += 1;
-                }
-            } while (p == pageSize);
+                yield return GetStream(category, id, null);
+
+            }
+
         }
     }
 }

@@ -217,13 +217,10 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             private async Task LoadCurrentStreamPosition()
             {
-                try
-                {
-                    var lastEv = (await _connection
-                        .ReadStreamAsync(Direction.Backwards, _streamName, StreamPosition.End, 1)
-                        .FirstOrDefaultAsync());
-                    this._lastSteamPosition = lastEv.OriginalEventNumber;
-                } catch (StreamNotFoundException) {  }
+                var result = _connection
+                    .ReadStreamAsync(Direction.Backwards, _streamName, StreamPosition.End, 1);
+                if (await result.ReadState == ReadState.Ok)
+                    this._lastSteamPosition = (await result.FirstOrDefaultAsync()).OriginalEventNumber;
             }
 
 

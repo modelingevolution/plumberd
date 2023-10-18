@@ -20,16 +20,17 @@ namespace ModelingEvolution.Plumberd.EventStore
             private readonly EventStoreClient _connection;
             private readonly IMetadataSerializer _metadataSerializer;
             private readonly IRecordSerializer _recordSerializer;
-            
+
             private readonly string _streamName;
 
             public Guid Id => _id;
             public string Category => _category;
             public IEventStore EventStore => _store;
-            public Stream(NativeEventStore store, 
-                string category, 
+
+            public Stream(NativeEventStore store,
+                string category,
                 Guid id,
-                EventStoreClient connection, 
+                EventStoreClient connection,
                 IMetadataSerializer metadataSerializer,
                 IRecordSerializer recordSerializer)
             {
@@ -45,11 +46,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             public async Task Append(IRecord x, IMetadata metadata, ulong expectedVersion)
             {
                 var data = CreateEventData(x, metadata);
-                
+
                 StreamRevision sr = new StreamRevision(expectedVersion);
-                var eventDatas = Enumerable.Repeat(data,1);
-                var result = await _connection.AppendToStreamAsync(_streamName, 
-                    sr, 
+                var eventDatas = Enumerable.Repeat(data, 1);
+                var result = await _connection.AppendToStreamAsync(_streamName,
+                    sr,
                     eventDatas);
             }
 
@@ -57,34 +58,31 @@ namespace ModelingEvolution.Plumberd.EventStore
             {
                 var data = CreateEventData(x, metadata);
                 var eventDatas = Enumerable.Repeat(data, 1);
-                var result = await _connection.AppendToStreamAsync(_streamName,  StreamState.Any, eventDatas);
-                
+                var result = await _connection.AppendToStreamAsync(_streamName, StreamState.Any, eventDatas);
+
             }
 
             private global::EventStore.Client.EventData CreateEventData(IRecord x, IMetadata metadata)
             {
-                var metadataBytes = _metadataSerializer.Serialize( metadata);
+                var metadataBytes = _metadataSerializer.Serialize(metadata);
                 var eventBytes = _recordSerializer.Serialize(x, metadata);
                 var eventType = x is ILink ? "$>" : _store.Settings.RecordNamingConvention(x.GetType())[0];
                 var id = Uuid.FromGuid(x.Id);
-                var data = new global::EventStore.Client.EventData(id, eventType, eventBytes, metadataBytes, "application/json");
+                var data = new global::EventStore.Client.EventData(id, eventType, eventBytes, metadataBytes,
+                    "application/json");
                 return data;
             }
+
             public async IAsyncEnumerable<(IMetadata, IRecord)> Read()
             {
-                EventStoreClient.ReadStreamResult slice = null;
-                StreamPosition? start = StreamPosition.Start;
-                do
+                var result = _connection.ReadStreamAsync(Direction.Forwards, _streamName, StreamPosition.Start,
+                    long.MaxValue, true);
+                if (await result.ReadState == ReadState.StreamNotFound) yield break;
+                await foreach (var i in result)
                 {
-                    slice = _connection.ReadStreamAsync(Direction.Forwards, _streamName, start.Value, 100, true);
-                    await foreach (var i in slice)
-                    {
-                        var d = ReadEvent(i);
-
-                        yield return d;
-                    }
-                    start = slice.LastStreamPosition;
-                } while (start.HasValue);
+                    var d = ReadEvent(i);
+                    yield return d;
+                }
             }
 
             private (IMetadata, IRecord) ReadEvent(ResolvedEvent r)
@@ -102,47 +100,24 @@ namespace ModelingEvolution.Plumberd.EventStore
                 return (m, ev);
             }
 
-            
+
 
             public async IAsyncEnumerable<IRecord> ReadEvents()
             {
+                var result = _connection.ReadStreamAsync(Direction.Forwards, _streamName, StreamPosition.Start,
+                    long.MaxValue, true);
+                if ((await result.ReadState) == ReadState.StreamNotFound) yield break;
 
-                var items = _connection.ReadStreamAsync(Direction.Forwards, _streamName, StreamPosition.Start, long.MaxValue, true);
-                var iterator = items.GetAsyncEnumerator();
-                bool c = true;
-                try
+                await foreach (var i in result)
                 {
-                    c = await iterator.MoveNextAsync();
-                }
-                catch (StreamNotFoundException)
-                {
-                    await iterator.DisposeAsync();
-                    yield break;
-                }
-
-                while (c)
-                {
-                    (IMetadata m, IRecord record) = (null, null);
-                    try
-                    {
-                        (m, record) = ReadEvent(iterator.Current);
-                    }
-                    catch
-                    {
-                        await iterator.DisposeAsync();
-                        yield break;
-                    }
-
+                    var (m, record) = ReadEvent(i);
                     yield return record;
-                    c = await iterator.MoveNextAsync();
                 }
-                await iterator.DisposeAsync();
-
             }
         }
+
+
+
+
     }
-
-    
-
-    
 }

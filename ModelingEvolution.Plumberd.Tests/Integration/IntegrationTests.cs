@@ -104,14 +104,14 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
 
                 var events =
                      connection.ReadStreamAsync(Direction.Forwards, $"{category}-{id}", StreamPosition.Start, maxCount: 10);
-                  events.GetAsyncEnumerator().Current.Event.ShouldBe(null);
+                (await events.ReadState).ShouldBe(ReadState.StreamNotFound);
+
                 await nStore.LoadEventFromFile("test.bak");
 
                 events =  connection.ReadStreamAsync(Direction.Forwards,$"{category}-{id}", StreamPosition.Start, 10);
-                var iterator = events.GetAsyncEnumerator();
-                var d = await iterator.MoveNextAsync();
-                d.ShouldNotBe(false);
-                var r = iterator.Current.Event;
+                (await events.ReadState).ShouldBe(ReadState.Ok);
+                
+                var r = (await events.FirstOrDefaultAsync()).Event;
                 r.EventId.ShouldBe(Uuid.FromGuid(eId));
                 r.Data.ShouldBe(bytes);
                 r.Metadata.ShouldBe(bytes);

@@ -76,8 +76,9 @@ namespace ModelingEvolution.Plumberd.StateTransitioning
             var given = _binder.Given;
             if (given != null) _state = given(_state, @event);
         }
-
-
-
+        
     }
+
+
+
 }
