@@ -20,9 +20,9 @@ namespace ModelingEvolution.Plumberd.Serialization
             return JsonSerializer.SerializeToUtf8Bytes(m, typeof(IMetadata), _options);
         }
         
-        public IMetadata Deserialize(byte[] data)
+        public IMetadata Deserialize(ReadOnlyMemory<byte> data)
         {
-            return JsonSerializer.Deserialize<IMetadata>(new ReadOnlySpan<byte>(data), _options);
+            return JsonSerializer.Deserialize<IMetadata>(data.Span, _options);
         }
     }
 }

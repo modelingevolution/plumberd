@@ -126,7 +126,7 @@ namespace ModelingEvolution.Plumberd.Tests.Integration
             await Task.Delay(2000);
 
             PlumberBuilder b = new PlumberBuilder()
-                .WithTcpEventStore(x => x.InSecure());
+                .WithGrpc(x => x.InSecure());
             
             var plumber = b.Build();
             return plumber;

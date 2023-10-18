@@ -1,4 +1,5 @@
-﻿using ModelingEvolution.Plumberd.Metadata;
+﻿using System;
+using ModelingEvolution.Plumberd.Metadata;
 
 namespace ModelingEvolution.Plumberd.Serialization
 {
@@ -6,6 +7,6 @@ namespace ModelingEvolution.Plumberd.Serialization
     {
         IMetadataSchema Schema { get; }
         byte[] Serialize(IMetadata m);
-        IMetadata Deserialize(byte[] data);
+        IMetadata Deserialize(ReadOnlyMemory<byte> data);
     }
 }

@@ -28,9 +28,9 @@ namespace ModelingEvolution.Plumberd.Serialization
                 return JsonSerializer.SerializeToUtf8Bytes(ev, ev.GetType(), _options);
         }
 
-        public IRecord Deserialize(byte[] data, IMetadata m)
+        public IRecord Deserialize(ReadOnlyMemory<byte> data, IMetadata m)
         {
-            return (IRecord)JsonSerializer.Deserialize(data.AsSpan(), m.TryResolveNativeType(), _options);
+            return (IRecord)JsonSerializer.Deserialize(data.Span, m.TryResolveNativeType(), _options);
         }
     }
 }

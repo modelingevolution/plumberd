@@ -7,30 +7,16 @@ namespace ModelingEvolution.Plumberd.Tests
 {
     public class NativeEventStoreBuilderTests
     {
-        public enum CommunicationProtocol
+        
+        [Fact]
+        public void Build()
         {
-            Tcp,
-            Grpc
-        };
-        [InlineData(CommunicationProtocol.Tcp)]
-        [InlineData(CommunicationProtocol.Grpc)]
-        [Theory]
-        public void Build(CommunicationProtocol protocol)
-        {
-            if(protocol == CommunicationProtocol.Grpc)
-            {
-                GrpcEventStoreBuilder s = new GrpcEventStoreBuilder()
-                .WithMetadataFactory(new MetadataFactory())
-                .WithMetadataSerializerFactory(new MetadataSerializerFactory())
-                .WithRecordSerializer(new RecordSerializer());}
-            else
-            {
-                NativeEventStoreBuilder s = new NativeEventStoreBuilder()
+           
+                ConfigurationBuilder s = new ConfigurationBuilder()
                     .WithMetadataFactory(new MetadataFactory())
                     .WithMetadataSerializerFactory(new MetadataSerializerFactory())
                     .WithRecordSerializer(new RecordSerializer());
-            }
-
+           
         }
     }
 }

@@ -32,7 +32,7 @@ public class DashboardProjection
                 gameScore.BlackMovesCount += 1;
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+                break;
         }
 
         gameScore.Changed.Execute(e.Id);

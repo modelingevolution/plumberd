@@ -57,6 +57,9 @@ namespace ModelingEvolution.Plumberd.Tests.Models
             return (StreamId, m.Link("/FooLink"));
         }
     }
+    [ProcessingUnitConfig(IsEventEmitEnabled = false,
+        IsPersistent = false,
+        SubscribesFromBeginning = true)]
     public class FooProjection 
     {
         public IMetadata Metadata;

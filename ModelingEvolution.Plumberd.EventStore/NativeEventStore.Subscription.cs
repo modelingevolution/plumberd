@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
+using EventStore.Client;
+
 using FxResources.Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -27,9 +30,9 @@ namespace ModelingEvolution.Plumberd.EventStore
             private readonly EventHandler _onEvent;
             private readonly string _streamName;
             private readonly IProcessingContextFactory _processingContextFactory;
-            private readonly IEventStoreConnection _connection;
-            private long? _processedEvent;
-            private EventStorePersistentSubscriptionBase _subscription;
+            private readonly EventStoreClient _connection;
+            private StreamPosition? _processedEvent;
+            private global::EventStore.Client.PersistentSubscription _subscription;
 
             public PersistentSubscription(NativeEventStore parent, 
                 
@@ -49,11 +52,20 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             public async Task Subscribe()
             {
+                var group = _processingContextFactory.Config.Type.Name;
                 try
                 {
-                    var group = _processingContextFactory.Config.Type.Name;
+                    var position = _fromBeginning ? StreamPosition.Start : StreamPosition.End;
+                    PersistentSubscriptionSettings s = new PersistentSubscriptionSettings(true,position);
+                    
+                    
+                    var subs = (await _parent.PersistentSubscriptions.ListAllAsync()).ToArray();
+
+                    if (subs.All(x => x.GroupName != group))
+                        await _parent.PersistentSubscriptions.CreateToStreamAsync(_streamName, group, s);
+                    
                     _log.LogInformation("Connecting to persistent subscription {subscriptionName}.", _streamName);
-                    this._subscription = await _connection.ConnectToPersistentSubscriptionAsync(_streamName,
+                    this._subscription = await _parent.PersistentSubscriptions.SubscribeToStreamAsync(_streamName,
                         group /*Environment.MachineName*/,
                         OnEventAppeared,
                         userCredentials: _parent._credentials,
@@ -61,50 +73,22 @@ namespace ModelingEvolution.Plumberd.EventStore
                 }
                 catch (ArgumentException)
                 {
-                    // expected ex.Message = "Subscription not found";
-                    var settings = await CreatePersistentSubscriptionSettings();
-                    var group = _processingContextFactory.Config.Type.Name;
-                    _log.LogInformation("Creating persistent subscription {subscriptionName} from beginning: {isFromBeginning}", _streamName, _fromBeginning);
-                    await _connection.CreatePersistentSubscriptionAsync(_streamName,
-                        group/*Environment.MachineName*/,
-                        settings.Build(),
-                        _parent._credentials);
+                    await Task.Delay(2000);
+                    _log.LogInformation("Connecting to persistent subscription {subscriptionName} attempt 2.", _streamName);
 
-                    _log.LogInformation("Connecting to persistent subscription {subscriptionName}.", _streamName);
-                    this._subscription = await _connection.ConnectToPersistentSubscriptionAsync(_streamName,
-                        group/*Environment.MachineName*/,
-                        OnEventAppeared, userCredentials: _parent._credentials,
+                    this._subscription = await _parent.PersistentSubscriptions.SubscribeToStreamAsync(_streamName,
+                        group /*Environment.MachineName*/,
+                        OnEventAppeared,
+                        userCredentials: _parent._credentials,
                         subscriptionDropped: OnSubscriptionDropped);
                 }
             }
 
-            private async Task<PersistentSubscriptionSettingsBuilder> CreatePersistentSubscriptionSettings()
-            {
-                var settings = PersistentSubscriptionSettings.Create()
-                    .ResolveLinkTos();
+            
 
-                if (_fromBeginning)
-                    settings = settings.StartFromBeginning();
-                else
-                {
-                    var lastEventNumber = await ReadLastEventNumber();
+           
 
-                    if (lastEventNumber.HasValue)
-                        settings = settings.StartFrom(lastEventNumber.Value);
-                }
-
-                return settings;
-            }
-
-            private async Task<long?> ReadLastEventNumber()
-            {
-                var lastSlice = await _connection.ReadStreamEventsBackwardAsync(_streamName, StreamPosition.End, 1, false,
-                    _parent._credentials);
-                long? lastEventNumber = lastSlice.Events.Any() ? lastSlice.Events[0].OriginalEventNumber : (long?) null;
-                return lastEventNumber;
-            }
-
-            private async Task OnEventAppeared(EventStorePersistentSubscriptionBase s, ResolvedEvent e)
+            private async Task OnEventAppeared(global::EventStore.Client.PersistentSubscription s, ResolvedEvent e, int? i, CancellationToken t)
             {
                 using (var context = _processingContextFactory.Create())
                 {
@@ -125,10 +109,10 @@ namespace ModelingEvolution.Plumberd.EventStore
                 }
             }
 
-            private void OnSubscriptionDropped(EventStorePersistentSubscriptionBase s, SubscriptionDropReason r, Exception e)
+            private void OnSubscriptionDropped(global::EventStore.Client.PersistentSubscription s, SubscriptionDroppedReason r, Exception? e)
             {
                 _log.LogWarning(e,"Subscription dropped! {ProcessingMode} {ProcessingUnitType} {Reason}", _processingContextFactory.Config.ProcessingMode, _processingContextFactory.Config.Type.Name, r);
-                if (r == SubscriptionDropReason.EventHandlerException)
+                if (r == SubscriptionDroppedReason.SubscriberError)
                 {
                     _log.LogError(e, "Exception in event-handler {streamName}. We won't resubscribe. Please reset the server.", _streamName);
                     return;
@@ -136,7 +120,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 Task.Run(() => TrySubscribe(r));
             }
 
-            private async Task TrySubscribe(SubscriptionDropReason reason)
+            private async Task TrySubscribe(SubscriptionDroppedReason reason)
             {
                 while (true)
                     try
@@ -154,7 +138,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             public void Dispose()
             {
-                _subscription.Stop(TimeSpan.FromSeconds(5));
+                _subscription?.Dispose();
             }
         }
         private class ContinuesSubscription : INativeSubscription
@@ -165,10 +149,12 @@ namespace ModelingEvolution.Plumberd.EventStore
             private readonly EventHandler _onEvent;
             private readonly string _streamName;
             private readonly IProcessingContextFactory _processingContextFactory;
-            private readonly IEventStoreConnection _connection;
-            private long? _streamPosition = null;
-            private EventStoreStreamCatchUpSubscription _subscriptionCatchUp;
-            private EventStoreSubscription _subscription;
+            private readonly EventStoreClient _connection;
+            private FromStream _streamPosition = FromStream.Start;
+            private StreamSubscription _subscriptionCatchUp;
+
+            private StreamPosition? _lastSteamPosition;
+            //private EventStoreSubscription _subscription;
             
             public ContinuesSubscription(NativeEventStore parent,
                 in bool fromBeginning,
@@ -182,56 +168,93 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _onEvent = onEvent;
                 _streamName = streamName;
                 _processingContextFactory = processingContextFactory;
+                _streamPosition = _fromBeginning ? FromStream.Start : FromStream.End;
                 _log = log;
             }
 
             public async Task Subscribe()
             {
-                if (_streamPosition == null)
+                if (_streamPosition == FromStream.Start)
                     _log.LogInformation("Subscribing from stream {streamName} from beginning: {isFromBeginning}",
                         _streamName, _fromBeginning);
                 else 
                     _log.LogInformation("Subscribing from stream {streamName} from: {streamPosition}", _streamName, _streamPosition);
 
-                if (_fromBeginning || _streamPosition > 0)
+                if (_fromBeginning || (_streamPosition != FromStream.Start && _streamPosition != FromStream.End))
                 {
-                    this._subscriptionCatchUp = _connection.SubscribeToStreamFrom(_streamName, 
-                        _streamPosition,
-                        CatchUpSubscriptionSettings.Default, 
-                        OnEventAppeared, 
-                        liveProcessingStarted: (s) =>
-                        {
-                            var live = _processingContextFactory?.Config?.OnLive;
-                            if (live != null)
-                            {
-                                live();
-                                _log.LogInformation("{streamName} is live", _streamName);
-                            }
+                    await LoadCurrentStreamPosition();
+
+                    _log.LogDebug("Last event at position: {lastEvent}", _lastSteamPosition);
+                    if(_lastSteamPosition == null) SetSubscriptionLive();
+
+                    _subscriptionCatchUp = await _connection.SubscribeToStreamAsync(_streamName, _streamPosition, OnEventAppeared, true, OnSubscriptionDropped);
+
+
+                    //this._subscriptionCatchUp = _connection.SubscribeToStreamFrom(_streamName, 
+                    //    _streamPosition,
+                    //    CatchUpSubscriptionSettings.Default, 
+                    //    OnEventAppeared, 
+                    //    liveProcessingStarted: (s) =>
+                    //    {
+                    //        var live = _processingContextFactory?.Config?.OnLive;
+                    //        if (live != null)
+                    //        {
+                    //            live();
+                    //            _log.LogInformation("{streamName} is live", _streamName);
+                    //        }
                             
-                        },
-                        subscriptionDropped: OnSubscriptionDropped);
+                    //    },
+                    //    subscriptionDropped: OnSubscriptionDropped);
 
                 }
                 else
                 {
-                    this._subscription = await _connection.SubscribeToStreamAsync(_streamName, 
-                        true, 
-                        OnEventAppeared, 
+                    this._subscriptionCatchUp = await _connection.SubscribeToStreamAsync(_streamName, FromStream.End,
+                        OnEventAppeared, true,
                         subscriptionDropped: OnSubscriptionDropped);
                 }
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private async Task OnEventAppeared(EventStoreSubscription s, ResolvedEvent e)
+            private async Task LoadCurrentStreamPosition()
             {
-                await OnEventAppeared(e);
+                try
+                {
+                    var lastEv = (await _connection
+                        .ReadStreamAsync(Direction.Backwards, _streamName, StreamPosition.End, 1)
+                        .FirstOrDefaultAsync());
+                    this._lastSteamPosition = lastEv.OriginalEventNumber;
+                } catch (StreamNotFoundException) {  }
             }
 
+
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private async Task OnEventAppeared(EventStoreCatchUpSubscription s, ResolvedEvent e)
+            private async Task OnEventAppeared(StreamSubscription arg1, ResolvedEvent arg2, CancellationToken arg3)
             {
-                await OnEventAppeared(e);
+                await OnEventAppeared(arg2);
+                if (arg2.OriginalEventNumber == _lastSteamPosition)
+                {
+                    SetSubscriptionLive();
+                }
+                
             }
+
+            private void SetSubscriptionLive()
+            {
+                var live = _processingContextFactory?.Config?.OnLive;
+                if (live != null)
+                {
+                    live();
+                    _log.LogInformation("{streamName} is live", _streamName);
+                }
+            }
+
+
+            //private async Task OnEventAppeared(EventStoreSubscription s, ResolvedEvent e)
+            //{
+            //    await OnEventAppeared(e);
+            //}
+
+          
             private async Task OnEventAppeared(ResolvedEvent e)
             {
                 _log.LogInformation("Event appeared: {steamName} {eventType}", e.Event.EventStreamId, e.Event.EventType);
@@ -240,12 +263,14 @@ namespace ModelingEvolution.Plumberd.EventStore
                     using (StaticProcessingContext.CreateScope(context)) // should be moved to decorator.
                     {
                         var (m, ev) = _parent.ReadEvent(e, context);
+                        
+                        var currentIndex = FromStream.After(e.OriginalEventNumber);
 
                         //_log.LogInformation("Reading {eventNumber} {eventType} from {streamName}", e.Event.EventNumber,ev.GetType().Name, _streamName);
-                        if (e.OriginalEventNumber > _streamPosition || _streamPosition == null)
+                        if (currentIndex >= _streamPosition || _streamPosition == FromStream.Start)
                         {
                             await _onEvent(context, m, ev);
-                            _streamPosition = e.OriginalEventNumber;
+                            _streamPosition = FromStream.After(e.OriginalEventNumber);
                         }
                         else
                         {
@@ -272,36 +297,47 @@ namespace ModelingEvolution.Plumberd.EventStore
                     await Task.Delay(5000);
                 }
             }
-
-            private void OnSubscriptionDropped(EventStoreCatchUpSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
+            private void OnSubscriptionDropped(StreamSubscription arg1, SubscriptionDroppedReason arg2, Exception arg3)
             {
                 _log.LogInformation("Subscription dropped {steamName} {reason} {exception} at {position}",
                     _streamName,
-                    subscriptionDropReason, arg3?.Message ?? "NoException",
+                    arg2, arg3?.Message ?? "NoException",
                     _streamPosition);
 
-                eventStoreCatchUpSubscription.Stop();
-                if(subscriptionDropReason != SubscriptionDropReason.UserInitiated)
+                arg1.Dispose();
+
+                if (arg2 != SubscriptionDroppedReason.Disposed)
                     Task.Run(TrySubscribe);
                 else _log.LogInformation("We won't resubscribe to {streamName}", _streamName);
             }
-            private void OnSubscriptionDropped(EventStoreSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
-            {
-                _log.LogInformation("Subscription dropped {steamName} {reason} {exception}  at {position}", 
-                    _streamName,
-                    subscriptionDropReason, arg3?.Message ?? "NoException",
-                    _streamPosition);
+            //private void OnSubscriptionDropped(EventStoreCatchUpSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
+            //{
+            //    _log.LogInformation("Subscription dropped {steamName} {reason} {exception} at {position}",
+            //        _streamName,
+            //        subscriptionDropReason, arg3?.Message ?? "NoException",
+            //        _streamPosition);
 
-                eventStoreCatchUpSubscription.Dispose();
-                if (subscriptionDropReason != SubscriptionDropReason.UserInitiated)
-                    Task.Run(TrySubscribe);
-                else _log.LogInformation("We won't resubscribe to {streamName}", _streamName);
-            }
+            //    eventStoreCatchUpSubscription.Stop();
+            //    if(subscriptionDropReason != SubscriptionDropReason.UserInitiated)
+            //        Task.Run(TrySubscribe);
+            //    else _log.LogInformation("We won't resubscribe to {streamName}", _streamName);
+            //}
+            //private void OnSubscriptionDropped(EventStoreSubscription eventStoreCatchUpSubscription, SubscriptionDropReason subscriptionDropReason, Exception arg3)
+            //{
+            //    _log.LogInformation("Subscription dropped {steamName} {reason} {exception}  at {position}", 
+            //        _streamName,
+            //        subscriptionDropReason, arg3?.Message ?? "NoException",
+            //        _streamPosition);
+
+            //    eventStoreCatchUpSubscription.Dispose();
+            //    if (subscriptionDropReason != SubscriptionDropReason.UserInitiated)
+            //        Task.Run(TrySubscribe);
+            //    else _log.LogInformation("We won't resubscribe to {streamName}", _streamName);
+            //}
 
             public void Dispose()
             {
-                _subscriptionCatchUp?.Stop(TimeSpan.FromSeconds(10));
-                _subscription?.Dispose();
+                _subscriptionCatchUp?.Dispose();
             }
         }
     }

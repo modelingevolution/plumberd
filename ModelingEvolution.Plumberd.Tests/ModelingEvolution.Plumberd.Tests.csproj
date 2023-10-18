@@ -1,27 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Docker.DotNet" Version="3.125.5" />
-    <PackageReference Include="EventStore.Client" Version="21.2.3" />
-    <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="21.2.0" />
-    <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="21.2.0" />
-    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="21.2.0" />
-    <PackageReference Include="FluentAssertions" Version="6.4.0" />
-    <PackageReference Include="LiquidProjections" Version="3.2.0" />
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="23.1.0" />
+    <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="23.1.0" />
+    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.1.0" />
+    <PackageReference Include="FluentAssertions" Version="7.0.0-alpha.2" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0" />
-    <PackageReference Include="NSubstitute" Version="4.2.2" />
-    <PackageReference Include="Shouldly" Version="4.0.3" />
-    <PackageReference Include="System.IO.Pipelines" Version="6.0.3" />
-    <PackageReference Include="xunit" Version="2.4.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23503-02" />
+    <PackageReference Include="NSubstitute" Version="5.1.0" />
+    <PackageReference Include="Shouldly" Version="4.2.1" />
+    <PackageReference Include="System.IO.Pipelines" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="coverlet.collector" Version="3.1.0">
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

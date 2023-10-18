@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using EventStore.ClientAPI.Projections;
-using EventStore.ClientAPI.SystemData;
+using EventStore.Client;
+
 using Microsoft.Extensions.Logging;
 
 
@@ -10,12 +10,12 @@ namespace ModelingEvolution.Plumberd.EventStore
 {
     public class ProjectionConfigurations
     {
-        private readonly ProjectionsManager _projectionManager;
+        private readonly EventStoreProjectionManagementClient _projectionManager;
         private readonly UserCredentials _userCredentials;
         private readonly IEventStoreSettings _settings;
         private readonly List<IProjectionConfig> _configs;
         private readonly ILogger _log;
-        public ProjectionConfigurations(ProjectionsManager projectionManager, 
+        public ProjectionConfigurations(EventStoreProjectionManagementClient projectionManager, 
             UserCredentials userCredentials, 
             IEventStoreSettings settings)
         {
@@ -37,17 +37,24 @@ namespace ModelingEvolution.Plumberd.EventStore
         public async Task UpdateIfRequired()
         {
             var schemas = _configs.Select(x => x.Schema(_settings)).ToArray();
-            var projections = await _projectionManager.ListContinuousAsync(_userCredentials);
+            var projections = await Projections();
             foreach (var schema in schemas)
             {
                 await UpdateProjectionSchemaInner(schema, projections);
             }
         }
 
+        private List<ProjectionDetails>? _projections;
+        private async Task<List<ProjectionDetails>> Projections()
+        {
+            if (_projections == null || _projections.Count == 0) 
+                _projections = await _projectionManager.ListAllAsync().ToListAsync();
+            return _projections;
+
+        }
         public async Task UpdateProjectionSchema(ProjectionSchema schema)
         {
-            var projections = await _projectionManager.ListContinuousAsync(_userCredentials);
-            await UpdateProjectionSchemaInner(schema, projections);
+            await UpdateProjectionSchemaInner(schema, await Projections());
         }
 
         private async Task UpdateProjectionSchemaInner(ProjectionSchema schema, List<ProjectionDetails> projections)
@@ -57,21 +64,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             if (!projections.Exists(x => x.Name == projectionName))
             {
                 var query = schema.Script;
-                await _projectionManager.CreateContinuousAsync(projectionName, query, false, _userCredentials);
+                await _projectionManager.CreateContinuousAsync(projectionName, query, true);
             }
             else
             {
-                var query = schema.Script;
-                var config = await _projectionManager.GetConfigAsync(projectionName, _userCredentials);
-
-                var currentQuery = await _projectionManager.GetQueryAsync(projectionName, _userCredentials);
-
-                if (query != currentQuery || !config.EmitEnabled)
-                {
-                    _log.LogInformation("Updating continues projection definition and config: {projectionName}",
-                        projectionName);
-                    await _projectionManager.UpdateQueryAsync(projectionName, query, true, _userCredentials);
-                }
+                // We cannot check it yet.
             }
         }
     }

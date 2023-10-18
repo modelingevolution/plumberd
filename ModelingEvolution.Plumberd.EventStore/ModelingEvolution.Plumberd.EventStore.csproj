@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>ModelingEvolution.Plumberd.EventStore</AssemblyName>
     <RootNamespace>ModelingEvolution.Plumberd.EventStore</RootNamespace>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -21,12 +21,11 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
 This package is the implementation of EventStory from EventStore.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="EventStore.Client" Version="21.2.3" />
-    <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="21.2.0" />
-    <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="21.2.0" />
-    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="21.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
+    <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="23.1.0" />
+    <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="23.1.0" />
+    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0-rc.2.23479.6" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />

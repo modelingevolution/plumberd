@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
@@ -12,17 +13,15 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.Common.Log;
-using EventStore.ClientAPI.Projections;
-using EventStore.ClientAPI.SystemData;
+
 using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Metadata;
 using ModelingEvolution.Plumberd.Serialization;
-using Newtonsoft.Json;
+
 using ProtoBuf.Meta;
 using ProtoBuf;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
+using EventStore.Client;
 
 
 namespace ModelingEvolution.Plumberd.EventStore
@@ -37,12 +36,36 @@ namespace ModelingEvolution.Plumberd.EventStore
         private readonly Lazy<ILogger> _lazyLog;
         private ILogger Log => _lazyLog.Value;
 
-        private readonly IEventStoreConnection _connection;
-        private readonly ProjectionsManager _projectionsManager;
+        private readonly EventStoreClient _connection;
+        //private readonly ProjectionsManager _projectionsManager;
+
+        private EventStorePersistentSubscriptionsClient _subscriptionsClient;
+        private EventStoreProjectionManagementClient _projectionManagement;
+
+        private EventStoreProjectionManagementClient ProjectionManagement
+        {
+            get
+            {
+                if(_projectionManagement != null) return _projectionManagement;
+                _projectionManagement = new EventStoreProjectionManagementClient(_dbSettings);
+                return _projectionManagement;
+            }
+        }
+        public EventStorePersistentSubscriptionsClient PersistentSubscriptions
+        {
+            get
+            {
+                if(_subscriptionsClient != null) return _subscriptionsClient;
+                _subscriptionsClient = new EventStorePersistentSubscriptionsClient(_dbSettings);
+                return _subscriptionsClient;
+            }
+        }
+
+        private EventStoreClientSettings _dbSettings;
         private readonly UserCredentials _credentials;
         
         private readonly EventStoreSettings _settings;
-        public IEventStoreConnection Connection => _connection;
+        public EventStoreClient Connection => _connection;
         public IEventStoreSettings Settings => _settings;
         private HttpClientHandler IgnoreServerCertificateHandler()
         {
@@ -95,8 +118,8 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                         if (writeTask != null)
                             await writeTask;
-                        var d = new global::EventStore.ClientAPI.EventData(g, eventType, true, metadata, data);
-                        writeTask = _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, d);
+                        var d = new global::EventStore.Client.EventData(Uuid.FromGuid(g), eventType, metadata, data);
+                        writeTask = _connection.AppendToStreamAsync(streamName, StreamRevision.None, Enumerable.Repeat(d,1));
                         n += 1;
                     }
                 }
@@ -120,15 +143,20 @@ namespace ModelingEvolution.Plumberd.EventStore
                 await using (BinaryWriter sw = new BinaryWriter(fs))
                 {
                     Position p = Position.Start;
-                    AllEventsSlice slice = null;
+                    EventStoreClient.ReadAllStreamResult slice = null;
+                    const int chunkSize = 1000;
+                    int chunkCount = 0;
                     do
                     {
-                        slice = await _connection.ReadAllEventsForwardAsync(p, 1000, false);
-                        foreach (var e in slice.Events)
+                        chunkCount = 0;
+                        slice = _connection.ReadAllAsync(Direction.Forwards, p, 1000, false);
+                        
+                        //TODO: Make sure we don't write twice the same event.
+                        await foreach (var e in slice)
                         {
                             if (!e.Event.EventStreamId.StartsWith("$") && e.Event.EventType != "$>")
                             {
-                                e.Event.EventId.TryWriteBytes(guidBuffer);
+                                e.Event.EventId.ToGuid().TryWriteBytes(guidBuffer);
                                 var streamIdName = Encoding.UTF8.GetBytes(e.Event.EventStreamId);
                                 var eventType = Encoding.UTF8.GetBytes(e.Event.EventType);
 
@@ -140,22 +168,23 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                                 sw.Write(streamIdName);
                                 sw.Write(eventType);
-                                sw.Write(e.Event.Metadata);
-                                sw.Write(e.Event.Data);
+                                sw.Write(e.Event.Metadata.Span);
+                                sw.Write(e.Event.Data.Span);
                                 n += 1;
                             }
-                        }
 
-                        p = slice.NextPosition;
-                    } while (!slice.IsEndOfStream);
+                            chunkCount += 1;
+                        }
+                        
+                        p = slice.LastPosition ?? Position.Start;
+                    } while (chunkCount == chunkSize);
                 }
             }
             s.Stop();
             Log.LogInformation("Writing {count} done in: {duration}",n, s.Elapsed);
             
         }
-        public NativeEventStore(IEventStoreConnection connection, 
-            ProjectionsManager projectionsManager, 
+        public NativeEventStore(EventStoreClientSettings connectionsettings,
             UserCredentials credentials,
             EventStoreSettings settings, 
             Func<ILogger<NativeEventStore>> log)
@@ -164,68 +193,29 @@ namespace ModelingEvolution.Plumberd.EventStore
             _settings = settings;
             _lazyLog = new Lazy<ILogger>(log);
             _subscriptions = new ConcurrentBag<ISubscription>();
-            _projectionsManager = projectionsManager;
-            _connection = connection;
-            _connection.ConnectAsync().Wait();
+            _subscriptionsClient = new EventStorePersistentSubscriptionsClient(connectionsettings);
+            _projectionManagement = new EventStoreProjectionManagementClient(connectionsettings);
+            _connection = new EventStoreClient(connectionsettings);
             _credentials = credentials;
-            _projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
+            _projectionConfigurations = new ProjectionConfigurations(_projectionManagement, _credentials, _settings);
         }
-        public NativeEventStore(EventStoreSettings settings, Func<ILogger<NativeEventStore>> log, Uri tcpUrl = null,
-            Uri httpProjectionUrl = null,
-            string userName = "admin",
-            string password = "changeit",
-            bool ignoreServerCert = false,
-            bool disableTls = false,
-            Action<ConnectionSettingsBuilder> connectionBuilder = null,
+        public NativeEventStore(EventStoreSettings evSettings, 
+            EventStoreClientSettings dbSettings, 
+            string userName, string password,
+            Func<ILogger<NativeEventStore>> log,
             IEnumerable<IProjectionConfig> configurations = null)
         {
-            _settings = settings;
+            _dbSettings = dbSettings;
+            _settings = evSettings;
             _lazyLog = new Lazy<ILogger>(log);
             _subscriptions = new ConcurrentBag<ISubscription>();
-            _credentials = new UserCredentials(userName, password);
+            _credentials = new UserCredentials(userName ?? "admin", password ?? "changeit");
+            dbSettings.DefaultCredentials = _credentials;
             
-
-            httpProjectionUrl = httpProjectionUrl == null ? new Uri("https://localhost:2113") : httpProjectionUrl;
-            tcpUrl = tcpUrl == null ? new Uri("tcp://127.0.0.1:1113") : tcpUrl;
-
-            
-            var tcpSettings = ConnectionSettings.Create()
-                //.DisableServerCertificateValidation()
-                //.UseDebugLogger()
-                //.EnableVerboseLogging()
-                .KeepReconnecting()
-                .KeepRetrying()
-                .LimitReconnectionsTo(1000)
-                .LimitRetriesForOperationTo(100)
-                .WithConnectionTimeoutOf(TimeSpan.FromSeconds(5))
-                .SetDefaultUserCredentials(_credentials);
-
-            if (disableTls)
-            {
-                tcpSettings = tcpSettings.DisableTls();
-                const string msg = "Tls is disabled";
-                if (_settings.IsDevelopment)
-                    Log.LogInformation(msg);
-                else
-                    Log.LogWarning(msg);
-            }
-
-            if (ignoreServerCert)
-            {
-                tcpSettings = tcpSettings.DisableServerCertificateValidation();
-                const string msg = "Server certificate validation is disabled";
-                if(_settings.IsDevelopment)
-                    Log.LogInformation(msg);
-                else
-                    Log.LogWarning(msg);
-            }
-
-            connectionBuilder?.Invoke(tcpSettings);
-
-            _projectionsManager = new ProjectionsManager(new ConsoleLogger(), new DnsEndPoint(httpProjectionUrl.Host, httpProjectionUrl.Port), TimeSpan.FromSeconds(10),
-                ignoreServerCert ? IgnoreServerCertificateHandler() : null, httpProjectionUrl.Scheme);
-            _connection = EventStoreConnection.Create(tcpSettings.Build(), tcpUrl);
-            _projectionConfigurations = new ProjectionConfigurations(_projectionsManager, _credentials, _settings);
+            _subscriptionsClient = new EventStorePersistentSubscriptionsClient(dbSettings);
+            _projectionManagement = new EventStoreProjectionManagementClient(dbSettings);
+            _connection = new EventStoreClient(dbSettings);
+            _projectionConfigurations = new ProjectionConfigurations(_projectionManagement, _credentials, _settings);
             if (configurations != null)
                 _projectionConfigurations.Register(configurations);
         }
@@ -236,9 +226,10 @@ namespace ModelingEvolution.Plumberd.EventStore
             if (!_connected)
             {
                 Log.LogInformation("Establishing connection.");
-                await _connection.ConnectAsync();
+                
                 Log.LogInformation("Testing reading.");
-                var slice = await _connection.ReadAllEventsBackwardAsync(Position.End, 1, true, _credentials);
+                var slice = _connection.ReadAllAsync(Direction.Backwards, Position.End, 1);
+                var c = await slice.CountAwaitAsync(async (x) => true);
                 Log.LogInformation("Connected.");
                 _connected = true;
                 Connected?.Invoke(this);
@@ -301,21 +292,22 @@ namespace ModelingEvolution.Plumberd.EventStore
             else
                 return await Subscribe(fromBeginning, onEvent, schema.StreamName, factory);
         }
-        private async Task UpdateDefaultTrackingProjectionIfNeeded(string projectionName,
-            string streamName,
-            IEnumerable<string> types)
-        {
-            var query = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingLinksToStream(streamName).Script();
-            var config = await _projectionsManager.GetConfigAsync(projectionName, _credentials);
+        //private async Task UpdateDefaultTrackingProjectionIfNeeded(string projectionName,
+        //    string streamName,
+        //    IEnumerable<string> types)
+        //{
+        //    var query = new ProjectionSchemaBuilder().FromEventTypes(types).EmittingLinksToStream(streamName).Script();
+        //    var config = await ProjectionManagement.GetConfigAsync(projectionName, _credentials);
+        //    var list = await ProjectionManagement.ListAllAsync().ToListAsync();
             
-            var currentQuery = await _projectionsManager.GetQueryAsync(projectionName, _credentials);
-            if (query != currentQuery || !config.EmitEnabled)
-            {
-                Log.LogInformation("Updating continues projection definition and config: {projectionName}", projectionName);
-                await _projectionsManager.UpdateQueryAsync(projectionName, query, true, _credentials);
-            }
+        //    var currentQuery = await ProjectionManagement.GetQueryAsync(projectionName, _credentials);
+        //    if (query != currentQuery || !config.EmitEnabled)
+        //    {
+        //        Log.LogInformation("Updating continues projection definition and config: {projectionName}", projectionName);
+        //        await ProjectionManagement.UpdateQueryAsync(projectionName, query, true, _credentials);
+        //    }
             
-        }
+        //}
        
        
 
@@ -374,16 +366,19 @@ namespace ModelingEvolution.Plumberd.EventStore
             return (m, e);
         }
 
-        public IEnumerable<IStream> GetStreams()
+        public async IAsyncEnumerable<IStream> GetStreams()
         {
-            StreamEventsSlice pack = null;
-
+            EventStoreClient.ReadStreamResult pack = null;
+            int p = 0;
+            const int pageSize = 1000;
             do
             {
-                pack = _connection.ReadStreamEventsForwardAsync("$streams", pack?.NextEventNumber ?? 0, 1000, false).GetAwaiter().GetResult();
-                foreach (var s in pack.Events)
+                p = 0;
+                var position = pack?.LastStreamPosition ?? StreamPosition.Start;
+                pack = _connection.ReadStreamAsync(Direction.Forwards, "$streams", position, pageSize, false);
+                await foreach (var s in pack)
                 {
-                    string streamName = Encoding.UTF8.GetString(s.Event.Data);
+                    string streamName = Encoding.UTF8.GetString(s.Event.Data.Span);
 
                     int atIndex = streamName.IndexOf('@');
                     int dashIndex = streamName.IndexOf('-', atIndex);
@@ -392,8 +387,9 @@ namespace ModelingEvolution.Plumberd.EventStore
                     Guid id = Guid.Parse(streamName.Substring(dashIndex + 1));
 
                     yield return GetStream(category, id,null);
+                    p += 1;
                 }
-            } while (!pack.IsEndOfStream);
+            } while (p == pageSize);
         }
     }
 }

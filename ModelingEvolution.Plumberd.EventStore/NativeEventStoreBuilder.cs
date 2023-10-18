@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,7 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 namespace ModelingEvolution.Plumberd.EventStore
 {
 
-    public class NativeEventStoreBuilder
+    public class ConfigurationBuilder
     {
         private readonly List<IProjectionConfig> _projectionConfigs;
         private IMetadataSerializerFactory _metadataSerializer;
@@ -23,16 +24,15 @@ namespace ModelingEvolution.Plumberd.EventStore
         private IMetadataFactory _metadataFactory;
         
         private Func<Type, string[]> _convention;
-        private Uri _tcpUrl;
         private Uri _httpUrl;
         
         private string _userName;
         private string _password;
         private bool _ignoreCert;
-        private bool _disableTls;
+        
         public bool _withoutDefaultEnrichers;
 
-        public NativeEventStoreBuilder()
+        public ConfigurationBuilder()
         {
             _enrichers = new List<(Func<IMetadataEnricher>, ContextScope)>();
             _userName = "admin";
@@ -42,19 +42,19 @@ namespace ModelingEvolution.Plumberd.EventStore
             _projectionConfigs = new List<IProjectionConfig>();
         }
 
-        public NativeEventStoreBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
+        public ConfigurationBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
         {
             this._loggerFactory = loggerFactory;
             return this;
         }
-        public NativeEventStoreBuilder WithConfig(IConfiguration c)
+        public ConfigurationBuilder WithConfig(IConfiguration c)
         {
             return WithConfig(c, "EventStore");
         }
-        public NativeEventStoreBuilder WithConfig(IConfiguration c, string sectionKey)
+        public ConfigurationBuilder WithConfig(IConfiguration c, string sectionKey)
         {
             
-            this.SetIfNotEmpty(ref _tcpUrl, c[$"{sectionKey}:TcpUrl"]);
+            
             this.SetIfNotEmpty(ref _httpUrl, c[$"{sectionKey}:HttpUrl"]);
             this.SetIfNotEmpty(ref _userName, c[$"{sectionKey}:User"]);
             this.SetIfNotEmpty(ref _password, c[$"{sectionKey}:Password"]);
@@ -65,7 +65,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 if (bool.Parse(isInsecure))
                     this.InSecure();
             }
-            logger.LogInformation("EventStore TcpUrl: {tcpUrl}", _tcpUrl);
+            
             logger.LogInformation("EventStore HttpUrl: {httpUrl}", _httpUrl);
             return this;
         }
@@ -80,7 +80,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 dst = new Uri(url);
         }
 
-        public NativeEventStoreBuilder WithProjectionsConfigFrom(Assembly a)
+        public ConfigurationBuilder WithProjectionsConfigFrom(Assembly a)
         {
             var configs = a.GetTypes()
                 .Where(x => typeof(IProjectionConfig).IsAssignableFrom(x) && !x.IsAbstract && x.IsClass)
@@ -90,56 +90,52 @@ namespace ModelingEvolution.Plumberd.EventStore
                 WithProjectionsConfig(i);
             return this;
         }
-        public NativeEventStoreBuilder WithProjectionsConfig<TProjectionConfig>()
+        public ConfigurationBuilder WithProjectionsConfig<TProjectionConfig>()
         where TProjectionConfig: IProjectionConfig, new()
         {
             TProjectionConfig config = new TProjectionConfig();
             return WithProjectionsConfig(config);
         }
         private bool _logWrittenEventsToLog = false;
-        public NativeEventStoreBuilder WithWrittenEventsToLog(bool isEnabled = true)
+        public ConfigurationBuilder WithWrittenEventsToLog(bool isEnabled = true)
         {
             _logWrittenEventsToLog = isEnabled;
             return this;
         }
-        public NativeEventStoreBuilder WithProjectionsConfig(IProjectionConfig config)
+        public ConfigurationBuilder WithProjectionsConfig(IProjectionConfig config)
         {
             _projectionConfigs.Add(config);
             return this;
         }
-        public NativeEventStoreBuilder WithMetadataFactory(IMetadataFactory f)
+        public ConfigurationBuilder WithMetadataFactory(IMetadataFactory f)
         {
             _metadataFactory = f;
             return this;
         }
-        public NativeEventStoreBuilder WithRecordSerializer(IRecordSerializer serializer)
+        public ConfigurationBuilder WithRecordSerializer(IRecordSerializer serializer)
         {
             _recordSerializer = serializer;
             return this;
         }
-        public NativeEventStoreBuilder WithMetadataSerializerFactory(IMetadataSerializerFactory f)
+        public ConfigurationBuilder WithMetadataSerializerFactory(IMetadataSerializerFactory f)
         {
             _metadataSerializer = f;
             return this;
         }
-        public NativeEventStoreBuilder WithTcpUrl(Uri tcp)
-        {
-            _tcpUrl = tcp;
-            return this;
-        }
-        public NativeEventStoreBuilder WithHttpUrl(Uri http)
+       
+        public ConfigurationBuilder WithHttpUrl(Uri http)
         {
             _httpUrl = http;
             return this;
         }
         private readonly List<(Func<IMetadataEnricher>, ContextScope)> _enrichers;
-        public NativeEventStoreBuilder WithMetadataEnricher<T>(ContextScope scope)
+        public ConfigurationBuilder WithMetadataEnricher<T>(ContextScope scope)
             where T: IMetadataEnricher
         {
             return WithMetadataEnricher(() => Activator.CreateInstance<T>(), scope);
         }
 
-        private NativeEventStoreBuilder WithDefaultEnrichers()
+        private ConfigurationBuilder WithDefaultEnrichers()
         {
             return WithMetadataEnricher<CorrelationEnricher>(ContextScope.All)
                     .WithMetadataEnricher<UserIdEnricher>(ContextScope.All)
@@ -150,45 +146,40 @@ namespace ModelingEvolution.Plumberd.EventStore
                     .WithMetadataEnricher<CreateTimeEnricher>(ContextScope.All);
         }
 
-        public NativeEventStoreBuilder WithoutDefaultEnrichers()
+        public ConfigurationBuilder WithoutDefaultEnrichers()
         {
             _withoutDefaultEnrichers = true;
             return this;
         }
-        public NativeEventStoreBuilder WithEventNamingConvention(Func<Type, string[]> convention)
+        public ConfigurationBuilder WithEventNamingConvention(Func<Type, string[]> convention)
         {
             _convention = convention;
             return this;
         }
-        public NativeEventStoreBuilder WithMetadataEnricher(Func<IMetadataEnricher> enricher, ContextScope scope)
+        public ConfigurationBuilder WithMetadataEnricher(Func<IMetadataEnricher> enricher, ContextScope scope)
         {
             _enrichers.Add((enricher, scope));
             return this;
         }
 
-        public NativeEventStoreBuilder IgnoreServerCert()
+        public ConfigurationBuilder IgnoreServerCert()
         {
             _ignoreCert = true;
             return this;
         }
-        public NativeEventStoreBuilder InSecure()
+        public ConfigurationBuilder InSecure()
         {
             _ignoreCert = true;
-            _disableTls = true;
             return this;
         }
         
-        public NativeEventStoreBuilder WithConnectionCustomization(Action<ConnectionSettingsBuilder> customizaiton)
-        {
-            _connectionCustomizations = customizaiton;
-            return this;
-        }
-        private Action<ConnectionSettingsBuilder> _connectionCustomizations;
+        
+        
 
         private bool _isDevelopment;
         private ILoggerFactory _loggerFactory;
 
-        public NativeEventStoreBuilder WithDevelopmentEnv(bool isDev)
+        public ConfigurationBuilder WithDevelopmentEnv(bool isDev)
         {
             _isDevelopment = isDev;
             return this;
@@ -217,16 +208,15 @@ namespace ModelingEvolution.Plumberd.EventStore
                 _isDevelopment,_loggerFactory,
                 _convention);
 
-
-            var es = new NativeEventStore(settings, () => _loggerFactory.CreateLogger<NativeEventStore>(),
-                _tcpUrl,
-                _httpUrl,
-                _userName,
-                _password,
-                _ignoreCert, 
-                _disableTls,
-                _connectionCustomizations,
-                _projectionConfigs);
+            EventStoreClientSettings sw = new EventStoreClientSettings();
+            sw.DefaultCredentials = new UserCredentials(this._userName ?? "admin", this._password ?? "changeit");
+            sw.ConnectivitySettings.Address = this._httpUrl;
+            sw.ConnectivitySettings.Insecure = this._ignoreCert;
+            sw.ConnectivitySettings.TlsVerifyCert = !this._ignoreCert;
+            var es = new NativeEventStore(sw, 
+                sw.DefaultCredentials,
+                settings,
+                () => _loggerFactory.CreateLogger<NativeEventStore>());
             if (_logWrittenEventsToLog)
                 es.Connected += WireLog;
             // Temporary
@@ -242,15 +232,15 @@ namespace ModelingEvolution.Plumberd.EventStore
             get
             {
                 if (loggerValue != null) return loggerValue;
-                loggerValue = _loggerFactory?.CreateLogger<NativeEventStoreBuilder>();
+                loggerValue = _loggerFactory?.CreateLogger<ConfigurationBuilder>();
                 return loggerValue;
             }
         }
         private void WireLog(NativeEventStore es)
         {
-            es.Connection.SubscribeToAllAsync(false, onLog);
+            es.Connection.SubscribeToAllAsync(FromAll.End, onLog);
         }
-        private Task onLog(EventStoreSubscription s, ResolvedEvent e)
+        private Task onLog(StreamSubscription s, ResolvedEvent e, CancellationToken t)
         {
             if (!e.Event.EventStreamId.StartsWith("$"))
             {
@@ -264,7 +254,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 if (e.Event.EventType != "$>")
                 {
                     // it's not a link
-                    string data = Encoding.UTF8.GetString(e.Event.Data);
+                    string data = Encoding.UTF8.GetString(e.Event.Data.Span);
                     logger.LogInformation("{subject} {eventType} written in {category}\t{id} with data:{eventData}",
                         subject,
                         e.Event.EventType,
@@ -274,7 +264,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 } else 
                 {
                     // it's a link
-                    string data = Encoding.UTF8.GetString(e.Event.Data);
+                    string data = Encoding.UTF8.GetString(e.Event.Data.Span);
                     logger.LogInformation("Link for {subject} written in {category}\t{id} with data:{linkData}",
                         subject,
                         category,

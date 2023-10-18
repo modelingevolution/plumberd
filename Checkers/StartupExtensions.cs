@@ -31,7 +31,7 @@ namespace Checkers
             var b = new PlumberBuilder()
                 .WithDefaultServiceProvider(_serviceProvider)
                 .WithLoggerFactory(LoggerFactory.Create(s => {}))
-                .WithTcpEventStore(x => x
+                .WithGrpc(x => x
                     .WithConfig(Configuration)
                     .WithWrittenEventsToLog(isDevelopment)
                     .IgnoreServerCert() // <---
