@@ -98,12 +98,12 @@ namespace ModelingEvolution.Plumberd.EventStore
 
                         _log.LogInformation("Reading persistently {eventNumber} {eventType} from {streamName}", e.OriginalEventNumber, ev.GetType().Name, _streamName);
 
-                        if (e.OriginalEventNumber > _processedEvent || _processedEvent == null)
-                        {
+                        //if (e.OriginalPosition > _processedEvent || _processedEvent == null)
+                        //{
                             await _onEvent(context, m, ev);
-                            _processedEvent = e.OriginalEventNumber;
-                        }
-                        else _log.LogInformation("Ignoring already delivered event: {eventType} from {streamName}", ev.GetType().Name, _streamName);
+                            //_processedEvent = e.OriginalEventNumber;
+                        //}
+                        //else _log.LogInformation("Ignoring already delivered event: {eventType} from {streamName}", ev.GetType().Name, _streamName);
 
                     }
                 }
@@ -261,17 +261,17 @@ namespace ModelingEvolution.Plumberd.EventStore
                     {
                         var (m, ev) = _parent.ReadEvent(e, context);
                         
-                        var currentIndex = FromStream.After(e.OriginalEventNumber);
+                        //var currentIndex = FromStream.After(e.OriginalEventNumber);
 
                         //_log.LogInformation("Reading {eventNumber} {eventType} from {streamName}", e.Event.EventNumber,ev.GetType().Name, _streamName);
-                        if (currentIndex >= _streamPosition || _streamPosition == FromStream.Start)
+                        //if (currentIndex >= _streamPosition || _streamPosition == FromStream.Start)
                         {
                             await _onEvent(context, m, ev);
-                            _streamPosition = FromStream.After(e.OriginalEventNumber);
+                            //_streamPosition = FromStream.After(e.OriginalEventNumber);
                         }
-                        else
+                        //else
                         {
-                            _log.LogInformation("Ignoring already delivered event: {eventType} from {streamName}", ev.GetType().Name, _streamName);
+                        //    _log.LogInformation("Ignoring already delivered event: {eventType} from {streamName}", ev.GetType().Name, _streamName);
                         }
 
                         

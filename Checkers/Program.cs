@@ -11,6 +11,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 builder.Services.AddMudServices();
+var tmp = builder.Logging;
 builder.Services.AddCheckers(builder.Configuration, builder.Environment.IsDevelopment());
 var app = builder.Build();
 

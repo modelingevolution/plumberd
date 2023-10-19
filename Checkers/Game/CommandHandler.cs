@@ -8,7 +8,7 @@ namespace Checkers.Game
 
     [ProcessingUnitConfig(IsEventEmitEnabled = true,
         SubscribesFromBeginning = false,
-        IsPersistent = true,
+        IsPersistent = false,
         ProcessingMode = ProcessingMode.CommandHandler)]
     public class CommandHandler
     {

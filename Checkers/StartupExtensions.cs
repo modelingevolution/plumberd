@@ -1,4 +1,5 @@
 ﻿using Checkers.Common.Validation;
+using Microsoft.Extensions.Logging.Console;
 using ModelingEvolution.Plumberd;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.EventStore;
@@ -15,7 +16,59 @@ namespace Checkers
         public void SetProvider(IServiceProvider provider) => _provider = provider;
         public object GetService(Type serviceType)
         {
-            return _provider.GetService(serviceType);
+            return _provider?.GetService(serviceType);
+        }
+    }
+
+    class LazyLogProvider : ILoggerFactory
+    {
+        IServiceProvider _provider;
+
+        class ConsoleLogger : ILogger, IDisposable
+        {
+            public IDisposable BeginScope<TState>(TState state) where TState : notnull
+            {
+                return this;
+            }
+
+            public bool IsEnabled(LogLevel logLevel)
+            {
+                return true;
+            }
+
+            public void Log<TState>(LogLevel logLevel, 
+                EventId eventId, 
+                TState state, 
+                Exception exception, 
+                Func<TState, Exception, string> formatter)
+            {
+                var line = formatter(state, exception);
+                Console.WriteLine(line);
+            }
+
+            public void Dispose()
+            {
+            }
+        }
+        
+        public LazyLogProvider(IServiceProvider provider)
+        {
+            _provider = provider;
+        }
+
+        public void Dispose()
+        {
+            
+        }
+
+        public void AddProvider(ILoggerProvider provider)
+        {
+            
+        }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return _provider.GetService<ILogger>() ?? new ConsoleLogger();
         }
     }
     public static class Startup
@@ -28,9 +81,12 @@ namespace Checkers
         {
             _serviceProvider = new ServiceProviderProxy();
 
+            
+            
+
             var b = new PlumberBuilder()
                 .WithDefaultServiceProvider(_serviceProvider)
-                .WithLoggerFactory(LoggerFactory.Create(s => {}))
+                .WithLoggerFactory(new LazyLogProvider(_serviceProvider))
                 .WithGrpc(x => x
                     .WithConfig(Configuration)
                     .WithWrittenEventsToLog(isDevelopment)
