@@ -22,7 +22,7 @@ It's makes it super easy for everyone familiar with ASP Controllers or WCF to ju
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0-rc.2.23479.6" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0-rc.2.23479.6" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0-rc.2.23479.6" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.0-rc.2.23509.1" />
+    
     <PackageReference Include="protobuf-net" Version="3.1.4" />
   </ItemGroup>
   <ItemGroup>
