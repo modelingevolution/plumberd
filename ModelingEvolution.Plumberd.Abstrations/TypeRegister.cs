@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using ProtoBuf;
 
 namespace ModelingEvolution.Plumberd
@@ -12,16 +13,17 @@ namespace ModelingEvolution.Plumberd
 
         public TypeRegister Index(IEnumerable<Type> types)
         {
-            foreach (var i in types)
+            StringBuilder sb = new StringBuilder();
+            foreach (var i in types.OrderBy(x=>x.Name))
             {
                 var id = i.NameId();
                 if (!_index.TryGetValue(id, out Type t))
                 {
-                    Console.WriteLine($"Contract found: {i.Name}");
+                    sb.Append($"{id}, ");
                     _index.Add(id, i);
                 }
             }
-
+            Console.WriteLine($"Contracts found: {sb}");
             return this;
         }
 

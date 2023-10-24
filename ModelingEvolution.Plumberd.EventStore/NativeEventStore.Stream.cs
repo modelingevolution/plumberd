@@ -78,7 +78,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                 var result = _connection.ReadStreamAsync(Direction.Forwards, _streamName, StreamPosition.Start,
                     long.MaxValue, true);
                 if (await result.ReadState == ReadState.StreamNotFound) yield break;
-                await foreach (var i in result)
+                
+                await foreach (var i in result.OnlyNew())
                 {
                     var d = ReadEvent(i);
                     yield return d;
@@ -108,7 +109,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                     long.MaxValue, true);
                 if ((await result.ReadState) == ReadState.StreamNotFound) yield break;
 
-                await foreach (var i in result)
+                await foreach (var i in result.OnlyNew())
                 {
                     var (m, record) = ReadEvent(i);
                     yield return record;

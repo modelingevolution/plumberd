@@ -1,4 +1,5 @@
-﻿using Checkers.Shared;
+﻿using System.Diagnostics;
+using Checkers.Shared;
 using ModelingEvolution.Plumberd;
 using ModelingEvolution.Plumberd.EventProcessing;
 using ModelingEvolution.Plumberd.Metadata;
@@ -20,7 +21,8 @@ public class DashboardProjection
 
     public void Given(IMetadata m, Moved e)
     {
-        var gameScore = _model[m.StreamId()];
+        var streamId = m.StreamId();
+        var gameScore = _model[streamId];
         switch (e.Piece)
         {
             case BoardCell.WhitePawn:
@@ -34,7 +36,7 @@ public class DashboardProjection
             default:
                 break;
         }
-
+        Debug.WriteLine($"{streamId}: {gameScore.WhiteMovesCount}-{gameScore.BlackMovesCount}");
         gameScore.Changed.Execute(e.Id);
     }
 }

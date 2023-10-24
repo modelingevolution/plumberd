@@ -57,8 +57,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                 {
                     var position = _fromBeginning ? StreamPosition.Start : StreamPosition.End;
                     PersistentSubscriptionSettings s = new PersistentSubscriptionSettings(true,position);
-                    
-                    
+
+                    _streamIterator = position.ToUInt64();
                     var subs = (await _parent.PersistentSubscriptions.ListAllAsync()).ToArray();
 
                     if (subs.All(x => x.GroupName != group))
@@ -84,12 +84,15 @@ namespace ModelingEvolution.Plumberd.EventStore
                 }
             }
 
-            
 
-           
-
+            private StreamPosition _streamIterator;
             private async Task OnEventAppeared(global::EventStore.Client.PersistentSubscription s, ResolvedEvent e, int? i, CancellationToken t)
             {
+                if (e.OriginalEventNumber < _streamIterator)
+                    return;
+
+                _streamIterator = _streamIterator.Next();
+
                 using (var context = _processingContextFactory.Create())
                 {
                     using (StaticProcessingContext.CreateScope(context)) // should be moved to decorator.
@@ -97,14 +100,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                         var (m, ev) = _parent.ReadEvent(e, context);
 
                         _log.LogInformation("Reading persistently {eventNumber} {eventType} from {streamName}", e.OriginalEventNumber, ev.GetType().Name, _streamName);
-
-                        //if (e.OriginalPosition > _processedEvent || _processedEvent == null)
-                        //{
-                            await _onEvent(context, m, ev);
-                            //_processedEvent = e.OriginalEventNumber;
-                        //}
-                        //else _log.LogInformation("Ignoring already delivered event: {eventType} from {streamName}", ev.GetType().Name, _streamName);
-
+                        
+                        await _onEvent(context, m, ev);
                     }
                 }
             }
@@ -209,6 +206,10 @@ namespace ModelingEvolution.Plumberd.EventStore
                 }
                 else
                 {
+                    await LoadCurrentStreamPosition();
+                    if(_lastSteamPosition.HasValue)
+                        this._streamIterator = _lastSteamPosition.Value.Next();
+
                     this._subscriptionCatchUp = await _connection.SubscribeToStreamAsync(_streamName, FromStream.End,
                         OnEventAppeared, true,
                         subscriptionDropped: OnSubscriptionDropped);
@@ -220,13 +221,18 @@ namespace ModelingEvolution.Plumberd.EventStore
                 var result = _connection
                     .ReadStreamAsync(Direction.Backwards, _streamName, StreamPosition.End, 1);
                 if (await result.ReadState == ReadState.Ok)
-                    this._lastSteamPosition = (await result.FirstOrDefaultAsync()).OriginalEventNumber;
+                    this._lastSteamPosition = (await result.FirstOrDefaultAsync()).Event.EventNumber;
+                
             }
 
-
+            private StreamPosition _streamIterator;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private async Task OnEventAppeared(StreamSubscription arg1, ResolvedEvent arg2, CancellationToken arg3)
             {
+                if (arg2.OriginalEventNumber < _streamIterator)
+                    return;
+
+                _streamIterator = _streamIterator.Next();
                 await OnEventAppeared(arg2);
                 if (arg2.OriginalEventNumber == _lastSteamPosition)
                 {

@@ -37,15 +37,27 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
             return numRead;
         }
     }
-    public class BlobClient
+
+    public interface IBlobClient
+    {
+        Task Write(Guid id, 
+            string category, 
+            string fileName,
+            bool forceOverride, 
+            Stream data, BlobUploadReason reason=null);
+    }
+
+    public class BlobClient : IBlobClient
     {
         
         private readonly Channel _channel;
         private GrpcEventStoreProxy.GrpcEventStoreProxyClient _client;
-        private ISessionManager _sessionManager;
+        private readonly ISessionManager _sessionManager;
         private readonly ILogger<BlobClient> _logger;
         const int BUFFER_SIZE = 64 * 1024; // 64KB
-        public BlobClient(Channel channel, ISessionManager sessionManager, ILogger<BlobClient> logger)
+        public BlobClient(Channel channel, 
+            ISessionManager sessionManager, 
+            ILogger<BlobClient> logger)
         {
             _channel = channel;
             _sessionManager = sessionManager;

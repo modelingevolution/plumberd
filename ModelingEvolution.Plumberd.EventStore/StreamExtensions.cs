@@ -1,5 +1,7 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
+using EventStore.Client;
 
 namespace ModelingEvolution.Plumberd.EventStore
 {
@@ -16,6 +18,17 @@ namespace ModelingEvolution.Plumberd.EventStore
                 r += n;
             }
             return r;
+        }
+
+        public static async IAsyncEnumerable<ResolvedEvent> OnlyNew(this IAsyncEnumerable<ResolvedEvent> items, StreamPosition? start=null)
+        {
+            StreamPosition p = start ?? StreamPosition.Start;
+            await foreach (var i in items)
+            {
+                if (i.OriginalEventNumber < p) continue;
+                p = p.Next();
+                yield return i;
+            }
         }
     }
 }
