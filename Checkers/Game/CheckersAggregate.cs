@@ -11,6 +11,7 @@ public class CheckersAggregate : RootAggregate<CheckersAggregate, CheckersAggreg
     public class State
     {
         public readonly BoardCell[,] Board;
+        public bool Started;
         private void Setup()
         {
             for (int i = 0; i < 8; i++)
@@ -33,10 +34,16 @@ public class CheckersAggregate : RootAggregate<CheckersAggregate, CheckersAggreg
         }
     }
 
+    private static State Given(State current, GameStarted ev)
+    {
+        current.Started = true;
+        return current;
+    }
     private static State Given(State current, Moved ev)
     {
         current.Board[ev.SrcColumn, ev.SrcRow] = BoardCell.Empty;
         current.Board[ev.DstColumn, ev.DstRow] = ev.Piece;
+        
         return current;
     }
     private static IEnumerable<IEvent> When(State st, Move cmd)
@@ -44,6 +51,8 @@ public class CheckersAggregate : RootAggregate<CheckersAggregate, CheckersAggreg
         if (Math.Abs(cmd.DstColumn - cmd.SrcColumn) == 1 && Math.Abs(cmd.DstRow - cmd.SrcRow) == 1)
         {
             var piece = st.Board[cmd.SrcColumn, cmd.SrcRow];
+            if (!st.Started)
+                yield return new GameStarted();
             yield return new Moved()
             {
                 DstColumn = cmd.DstColumn,

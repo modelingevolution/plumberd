@@ -56,7 +56,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                 try
                 {
                     var position = _fromBeginning ? StreamPosition.Start : StreamPosition.End;
-                    PersistentSubscriptionSettings s = new PersistentSubscriptionSettings(true,position);
+                    PersistentSubscriptionSettings s = new PersistentSubscriptionSettings(true,position, 
+                        checkPointLowerBound:1);
 
                     _streamIterator = position.ToUInt64();
                     var subs = (await _parent.PersistentSubscriptions.ListAllAsync()).ToArray();
@@ -104,6 +105,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                         await _onEvent(context, m, ev);
                     }
                 }
+
+                await s.Ack(e);
             }
 
             private void OnSubscriptionDropped(global::EventStore.Client.PersistentSubscription s, SubscriptionDroppedReason r, Exception? e)
@@ -221,7 +224,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 var result = _connection
                     .ReadStreamAsync(Direction.Backwards, _streamName, StreamPosition.End, 1);
                 if (await result.ReadState == ReadState.Ok)
-                    this._lastSteamPosition = (await result.FirstOrDefaultAsync()).Event.EventNumber;
+                    this._lastSteamPosition = (await result.FirstOrDefaultAsync()).OriginalEventNumber;
                 
             }
 
@@ -244,11 +247,10 @@ namespace ModelingEvolution.Plumberd.EventStore
             private void SetSubscriptionLive()
             {
                 var live = _processingContextFactory?.Config?.OnLive;
-                if (live != null)
-                {
-                    live();
-                    _log.LogInformation("{streamName} is live", _streamName);
-                }
+                if (live == null) return;
+
+                live();
+                _log.LogInformation("{streamName} is live", _streamName);
             }
 
 
@@ -266,21 +268,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                     using (StaticProcessingContext.CreateScope(context)) // should be moved to decorator.
                     {
                         var (m, ev) = _parent.ReadEvent(e, context);
-                        
-                        //var currentIndex = FromStream.After(e.OriginalEventNumber);
-
-                        //_log.LogInformation("Reading {eventNumber} {eventType} from {streamName}", e.Event.EventNumber,ev.GetType().Name, _streamName);
-                        //if (currentIndex >= _streamPosition || _streamPosition == FromStream.Start)
-                        {
-                            await _onEvent(context, m, ev);
-                            //_streamPosition = FromStream.After(e.OriginalEventNumber);
-                        }
-                        //else
-                        {
-                        //    _log.LogInformation("Ignoring already delivered event: {eventType} from {streamName}", ev.GetType().Name, _streamName);
-                        }
-
-                        
+                        await _onEvent(context, m, ev);
                     }
                 }
             }

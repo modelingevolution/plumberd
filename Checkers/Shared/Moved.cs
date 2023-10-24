@@ -17,3 +17,9 @@ public class Moved : IEvent
         Id = Guid.NewGuid();
     }
 }
+
+[Stream("Checkers")]
+public class GameStarted : IEvent
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+}

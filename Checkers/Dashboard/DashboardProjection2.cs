@@ -8,19 +8,20 @@ namespace Checkers.Dashboard;
 
 [ProcessingUnitConfig(IsEventEmitEnabled = false,
     SubscribesFromBeginning = true,
-    IsPersistent = true,
+    IsPersistent = false,
     ProcessingMode = ProcessingMode.EventHandler)]
-public class DashboardProjection2
+public class DashboardProjection
 {
     private readonly DashboardModel _model;
 
-    public DashboardProjection2()
+    public DashboardProjection(DashboardModel model)
     {
-        _model = new DashboardModel();
+        _model = model;
     }
+
     public void Given(IMetadata m, GameStarted e)
     {
-        Debug.WriteLine($"{m.StreamId()}: Persistent Game started! ");
+
     }
     public void Given(IMetadata m, Moved e)
     {
@@ -39,7 +40,7 @@ public class DashboardProjection2
             default:
                 break;
         }
-        Debug.WriteLine($"{streamId}: {gameScore.WhiteMovesCount+gameScore.BlackMovesCount}");
+        Debug.WriteLine($"{streamId}: {gameScore.WhiteMovesCount}-{gameScore.BlackMovesCount}");
         gameScore.Changed.Execute(e.Id);
     }
 }
