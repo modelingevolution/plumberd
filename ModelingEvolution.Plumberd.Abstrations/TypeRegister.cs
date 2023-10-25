@@ -19,7 +19,7 @@ namespace ModelingEvolution.Plumberd
                 var id = i.NameId();
                 if (!_index.TryGetValue(id, out Type t))
                 {
-                    sb.Append($"{id}, ");
+                    sb.Append($"{i.Name}, ");
                     _index.Add(id, i);
                 }
             }

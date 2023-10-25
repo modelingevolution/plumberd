@@ -2,7 +2,7 @@
 
 var target = Argument("target", "Publish");
 var configuration = Argument("configuration", "Release");
-var version = Argument("version", "1.3.35.4");
+var version = Argument("version", "1.3.35.5");
 
 
 var commits = GitLog("./", int.MaxValue);
