@@ -60,7 +60,7 @@ namespace ModelingEvolution.Plumberd
         public static IEnumerable<Type> HavingAttribute<T>(this IEnumerable<Type> items, Predicate<T> filter)
             where T:Attribute
         {
-            return items.Select(x => new { Attr = typeof(T).GetCustomAttribute<T>(), Type =x})
+            return items.Select(x => new { Attr = x.GetCustomAttribute<T>(), Type =x})
                 .Where(x=>x.Attr != null && filter(x.Attr))
                 .Select(x=>x.Type);
         }
