@@ -51,6 +51,13 @@ namespace ModelingEvolution.Plumberd.EventStore
         {
             return WithConfig(c, "EventStore");
         }
+
+        public ConfigurationBuilder WithCredentials(string username, string password)
+        {
+            this.SetIfNotEmpty(ref _userName, username);
+            this.SetIfNotEmpty(ref _password, password);
+            return this;
+        }
         public ConfigurationBuilder WithConfig(IConfiguration c, string sectionKey)
         {
             
