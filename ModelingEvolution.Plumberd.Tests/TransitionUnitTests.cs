@@ -1,5 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using ModelingEvolution.Plumberd.Tests.Models;
 using Xunit;
 #pragma warning disable 1998
@@ -49,5 +51,56 @@ namespace ModelingEvolution.Plumberd.Tests
             events[0].Should().BeOfType<Event2>();
         }
 
+    }
+    class LazyLogProvider : ILoggerFactory
+    {
+        IServiceProvider _provider;
+
+        class ConsoleLogger : ILogger, IDisposable
+        {
+            public IDisposable BeginScope<TState>(TState state) where TState : notnull
+            {
+                return this;
+            }
+
+            public bool IsEnabled(LogLevel logLevel)
+            {
+                return true;
+            }
+
+            public void Log<TState>(LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception exception,
+                Func<TState, Exception, string> formatter)
+            {
+                var line = formatter(state, exception);
+                Console.WriteLine(line);
+            }
+
+            public void Dispose()
+            {
+            }
+        }
+
+        public LazyLogProvider(IServiceProvider provider)
+        {
+            _provider = provider;
+        }
+
+        public void Dispose()
+        {
+
+        }
+
+        public void AddProvider(ILoggerProvider provider)
+        {
+
+        }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return new ConsoleLogger();
+        }
     }
 }

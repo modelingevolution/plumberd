@@ -241,6 +241,8 @@ namespace ModelingEvolution.Plumberd.EventStore
                     Connected?.Invoke(this);
                     return;
                 }
+
+                throw new InvalidOperationException("Could not establish connection after 10 retries.");
             }
         }
         

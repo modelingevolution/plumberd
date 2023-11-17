@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client;
 
@@ -29,6 +32,28 @@ namespace ModelingEvolution.Plumberd.EventStore
                 p = p.Next();
                 yield return i;
             }
+        }
+    }
+
+    public class GrpcHttpClientHandler : HttpClientHandler
+    {
+        public GrpcHttpClientHandler()
+        {
+            ServerCertificateCustomValidationCallback =
+                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+            
+        }
+
+        protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            request.Version = HttpVersion.Version20;
+            return base.Send(request, cancellationToken);
+        }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            request.Version = HttpVersion.Version20;
+            return await base.SendAsync(request,cancellationToken);
         }
     }
 }
