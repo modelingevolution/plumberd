@@ -57,9 +57,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\ModelingEvolution.Plumberd.Abstrations\ModelingEvolution.Plumberd.csproj" />
+	  <ProjectReference Include="..\ModelingEvolution.Plumberd.EventStore\ModelingEvolution.Plumberd.EventStore.csproj" />
 	</ItemGroup>
 
 </Project>

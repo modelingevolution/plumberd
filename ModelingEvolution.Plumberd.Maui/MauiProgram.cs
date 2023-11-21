@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using ModelingEvolution.Plumberd.EventStore;
 
 namespace ModelingEvolution.Plumberd.Maui
 {
@@ -18,8 +19,21 @@ namespace ModelingEvolution.Plumberd.Maui
 #if DEBUG
     		builder.Logging.AddDebug();
 #endif
+            var app = builder.Build();
+            var plumberBuilder = new PlumberBuilder()
+                .WithDefaultServiceProvider(app.Services)
+                .WithLoggerFactory(LoggerFactory.Create(config => config.AddConsole()))
+                .WithGrpc(x => x
+                    .WithCredentials("", "")
+                    .WithHttpUrl(new Uri(""))
+                    .InSecure()
+                    .WithWrittenEventsToLog(true)
+                    .IgnoreServerCert() // <---
+                    .WithDevelopmentEnv(true));
+         
+            IPlumberRuntime plumberRuntime = plumberBuilder.Build();
 
-            return builder.Build();
+            return app;
         }
     }
 }

@@ -233,8 +233,12 @@ namespace ModelingEvolution.Plumberd.EventStore
                     {
                         var slice = _connection.ReadAllAsync(Direction.Backwards, Position.End, 1);
                         var c = await slice.CountAwaitAsync(async (x) => true);
-                    } 
-                    catch {await Task.Delay(1000); continue;}
+                    }
+                    catch (Exception e)
+                    {
+                        Log.LogError("{e}",1);
+                        await Task.Delay(1000); continue;
+                    }
 
                     Log.LogInformation("Connected.");
                     _connected = true;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Security;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -32,6 +33,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private string _userName;
         private string _password;
         private bool _ignoreCert;
+        private bool _isAndroid;
         
         public bool _withoutDefaultEnrichers;
 
@@ -132,7 +134,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             _metadataSerializer = f;
             return this;
         }
-       
+        public ConfigurationBuilder IsAndroid()
+        {
+            _isAndroid = true;
+            return this;
+        }
         public ConfigurationBuilder WithHttpUrl(Uri http)
         {
             _httpUrl = http;
@@ -226,7 +232,20 @@ namespace ModelingEvolution.Plumberd.EventStore
             if(_ignoreCert)
                 sw.CreateHttpMessageHandler = () =>
                 {
-                    return new GrpcHttpClientHandler();
+                    if (this._isAndroid)
+                    {
+                        return new SocketsHttpHandler()
+                        {
+                            EnableMultipleHttp2Connections = true,
+                            SslOptions = new SslClientAuthenticationOptions()
+                                { RemoteCertificateValidationCallback = (s, c, chain, e) => true }
+                        };
+                    }
+                    else
+                    {
+                        return new GrpcHttpClientHandler();
+                    }
+                   
                 };
             var es = new NativeEventStore(sw, 
                 sw.DefaultCredentials,
@@ -235,8 +254,16 @@ namespace ModelingEvolution.Plumberd.EventStore
             if (_logWrittenEventsToLog)
                 es.Connected += WireLog;
             // Temporary
-            if(checkConnectivity)
-                Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
+            if (checkConnectivity)
+            {
+                if(_isAndroid)
+                    Task.Run(es.CheckConnectivity);
+                else
+                {
+                    Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
+                }
+            }
+              
             
             return es;
         }
