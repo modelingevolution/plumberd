@@ -28,6 +28,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelingEvolution.Plumberd.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelingEvolution.Plumberd.Client.Tests", "ModelingEvolution.Plumberd.Client.Tests\ModelingEvolution.Plumberd.Client.Tests.csproj", "{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelingEvolution.Plumberd.Maui", "ModelingEvolution.Plumberd.Maui\ModelingEvolution.Plumberd.Maui.csproj", "{219EE7D3-5CC5-4865-8FCD-B6796E479FEE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -62,6 +64,12 @@ Global
 		{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1CCCD68-B8D9-4657-B568-2CCEB88FA51D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{219EE7D3-5CC5-4865-8FCD-B6796E479FEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{219EE7D3-5CC5-4865-8FCD-B6796E479FEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{219EE7D3-5CC5-4865-8FCD-B6796E479FEE}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{219EE7D3-5CC5-4865-8FCD-B6796E479FEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{219EE7D3-5CC5-4865-8FCD-B6796E479FEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{219EE7D3-5CC5-4865-8FCD-B6796E479FEE}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
