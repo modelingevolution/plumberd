@@ -53,6 +53,33 @@ namespace ModelingEvolution.Plumberd.EventStore
             _streamNameIsDynamic = true;
             return this;
         }
+        public ProjectionSchemaBuilder PartitionByMetadataDate(string outputCategory, string? sufix = null)
+        {
+            if (string.IsNullOrWhiteSpace(outputCategory))
+                throw new ArgumentNullException(nameof(outputCategory));
+
+            _category = ComputeOutputCategory(outputCategory);
+            _projectionName = $"{outputCategory}ByDay{sufix}";
+
+            string ComputeWhen()
+            {
+                StringBuilder query = new StringBuilder();
+
+                query.AppendLine(".when( { \r\n    $any : function(s,e) { ");
+                query.AppendLine("const m = JSON.parse(e.metadataRaw);");
+                query.AppendLine("const dateSufix = m.Created.split('T')[0].replace(/-/g, '');");
+                query.Append($"const streamName = '{_category}-' + dateSufix");
+                if (sufix != null) query.Append($" + {sufix}");
+                query.AppendLine(";");
+                query.AppendLine($"linkTo(streamName, e); }}");
+                query.Append("});");
+                return query.ToString();
+            }
+
+            _whenStatement = ComputeWhen;
+            _streamNameIsDynamic = true;
+            return this;
+        }
         public ProjectionSchemaBuilder PartitionByStreamId(string outputCategory)
         {
             if (string.IsNullOrWhiteSpace(outputCategory))

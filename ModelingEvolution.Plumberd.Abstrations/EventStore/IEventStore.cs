@@ -123,7 +123,7 @@ namespace ModelingEvolution.Plumberd.EventStore
     }
     public interface IEventStore
     {
-        
+        Task UpdateProjections();
         IEventStoreSettings Settings { get; }
         IStream GetStream(string category, Guid id, IContext context = null, IMetadataSerializer serializer = null, IRecordSerializer recordSerializer = null);
         Task Init();
