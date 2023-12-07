@@ -187,7 +187,8 @@ namespace ModelingEvolution.Plumberd.EventStore
         public NativeEventStore(EventStoreClientSettings connectionsettings,
             UserCredentials credentials,
             EventStoreSettings settings, 
-            Func<ILogger<NativeEventStore>> log)
+            Func<ILogger<NativeEventStore>> log,
+            IReadOnlyList<IProjectionConfig> configurations)
 
         {
             _settings = settings;
@@ -198,12 +199,13 @@ namespace ModelingEvolution.Plumberd.EventStore
             _connection = new EventStoreClient(connectionsettings);
             _credentials = credentials;
             _projectionConfigurations = new ProjectionConfigurations(_projectionManagement, _credentials, _settings);
+            _projectionConfigurations.Register(configurations);
         }
         public NativeEventStore(EventStoreSettings evSettings, 
             EventStoreClientSettings dbSettings, 
             string userName, string password,
             Func<ILogger<NativeEventStore>> log,
-            IEnumerable<IProjectionConfig> configurations = null)
+            IReadOnlyList<IProjectionConfig> configurations)
         {
             _dbSettings = dbSettings;
             _settings = evSettings;
@@ -216,8 +218,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             _projectionManagement = new EventStoreProjectionManagementClient(dbSettings);
             _connection = new EventStoreClient(dbSettings);
             _projectionConfigurations = new ProjectionConfigurations(_projectionManagement, _credentials, _settings);
-            if (configurations != null)
-                _projectionConfigurations.Register(configurations);
+            _projectionConfigurations.Register(configurations);
         }
 
         
@@ -272,7 +273,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 schema.IsDirect = true;
             }
             else
-            {
+            { 
                 // InDirect
                 schema.StreamName = $"{_settings.ProjectionStreamPrefix}{name}-{key}";
                 schema.ProjectionName = $"{name}-{key}";

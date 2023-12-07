@@ -33,7 +33,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private string _userName;
         private string _password;
         private bool _ignoreCert;
-        private bool _isAndroid;
+        private bool _checkConnectivityAsync;
         
         public bool _withoutDefaultEnrichers;
 
@@ -134,9 +134,9 @@ namespace ModelingEvolution.Plumberd.EventStore
             _metadataSerializer = f;
             return this;
         }
-        public ConfigurationBuilder IsAndroid()
+        public ConfigurationBuilder CheckConnectivityAsync()
         {
-            _isAndroid = true;
+            _checkConnectivityAsync = true;
             return this;
         }
         public ConfigurationBuilder WithHttpUrl(Uri http)
@@ -232,7 +232,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             if(_ignoreCert)
                 sw.CreateHttpMessageHandler = () =>
                 {
-                    if (this._isAndroid)
+                    if (this._checkConnectivityAsync)
                     {
                         return new SocketsHttpHandler()
                         {
@@ -247,24 +247,18 @@ namespace ModelingEvolution.Plumberd.EventStore
                     }
                    
                 };
-            var es = new NativeEventStore(sw, 
-                sw.DefaultCredentials,
-                settings,
-                () => _loggerFactory.CreateLogger<NativeEventStore>());
+            var es = new NativeEventStore(sw, sw.DefaultCredentials, settings, () => _loggerFactory.CreateLogger<NativeEventStore>(), _projectionConfigs);
             if (_logWrittenEventsToLog)
                 es.Connected += WireLog;
             // Temporary
-            if (checkConnectivity)
-            {
-                if(_isAndroid)
-                    Task.Run(es.CheckConnectivity);
-                else
-                {
-                    Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
-                }
-            }
-              
+            if (!checkConnectivity) return es;
+
+            if(_checkConnectivityAsync)
+                Task.Run(es.CheckConnectivity);
+            else
+                Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
             
+
             return es;
         }
         private ILogger loggerValue;
