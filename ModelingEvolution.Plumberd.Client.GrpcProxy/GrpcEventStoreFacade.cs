@@ -110,7 +110,10 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         }
 
 
-       
+        public async Task UpdateProjections()
+        {
+            throw new NotImplementedException();
+        }
 
         public IEventStoreSettings Settings { get; }
         public IStream GetStream(string category, Guid id, IContext context = null, IMetadataSerializer serializer = null,
