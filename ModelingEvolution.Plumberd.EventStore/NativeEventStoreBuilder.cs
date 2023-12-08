@@ -253,8 +253,10 @@ namespace ModelingEvolution.Plumberd.EventStore
             // Temporary
             if (!checkConnectivity) return es;
 
-            if(_checkConnectivityAsync)
+            if (_checkConnectivityAsync)
+            {
                 Task.Run(es.CheckConnectivity);
+            }
             else
                 Task.Run(es.CheckConnectivity).GetAwaiter().GetResult();
             
@@ -286,7 +288,9 @@ namespace ModelingEvolution.Plumberd.EventStore
                 string subject = isFact ? "Fact" : (isCommand ? "Command" : "View");
                 int index = e.Event.EventStreamId.IndexOf('-');
                 string category = e.Event.EventStreamId.Remove(index);
-                Guid id = Guid.Parse(e.Event.EventStreamId.Substring(index + 1));
+
+                string id = e.Event.EventStreamId.Substring(index + 1);
+                //Guid id = Guid.Parse(e.Event.EventStreamId.Substring(index + 1));
                 if (e.Event.EventType != "$>")
                 {
                     // it's not a link

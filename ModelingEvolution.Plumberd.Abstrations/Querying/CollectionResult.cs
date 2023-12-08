@@ -11,7 +11,7 @@ namespace ModelingEvolution.Plumberd.Querying
     {
         public TProjection Projection { get; internal set; }
         public event Action<IMetadata, IRecord> ModelsChanged;
-
+        public event Action OnLive;
         public IServiceScope Scope { get; set; }
         public IProcessingUnit ProcessingUnit { get; set; }
         public void FireChanged(IMetadata metadata, IRecord ev)
@@ -24,7 +24,11 @@ namespace ModelingEvolution.Plumberd.Querying
             ProcessingUnit?.Dispose();
         }
 
-        
+
+        public void FireLive()
+        {
+            OnLive?.Invoke();
+        }
     }
     public class ModelResult<TProjection, TModel> : IModelResult<TProjection, TModel>
     {

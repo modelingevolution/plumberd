@@ -138,6 +138,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             EventHandler onEvent,
             IProcessingContextFactory factory,
             params string[] types);
+        bool IsConnected { get; }
     }
     public interface IEventStoreSettings
     {

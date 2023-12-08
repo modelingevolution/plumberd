@@ -24,6 +24,7 @@ namespace ModelingEvolution.Plumberd
 {
     public interface IPlumberRuntime
     {
+        EventWaitHandle StartedWaitHandle { get; }
         IIgnoreFilter IgnoreFilter { get; }
         ICommandInvoker DefaultCommandInvoker { get; }
         IServiceProvider DefaultServiceProvider { get; }
@@ -320,6 +321,8 @@ namespace ModelingEvolution.Plumberd
             return config;
         }
 
+        private readonly ManualResetEvent _startedWaitHandle = new ManualResetEvent(false);
+        public EventWaitHandle StartedWaitHandle => _startedWaitHandle;
         public async Task StartAsync(Predicate<IProcessingUnit> filter = null)
         {
             filter ??= x => true;
@@ -340,6 +343,7 @@ namespace ModelingEvolution.Plumberd
 
             await _units.Where(x => filter(x))
                 .ExecuteForAll(Start);
+            _startedWaitHandle.Set();
         }
 
         private ILogger _log;

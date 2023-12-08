@@ -85,7 +85,7 @@ namespace ModelingEvolution.Plumberd.Client.GrpcProxy
         private readonly ArrayBufferWriter<byte> _buffer;
         private readonly IMetadataSchema _mSchema;
         private readonly Dictionary<Guid, MetadataProperty> _mPropIndex;
-
+        public bool IsConnected => true;
         public GrpcEventStoreFacade(Func<Channel> channel,
             IMetadataFactory eventMetadataFactory,
             IMetadataSerializerFactory factory,

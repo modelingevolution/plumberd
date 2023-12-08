@@ -35,7 +35,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private bool _connected = false;
         private readonly Lazy<ILogger> _lazyLog;
         private ILogger Log => _lazyLog.Value;
-
+        public bool IsConnected => _connected;
         private readonly EventStoreClient _connection;
         //private readonly ProjectionsManager _projectionsManager;
 
@@ -376,8 +376,10 @@ namespace ModelingEvolution.Plumberd.EventStore
             var splitIndex = streamId.IndexOf('-');
             
             m[m.Schema[MetadataProperty.CategoryName]] = streamId.Remove(splitIndex);
-            m[m.Schema[MetadataProperty.StreamIdName]] = Guid.Parse(streamId.Substring(splitIndex + 1));
+            m[m.Schema[MetadataProperty.StreamIdName]] = streamId.Substring(splitIndex + 1);
             m[m.Schema[MetadataProperty.StreamPositionName]] = (ulong)r.Event.EventNumber;
+            m[m.Schema[MetadataProperty.LinkPositionName]] = (ulong)(r.Link?.EventNumber ?? 0);
+
             return (m, e);
         }
 

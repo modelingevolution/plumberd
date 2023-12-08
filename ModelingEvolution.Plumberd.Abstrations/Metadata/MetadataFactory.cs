@@ -116,6 +116,7 @@ namespace ModelingEvolution.Plumberd.Metadata
                 f.RegisterSystem(MetadataProperty.Category());
                 f.RegisterSystem(MetadataProperty.StreamId());
                 f.RegisterSystem(MetadataProperty.StreamPosition());
+                f.RegisterSystem(MetadataProperty.LinkPosition());
             }
         }
     }

@@ -14,6 +14,7 @@ namespace ModelingEvolution.Plumberd.Querying
     {
         TProjection Projection { get; }
         event Action<IMetadata, IRecord> ModelsChanged;
+        event Action OnLive;
     }
     public interface IModelResult<out TProjection, out TModel> : IDisposable
     {

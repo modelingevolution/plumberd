@@ -94,8 +94,9 @@ namespace ModelingEvolution.Plumberd.EventStore
                 var splitIndex = streamId.IndexOf('-');
 
                 m[m.Schema[MetadataProperty.CategoryName]] = streamId.Remove(splitIndex);
-                m[m.Schema[MetadataProperty.StreamIdName]] = Guid.Parse(streamId.Substring(splitIndex + 1));
+                m[m.Schema[MetadataProperty.StreamIdName]] = streamId.Substring(splitIndex + 1);
                 m[m.Schema[MetadataProperty.StreamPositionName]] = (ulong)r.OriginalEventNumber;
+                m[m.Schema[MetadataProperty.LinkPositionName]] = (ulong)(r.Link?.EventNumber ?? 0);
 
                 var ev = _recordSerializer.Deserialize(r.Event.Data, m);
                 return (m, ev);

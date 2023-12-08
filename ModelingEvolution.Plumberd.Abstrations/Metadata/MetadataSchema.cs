@@ -19,6 +19,7 @@ namespace ModelingEvolution.Plumberd.Metadata
                     _system.RegisterSystem(MetadataProperty.Category());
                     _system.RegisterSystem(MetadataProperty.StreamId());
                     _system.RegisterSystem(MetadataProperty.StreamPosition());
+                    _system.RegisterSystem(MetadataProperty.LinkPosition());
                 }
 
                 return _system;
