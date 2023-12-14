@@ -7,6 +7,12 @@ namespace ModelingEvolution.Plumberd
     {
         string Message { get; }
     }
+
+    [AttributeUsage(AttributeTargets.Class)]
+    public class UseProtoAttribute : Attribute
+    {
+
+    }
     public interface IEvent : IRecord
     {
         

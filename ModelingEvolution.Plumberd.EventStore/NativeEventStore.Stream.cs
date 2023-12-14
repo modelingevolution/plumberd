@@ -69,7 +69,7 @@ namespace ModelingEvolution.Plumberd.EventStore
                 var eventType = x is ILink ? "$>" : _store.Settings.RecordNamingConvention(x.GetType())[0];
                 var id = Uuid.FromGuid(x.Id);
                 var data = new global::EventStore.Client.EventData(id, eventType, eventBytes, metadataBytes,
-                    "application/json");
+                     _recordSerializer.IsJson(metadata) ? "application/json" : "application/octet-stream");
                 return data;
             }
 

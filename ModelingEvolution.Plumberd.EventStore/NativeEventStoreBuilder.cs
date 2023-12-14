@@ -220,7 +220,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
             EventStoreSettings settings = new EventStoreSettings(eventMetadataFactory, 
                 metadataSerializerFactory,
-                _recordSerializer ?? new RecordSerializer(),
+                _recordSerializer ?? new RecordSerializerDispatcher(),
                 _isDevelopment,_loggerFactory,
                 _convention);
 
