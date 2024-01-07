@@ -340,6 +340,8 @@ namespace ModelingEvolution.Plumberd
                 .Select(x => x.EventStore)
                 .Distinct()
                 .ExecuteForAll(x=>x.Init());
+            if (_units.Count == 0)  
+                await this.DefaultEventStore.Init();
 
             await _units.Where(x => filter(x))
                 .ExecuteForAll(Start);

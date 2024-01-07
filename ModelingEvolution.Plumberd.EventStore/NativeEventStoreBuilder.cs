@@ -34,7 +34,7 @@ namespace ModelingEvolution.Plumberd.EventStore
         private string _password;
         private bool _ignoreCert;
         private bool _checkConnectivityAsync;
-        
+        private StartupProjection _startupProjections;
         public bool _withoutDefaultEnrichers;
 
         public ConfigurationBuilder()
@@ -57,6 +57,11 @@ namespace ModelingEvolution.Plumberd.EventStore
             return WithConfig(c, "EventStore");
         }
 
+        public ConfigurationBuilder WithStartupProjections(StartupProjection startup)
+        {
+            _startupProjections = startup;
+            return this;
+        }
         public ConfigurationBuilder WithCredentials(string username, string password)
         {
             this.SetIfNotEmpty(ref _userName, username);
@@ -247,7 +252,11 @@ namespace ModelingEvolution.Plumberd.EventStore
                     }
                    
                 };
-            var es = new NativeEventStore(sw, sw.DefaultCredentials, settings, () => _loggerFactory.CreateLogger<NativeEventStore>(), _projectionConfigs);
+            var es = new NativeEventStore(sw, sw.DefaultCredentials, settings, 
+                () => _loggerFactory.CreateLogger<NativeEventStore>(), 
+                _projectionConfigs,
+                _startupProjections);
+            
             if (_logWrittenEventsToLog)
                 es.Connected += WireLog;
             // Temporary

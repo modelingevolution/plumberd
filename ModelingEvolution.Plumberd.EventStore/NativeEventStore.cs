@@ -41,6 +41,7 @@ namespace ModelingEvolution.Plumberd.EventStore
 
         private EventStorePersistentSubscriptionsClient _subscriptionsClient;
         private EventStoreProjectionManagementClient _projectionManagement;
+        public ProjectionConfigurations ProjectionConfigurations => _projectionConfigurations;
 
         private EventStoreProjectionManagementClient ProjectionManagement
         {
@@ -188,7 +189,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             UserCredentials credentials,
             EventStoreSettings settings, 
             Func<ILogger<NativeEventStore>> log,
-            IReadOnlyList<IProjectionConfig> configurations)
+            IReadOnlyList<IProjectionConfig> configurations, StartupProjection startupProjections)
 
         {
             _settings = settings;
@@ -198,14 +199,15 @@ namespace ModelingEvolution.Plumberd.EventStore
             _projectionManagement = new EventStoreProjectionManagementClient(connectionsettings);
             _connection = new EventStoreClient(connectionsettings);
             _credentials = credentials;
-            _projectionConfigurations = new ProjectionConfigurations(_projectionManagement, _credentials, _settings);
+            _projectionConfigurations = new ProjectionConfigurations(_projectionManagement, _credentials, _settings, startupProjections);
             _projectionConfigurations.Register(configurations);
         }
         public NativeEventStore(EventStoreSettings evSettings, 
             EventStoreClientSettings dbSettings, 
             string userName, string password,
             Func<ILogger<NativeEventStore>> log,
-            IReadOnlyList<IProjectionConfig> configurations)
+            IReadOnlyList<IProjectionConfig> configurations,
+            StartupProjection startupProjections)
         {
             _dbSettings = dbSettings;
             _settings = evSettings;
@@ -217,7 +219,7 @@ namespace ModelingEvolution.Plumberd.EventStore
             _subscriptionsClient = new EventStorePersistentSubscriptionsClient(dbSettings);
             _projectionManagement = new EventStoreProjectionManagementClient(dbSettings);
             _connection = new EventStoreClient(dbSettings);
-            _projectionConfigurations = new ProjectionConfigurations(_projectionManagement, _credentials, _settings);
+            _projectionConfigurations = new ProjectionConfigurations(_projectionManagement, _credentials, _settings, startupProjections);
             _projectionConfigurations.Register(configurations);
         }
 

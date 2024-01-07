@@ -35,7 +35,7 @@ namespace ModelingEvolution.Plumberd
         {
         }
     }
-
+   
     public class PlumberBuilder
     {
         public IServiceProvider DefaultServiceProvider { get; private set; }
@@ -45,7 +45,7 @@ namespace ModelingEvolution.Plumberd
         public ILoggerFactory DefaultLoggerFactory { get; private set; }
         private SynchronizationContext DefaultSynchronizationContext { get;  set;}
         private Action<Exception> OnException { get; set; }
-
+        
         private ILogger<PlumberBuilder> _loggerValue;
 
         private ILogger Logger
@@ -60,6 +60,7 @@ namespace ModelingEvolution.Plumberd
             }
         }
 
+     
         public PlumberBuilder WithSynchronizationContext(SynchronizationContext context)
         {
             DefaultSynchronizationContext = context;
