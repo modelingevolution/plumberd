@@ -40,8 +40,9 @@ public static class EventTypeExtensions
     {
         return (string)m[m.Schema.Enricher<RecordTypeEnricher>().Property];
     }
-    public static Type TryResolveNativeType(this IMetadata m)
+    public static System.Type TryResolveNativeType(this IMetadata m, System.Type? fallback = null)
     {
-        return EventTypeResolver.Resolve(m);
+        System.Type type = EventTypeResolver.Resolve(m);
+        return (object)type != null ? type : fallback;
     }
 }
