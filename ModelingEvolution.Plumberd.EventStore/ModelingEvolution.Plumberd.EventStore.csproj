@@ -19,6 +19,8 @@
 It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated.
 
 This package is the implementation of EventStory from EventStore.</Description>
+    <AssemblyVersion>1.3.35.11</AssemblyVersion>
+    <FileVersion>1.3.35.11</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="23.1.0" />

@@ -17,6 +17,8 @@
     <PackageIcon>logo-squere.png</PackageIcon>
     <Description>Plumberd is a lightweight library to make working with EventStore easy. 
 It's makes it super easy for everyone familiar with ASP Controllers or WCF to jump into CQRS and EventSourcing. All the plumbing is automated.</Description>
+    <AssemblyVersion>1.3.35.11</AssemblyVersion>
+    <FileVersion>1.3.35.11</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
