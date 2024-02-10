@@ -2,12 +2,68 @@
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using ModelingEvolution.Plumberd.EventStore;
 using ModelingEvolution.Plumberd.Tests.Models;
 using Xunit;
 #pragma warning disable 1998
 
 namespace ModelingEvolution.Plumberd.Tests
 {
+    public class UnitTest1
+    {
+        [Fact]
+        public void Router()
+        {
+            // This won't work because apparently HAProxy cannot connect to backend using HTTP2
+            var b = new PlumberBuilder()
+                .WithDefaultServiceProvider(NSubstitute.Substitute.For<IServiceProvider>())
+                .WithLoggerFactory(new LazyLogProvider(NSubstitute.Substitute.For<IServiceProvider>()))
+                .WithGrpc(x => x
+                    //   .WithConfig(Configuration)
+                    .WithCredentials("admin", "3KLE81YCdbG6nDnSH9oyr4IU")
+                    .WithHttpUrl(new Uri("https://es.welder.ai"))
+                    .InSecure()
+                    .WithWrittenEventsToLog(true)
+                    .IgnoreServerCert() // <---
+                    .WithDevelopmentEnv(true));
+            var _plumberRuntime = b.Build();
+
+        }
+        [Fact]
+        public void RouterNat()
+        {
+            var b = new PlumberBuilder()
+                .WithDefaultServiceProvider(NSubstitute.Substitute.For<IServiceProvider>())
+                .WithLoggerFactory(new LazyLogProvider(NSubstitute.Substitute.For<IServiceProvider>()))
+                .WithGrpc(x => x
+                    //   .WithConfig(Configuration)
+                    .WithCredentials("admin", "3KLE81YCdbG6nDnSH9oyr4IU")
+                    .WithHttpUrl(new Uri("https://10.2.0.1:8080"))
+                    .InSecure()
+                    .WithWrittenEventsToLog(true)
+                    .IgnoreServerCert() // <---
+                    .WithDevelopmentEnv(true));
+            var _plumberRuntime = b.Build();
+
+        }
+        [Fact]
+        public void Direct()
+        {
+            var b = new PlumberBuilder()
+                .WithDefaultServiceProvider(NSubstitute.Substitute.For<IServiceProvider>())
+                .WithLoggerFactory(new LazyLogProvider(NSubstitute.Substitute.For<IServiceProvider>()))
+                .WithGrpc(x => x
+                    //   .WithConfig(Configuration)
+                    .WithCredentials("admin", "3KLE81YCdbG6nDnSH9oyr4IU")
+                    .WithHttpUrl(new Uri("https://10.2.0.13:5009"))
+                    .InSecure()
+                    .WithWrittenEventsToLog(true)
+                    .IgnoreServerCert() // <---
+                    .WithDevelopmentEnv(true));
+            var _plumberRuntime = b.Build();
+
+        }
+    }
     public class TransitionUnitTests
     {
         [Fact]

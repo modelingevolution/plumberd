@@ -20,6 +20,7 @@ namespace Checkers
         }
     }
 
+
     class LazyLogProvider : ILoggerFactory
     {
         IServiceProvider _provider;
@@ -73,32 +74,14 @@ namespace Checkers
     }
     public static class Startup
     {
-        private static ServiceProviderProxy _serviceProvider;
+        
         private static IPlumberRuntime _plumberRuntime;
 
-        public static void AddCheckers(this IServiceCollection services,
-            IConfiguration Configuration, bool isDevelopment)
+        public static void AddCheckers(this IServiceCollection services)
         {
-            _serviceProvider = new ServiceProviderProxy();
+            services.AddPlumberd(x => x.WithGrpc(y => y.IgnoreServerCert().InSecure().WithDevelopmentEnv(true)));
 
             
-            
-
-            var b = new PlumberBuilder()
-                .WithDefaultServiceProvider(_serviceProvider)
-                .WithLoggerFactory(new LazyLogProvider(_serviceProvider))
-                .WithGrpc(x => x
-                    .WithConfig(Configuration)
-                    .WithWrittenEventsToLog(isDevelopment)
-                    .IgnoreServerCert() // <---
-                    .InSecure()
-                    .WithDevelopmentEnv(isDevelopment)
-                    .WithProjectionsConfigFrom(typeof(Startup).Assembly));
-            _plumberRuntime = b.Build();
-            services.AddSingleton(_plumberRuntime.DefaultCommandInvoker);
-            services.AddSingleton(_plumberRuntime.DefaultEventStore);
-            services.AddSingleton(_plumberRuntime);
-
             services.AddSingleton<ValidatorFactory>();
 
             _processingUnitTypes = GetTypes()
@@ -106,6 +89,8 @@ namespace Checkers
 
             services.AddSingletons(_processingUnitTypes);
             services.AddSingletons(GetTypes().IsAssignableToClass<IModel>());
+
+            services.RegisterControllers(_processingUnitTypes);
 
             bool hasAggregates = false;
             foreach (var at in GetTypes().IsAssignableToClass<IRootAggregate>())
@@ -134,15 +119,7 @@ namespace Checkers
             services.AddScoped<ILiveQueryExecutor, LiveQueryExecutor>();
         }
 
-        public static void ConfigureCheckers(this WebApplication app)
-        {
-            _serviceProvider.SetProvider(app.Services);
-
-            foreach (var pu in _processingUnitTypes)
-                _plumberRuntime.RegisterController(pu);
-
-            Task.Run(() => _plumberRuntime.StartAsync()).GetAwaiter().GetResult();
-        }
+       
         private static Type[] _types;
         private static Type[] _processingUnitTypes;
 

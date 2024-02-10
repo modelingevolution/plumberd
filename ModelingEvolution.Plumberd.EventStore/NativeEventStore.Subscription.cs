@@ -56,16 +56,28 @@ namespace ModelingEvolution.Plumberd.EventStore
                 try
                 {
                     var position = _fromBeginning ? StreamPosition.Start : StreamPosition.End;
-                    PersistentSubscriptionSettings s = new PersistentSubscriptionSettings(true,position, 
-                        checkPointLowerBound:1);
+                    PersistentSubscriptionSettings s = new PersistentSubscriptionSettings(true, position,
+                        checkPointLowerBound: 1);
 
                     _streamIterator = position.ToUInt64();
                     var subs = (await _parent.PersistentSubscriptions.ListAllAsync()).ToArray();
 
                     if (subs.All(x => x.GroupName != group))
                         await _parent.PersistentSubscriptions.CreateToStreamAsync(_streamName, group, s);
-                    
+
                     _log.LogInformation("Connecting to persistent subscription {subscriptionName}.", _streamName);
+                    this._subscription = await _parent.PersistentSubscriptions.SubscribeToStreamAsync(_streamName,
+                        group /*Environment.MachineName*/,
+                        OnEventAppeared,
+                        userCredentials: _parent._credentials,
+                        subscriptionDropped: OnSubscriptionDropped);
+                }
+                catch (PersistentSubscriptionNotFoundException ex)
+                {
+                    var position = _fromBeginning ? StreamPosition.Start : StreamPosition.End;
+                    PersistentSubscriptionSettings s = new PersistentSubscriptionSettings(true, position,
+                        checkPointLowerBound: 1);
+                    await _parent.PersistentSubscriptions.CreateToStreamAsync(_streamName, group, s);
                     this._subscription = await _parent.PersistentSubscriptions.SubscribeToStreamAsync(_streamName,
                         group /*Environment.MachineName*/,
                         OnEventAppeared,

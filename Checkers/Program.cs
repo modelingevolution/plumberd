@@ -12,7 +12,7 @@ builder.Services.AddServerSideBlazor();
 
 builder.Services.AddMudServices();
 var tmp = builder.Logging;
-builder.Services.AddCheckers(builder.Configuration, builder.Environment.IsDevelopment());
+builder.Services.AddCheckers();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -31,5 +31,5 @@ app.UseRouting();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-app.ConfigureCheckers();
+
 app.Run();
