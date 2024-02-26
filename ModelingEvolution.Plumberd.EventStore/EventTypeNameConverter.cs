@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -7,25 +8,25 @@ namespace ModelingEvolution.Plumberd.EventStore
 {
     public class EventTypeNameConverter
     {
-        private readonly Dictionary<Type, string[]> _index;
+        private readonly ConcurrentDictionary<Type, string[]> _index = new();
 
-        public EventTypeNameConverter()
-        {
-            _index = new Dictionary<Type, string[]>();
-        }
+        
         public string[] Convert(Type t)
         {
-            if (!_index.TryGetValue(t, out var names))
+            return _index.GetOrAdd(t, static type =>
             {
-                names = t.GetCustomAttributes<EventTypeNameAttribute>()
-                    .Select(x => x.ProviderType != null ? ((IEventTypeNameProvider) Activator.CreateInstance(x.ProviderType))?.GetName(t) : x.Name)
+                var names = type.GetCustomAttributes<EventTypeNameAttribute>()
+                    .Select(x =>
+                        x.ProviderType != null
+                            ? ((IEventTypeNameProvider)Activator.CreateInstance(x.ProviderType))?.GetName(type)
+                            : x.Name)
                     .ToArray();
-                if(names.Length == 0)
-                    names = new string[] { t.Name };
-                _index.Add(t, names);
-            }
+                if (names.Length == 0)
+                    names = new string[] { type.Name };
+                return names;
+            });
 
-            return names;
+            
         }
     }
 }

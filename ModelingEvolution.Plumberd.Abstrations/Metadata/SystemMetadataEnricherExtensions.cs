@@ -17,7 +17,10 @@ namespace ModelingEvolution.Plumberd.Metadata
         }
         public static Guid StreamId(this IMetadata m)
         {
-            return Guid.Parse((string)m[m.Schema[MetadataProperty.StreamIdName]]);
+            var prop = m.Schema[MetadataProperty.StreamIdName];
+            var o = m[prop];
+            if (o is Guid guid) return guid;
+            return Guid.Parse((string)o);
         }
         public static string StreamIdName(this IMetadata m)
         {
