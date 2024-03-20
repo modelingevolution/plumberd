@@ -7,6 +7,8 @@ public static class EventTypeResolver {
     public static Func<IMetadata, Type> CustomResolver;
     public static Type Resolve(IMetadata m)
     {
+        if (m.Schema == null) return null;
+
         var enricher = m.Schema.Enricher<RecordTypeEnricher>();
         string typeStr = (string)m[enricher.Property];
         if (string.IsNullOrWhiteSpace(typeStr))
